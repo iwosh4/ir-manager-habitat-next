@@ -159,6 +159,7 @@ export class ObjectView {
     if (!this.labels?.length) return;
     const c = document.createElement('canvas'); c.width = 256; c.height = 96;
     const g = c.getContext('2d');
+    if (obj.type === 'info_board' || obj.type === 'fire_extinguisher') return this._drawSheet(obj);
     const quarantine = t.enclosure === 'quarantine';
     const occupied = obj.props?.occupied !== false;
     g.fillStyle = '#f3f0e8'; g.fillRect(0, 0, 256, 96);
@@ -167,6 +168,26 @@ export class ObjectView {
     g.fillText(occupied ? (obj.props?.animal?.code || obj.name).slice(0, 12) : 'EMPTY', 30, 44);
     g.font = 'italic 20px "Segoe UI", Roboto, Arial, sans-serif'; g.fillStyle = '#4a4c50';
     g.fillText((quarantine ? 'QUARANTINE · ' : '') + (occupied ? (obj.props?.animal?.species || t.label) : t.label).slice(0, 24), 30, 76);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    for (const m of this.labels) { m.map?.dispose(); m.map = tex; m.color.set(0xffffff); m.needsUpdate = true; }
+  }
+
+  /** Printed sheets (schedule board) / extinguisher instruction label. */
+  _drawSheet(obj) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 320;
+    const g = c.getContext('2d');
+    g.fillStyle = '#f7f5ef'; g.fillRect(0, 0, 256, 320);
+    if (obj.type === 'fire_extinguisher') {
+      g.fillStyle = '#b3261e'; g.fillRect(0, 0, 256, 70); g.fillStyle = '#fff'; g.font = 'bold 44px Arial'; g.fillText('CO₂ 5 kg', 22, 52);
+      g.fillStyle = '#222'; g.font = '22px Arial'; ['1  PULL PIN', '2  AIM AT BASE', '3  SQUEEZE', '4  SWEEP'].forEach((t, i) => g.fillText(t, 22, 120 + i * 44));
+    } else {
+      g.fillStyle = '#16171a'; g.font = 'bold 22px Arial'; g.fillText('FEEDING / CLEANING', 14, 34);
+      g.strokeStyle = '#9a968e'; g.lineWidth = 1.5;
+      for (let r = 0; r < 9; r++) { g.beginPath(); g.moveTo(12, 56 + r * 28); g.lineTo(244, 56 + r * 28); g.stroke(); }
+      for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(12 + k * 58, 56); g.lineTo(12 + k * 58, 280); g.stroke(); }
+      g.fillStyle = '#e08a2c'; for (let r = 0; r < 8; r++) for (let k = 0; k < 4; k++) if ((r * 7 + k * 3) % 5 < 2) { g.beginPath(); g.arc(41 + k * 58, 70 + r * 28, 7, 0, 7); g.fill(); }
+      g.fillStyle = '#4a4c50'; g.font = 'italic 16px Arial'; g.fillText('IR Manager · room A', 14, 308);
+    }
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
     for (const m of this.labels) { m.map?.dispose(); m.map = tex; m.color.set(0xffffff); m.needsUpdate = true; }
   }

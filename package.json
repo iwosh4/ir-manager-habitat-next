@@ -10,7 +10,8 @@
     "build:assets": "npm run build:textures && npm run build:models",
     "vendor": "node tools/vendor-three.mjs",
     "serve": "node tools/serve.mjs",
-    "test": "node tests/run-e2e.mjs"
+    "test": "node tests/run-e2e.mjs",
+    "package": "node tools/package.mjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.9",

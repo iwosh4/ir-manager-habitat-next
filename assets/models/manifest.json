@@ -596,5 +596,120 @@
       ]
     },
     "category": "opening"
+  },
+  "cable_tray": {
+    "file": "assets/models/cable_tray.glb",
+    "triangles": 3698,
+    "bytes": 101192,
+    "nativeSize": [
+      3.8,
+      0.06,
+      0.18
+    ],
+    "bounds": {
+      "min": [
+        -1.899999976158142,
+        -0.8002429604530334,
+        -0.006406474392861128
+      ],
+      "max": [
+        1.899999976158142,
+        0.05999999865889549,
+        0.1850000023841858
+      ]
+    },
+    "category": "technical"
+  },
+  "ceiling_diffuser": {
+    "file": "assets/models/ceiling_diffuser.glb",
+    "triangles": 1016,
+    "bytes": 54352,
+    "nativeSize": [
+      0.58,
+      0.065,
+      0.58
+    ],
+    "bounds": {
+      "min": [
+        -0.28999999165534973,
+        -0.052000001072883606,
+        -0.28999999165534973
+      ],
+      "max": [
+        0.28999999165534973,
+        0.013000000268220901,
+        0.28999999165534973
+      ]
+    },
+    "category": "fixture"
+  },
+  "exit_sign": {
+    "file": "assets/models/exit_sign.glb",
+    "triangles": 312,
+    "bytes": 10676,
+    "nativeSize": [
+      0.36,
+      0.16,
+      0.05
+    ],
+    "bounds": {
+      "min": [
+        -0.18000000715255737,
+        1.7881393032936899e-9,
+        -3.7252903539730653e-10
+      ],
+      "max": [
+        0.18000000715255737,
+        0.1599999964237213,
+        0.052000001072883606
+      ]
+    },
+    "category": "technical"
+  },
+  "fire_extinguisher": {
+    "file": "assets/models/fire_extinguisher.glb",
+    "triangles": 1380,
+    "bytes": 43448,
+    "nativeSize": [
+      0.16,
+      0.6,
+      0.18
+    ],
+    "bounds": {
+      "min": [
+        -0.07800000160932541,
+        0,
+        2.2351741291171123e-10
+      ],
+      "max": [
+        0.11538399010896683,
+        0.603277325630188,
+        0.18000000715255737
+      ]
+    },
+    "category": "technical"
+  },
+  "info_board": {
+    "file": "assets/models/info_board.glb",
+    "triangles": 998,
+    "bytes": 39688,
+    "nativeSize": [
+      1.2,
+      0.8,
+      0.02
+    ],
+    "bounds": {
+      "min": [
+        -0.6000000238418579,
+        -5.9604645663569045e-9,
+        2.2351741291171123e-10
+      ],
+      "max": [
+        0.6000000238418579,
+        0.800000011920929,
+        0.05999999865889549
+      ]
+    },
+    "category": "technical"
   }
 }

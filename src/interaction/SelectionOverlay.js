@@ -25,7 +25,7 @@ export class SelectionOverlay {
     this.group = new THREE.Group(); this.group.name = 'overlay';
     scene.add(this.group);
     const mat = (c, o = 0.95) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthTest: false, depthWrite: false, toneMapped: false });
-    this.matFrame = mat(AMBER); this.matFill = mat(AMBER, 0.08); this.matRing = mat(AMBER, 0.55); this.matHandle = mat(AMBER, 1);
+    this.matFrame = mat(AMBER); this.matFill = mat(AMBER, 0.1); this.matFill.depthTest = true; this.matFill.polygonOffset = true; this.matFill.polygonOffsetFactor = -2; this.matRing = mat(AMBER, 0.55); this.matHandle = mat(AMBER, 1);
     this.matGuide = new THREE.LineDashedMaterial({ color: AMBER, dashSize: 0.05, gapSize: 0.035, transparent: true, opacity: 0.9, depthTest: false, toneMapped: false });
     this.matWall = mat(AMBER, 0.85);
 

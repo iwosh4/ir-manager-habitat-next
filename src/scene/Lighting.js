@@ -9,7 +9,7 @@ import { LAYER_SPECIAL } from '../assets/AssetManager.js';
 export const PRESETS = {
   day: { label: 'Day', exposure: 1.0, env: 0.6, ceiling: 1.0, window: 1.0, hemi: 0.12, sun: 1.0, enclosures: 1.0, task: 1.0, probeFill: 0.8, exterior: 1.0, background: 0x0c0d0e },
   evening: { label: 'Evening', exposure: 1.05, env: 0.3, ceiling: 0.3, window: 0.15, hemi: 0.04, sun: 0.3, enclosures: 1.0, task: 1.0, probeFill: 0.35, exterior: 0.25, background: 0x0a0a0b },
-  night: { label: 'Night', exposure: 1.25, env: 0.12, ceiling: 0.0, window: 0.02, hemi: 0.015, sun: 0.0, enclosures: 1.0, task: 0.3, probeFill: 0.1, exterior: 0.04, background: 0x070708 },
+  night: { label: 'Night', exposure: 1.45, env: 0.22, ceiling: 0.07, window: 0.03, hemi: 0.05, sun: 0.0, enclosures: 1.0, task: 0.35, probeFill: 0.14, exterior: 0.05, background: 0x070708 },
 };
 
 export class Lighting {

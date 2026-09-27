@@ -154,14 +154,14 @@
       "type": "plant_snake",
       "name": "Snake plant",
       "position": {
-        "x": 4.73,
+        "x": 4.75,
         "z": 0.3
       },
       "elevation": 0,
       "rotation": 0,
       "size": {
-        "w": 0.51,
-        "d": 0.57,
+        "w": 0.45,
+        "d": 0.5,
         "h": 1.0
       },
       "mount": null,
@@ -517,6 +517,90 @@
       "mount": {
         "wall": "west",
         "offset": 0.4
+      },
+      "props": {}
+    },
+    {
+      "id": "tray_1",
+      "type": "cable_tray",
+      "name": "Cable tray N",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 2.35,
+      "rotation": 0,
+      "size": {
+        "w": 3.8,
+        "d": 0.18,
+        "h": 0.06
+      },
+      "mount": {
+        "wall": "north",
+        "offset": 2.55
+      },
+      "props": {}
+    },
+    {
+      "id": "board_1",
+      "type": "info_board",
+      "name": "Husbandry board",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 1.4,
+      "rotation": 90,
+      "size": {
+        "w": 1.0,
+        "d": 0.02,
+        "h": 0.75
+      },
+      "mount": {
+        "wall": "west",
+        "offset": 0.85
+      },
+      "props": {}
+    },
+    {
+      "id": "exit_1",
+      "type": "exit_sign",
+      "name": "Exit sign",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 2.28,
+      "rotation": 270,
+      "size": {
+        "w": 0.36,
+        "d": 0.05,
+        "h": 0.16
+      },
+      "mount": {
+        "wall": "east",
+        "offset": 2.7
+      },
+      "props": {}
+    },
+    {
+      "id": "fire_1",
+      "type": "fire_extinguisher",
+      "name": "Fire extinguisher",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 0.5,
+      "rotation": 270,
+      "size": {
+        "w": 0.16,
+        "d": 0.18,
+        "h": 0.6
+      },
+      "mount": {
+        "wall": "east",
+        "offset": 1.97
       },
       "props": {}
     }

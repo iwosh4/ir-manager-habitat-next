@@ -28,6 +28,10 @@ export class App {
     this.root = root;
     this.viewportEl = root.querySelector('#viewport');
     this.prefs = { quality: 'high', lighting: 'day', library: true, inspector: true, dims: true, ...Persistence.prefs() };
+    // URL overrides, e.g. ?quality=fast&lighting=night&view=top (useful for embedding and testing)
+    const q = new URLSearchParams(location.search);
+    for (const k of ['quality', 'lighting']) if (q.get(k)) this.prefs[k] = q.get(k);
+    this.initialView = q.get('view');
     this.draggingType = null;
     this.errors = [];
   }
@@ -67,7 +71,7 @@ export class App {
     await Promise.all([this.env.loadHDR('assets/environment/spruit_sunrise_1k.hdr'), this.materials.whenReady()]);
 
     progress(0.45, 'Loading 3D models');
-    let loaded = 0; const urls = [...new Set(Object.values(TYPES).map((t) => t.model))].concat(['assets/models/ceiling_panel.glb', 'assets/models/animal_python.glb', 'assets/models/animal_gecko.glb', 'assets/models/animal_frog.glb']);
+    let loaded = 0; const urls = [...new Set(Object.values(TYPES).map((t) => t.model))].concat(['assets/models/ceiling_panel.glb', 'assets/models/animal_python.glb', 'assets/models/animal_gecko.glb', 'assets/models/animal_frog.glb', 'assets/models/ceiling_diffuser.glb']);
     await Promise.all(urls.map((u) => this.assets.load(u).then(() => progress(0.45 + 0.4 * (++loaded / urls.length), 'Loading 3D models'))));
 
     const frosted = this.materials.get('glass_frosted');
@@ -91,7 +95,8 @@ export class App {
     this.setDimensions(this.prefs.dims);
 
     const cam = Persistence.prefs().camera;
-    if (restored && cam) this.rig.setState(cam); else this.rig.goTo('hero', { instant: true });
+    if (this.initialView) this.rig.goTo(this.initialView, { instant: true });
+    else if (restored && cam) this.rig.setState(cam); else this.rig.goTo('hero', { instant: true });
     this.refreshSelection();
     await this.objects.whenLoaded();
     progress(1, 'Ready');

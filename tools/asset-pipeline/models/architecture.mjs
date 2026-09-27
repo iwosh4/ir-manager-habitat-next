@@ -200,3 +200,83 @@ export function plant_fern() {
   fern(b, { pos: [0, 0.27, 0], size: 0.55, fronds: 14, seed: 17 });
   return b.toScene({ category: 'plant' });
 }
+
+/** Perforated steel cable tray on wall brackets with cable bundle and drops (origin: wall face, bottom centre). */
+export function cable_tray() {
+  const b = new Builder('cable_tray');
+  const W = 3.8, D = 0.15, H = 0.06;
+  b.box(W, 0.002, D, 'steel_graphite', [0, 0.001, D / 2 + 0.03], { r: 0 });
+  for (const s of [-1, 1]) b.box(W, H, 0.002, 'steel_graphite', [0, H / 2, D / 2 + 0.03 + s * D / 2], { r: 0 });
+  b.add(new THREE.PlaneGeometry(W, H - 0.01), 'perforated', { pos: [0, H / 2, D + 0.032], uvScale: 30, castShadow: false });
+  for (let i = 0; i < 7; i++) {
+    const x = -W / 2 + 0.15 + i * ((W - 0.3) / 6);
+    b.box(0.012, 0.012, D + 0.04, 'steel_graphite', [x, -0.007, (D + 0.03) / 2], { r: 0.002 });
+    b.box(0.03, 0.09, 0.004, 'steel_graphite', [x, -0.02, 0.002], { r: 0.001 });
+    b.box(0.012, 0.06, 0.012, 'steel_graphite', [x, -0.035, 0.02], { rot: [-0.9, 0, 0], r: 0.002 });
+  }
+  // cable bundle along the tray
+  for (let c = 0; c < 6; c++) {
+    const z = 0.06 + (c % 3) * 0.035, y = 0.012 + Math.floor(c / 3) * 0.012;
+    b.cyl(0.005, 0.005, W - 0.02, c % 2 ? 'cable_grey' : 'cable_black', [0, y, z], { rot: [0, 0, Math.PI / 2], radial: 8 });
+  }
+  // drops towards the enclosures below
+  for (const x of [-1.55, -0.95, -0.2, 0.55, 1.4]) {
+    const c = new THREE.CatmullRomCurve3([new THREE.Vector3(x, 0.02, 0.1), new THREE.Vector3(x + 0.02, -0.05, 0.13), new THREE.Vector3(x + 0.03, -0.35, 0.05), new THREE.Vector3(x + 0.03, -0.8, 0.02)]);
+    b.add(new THREE.TubeGeometry(c, 20, 0.004, 6), 'cable_black', { uv: 'keep' });
+  }
+  return b.toScene({ category: 'technical', nativeSize: [W, H, D + 0.03] });
+}
+
+/** Husbandry schedule board: aluminium-framed whiteboard with printed sheets and magnets. */
+export function info_board() {
+  const b = new Builder('info_board');
+  const W = 1.2, H = 0.8, D = 0.02;
+  b.box(W, H, D, 'aluminium', [0, H / 2, D / 2], { r: 0.006 });
+  b.box(W - 0.03, H - 0.03, 0.004, 'ceramic_white', [0, H / 2, D + 0.001], { r: 0.001 });
+  const sheets = [[-0.38, 0.52, 0.21, 0.297], [-0.13, 0.5, 0.21, 0.297], [0.3, 0.55, 0.297, 0.21]];
+  for (const [x, y, w, h] of sheets) {
+    b.add(new THREE.PlaneGeometry(w, h), 'label', { uv: 'keep', pos: [x, y, D + 0.0035] });
+    b.cyl(0.008, 0.008, 0.006, 'accent_red', [x, y + h / 2 - 0.015, D + 0.005], { rot: [Math.PI / 2, 0, 0], radial: 12 });
+  }
+  for (let i = 0; i < 5; i++) b.box(0.28, 0.006, 0.001, 'plastic_black', [0.28, 0.32 - i * 0.035, D + 0.0035], { r: 0 });
+  b.box(0.4, 0.02, 0.04, 'aluminium', [0.25, 0.02, D + 0.02], { r: 0.004 });
+  b.cyl(0.006, 0.006, 0.12, 'plastic_black', [0.2, 0.04, D + 0.025], { rot: [0, 0, Math.PI / 2], radial: 10 });
+  b.cyl(0.006, 0.006, 0.12, 'accent_red', [0.34, 0.04, D + 0.025], { rot: [0, 0, Math.PI / 2], radial: 10 });
+  return b.toScene({ category: 'technical', nativeSize: [W, H, D] });
+}
+
+/** Illuminated emergency exit sign (origin: wall face, bottom centre). */
+export function exit_sign() {
+  const b = new Builder('exit_sign');
+  b.box(0.36, 0.16, 0.05, 'plastic_white', [0, 0.08, 0.025], { r: 0.008 });
+  b.box(0.32, 0.12, 0.002, 'display_green', [0, 0.08, 0.051], { r: 0 });
+  return b.toScene({ category: 'technical', nativeSize: [0.36, 0.16, 0.05] });
+}
+
+/** Wall-mounted fire extinguisher on a bracket (origin: wall face, bottom). */
+export function fire_extinguisher() {
+  const b = new Builder('fire_extinguisher');
+  const prof = [[0, 0], [0.07, 0], [0.078, 0.02], [0.078, 0.44], [0.06, 0.5], [0.025, 0.52], [0, 0.52]];
+  b.addM(lathe(prof, 32), 'accent_red', matrix([0, 0, 0.1]));
+  b.cyl(0.016, 0.02, 0.06, 'chrome', [0, 0.55, 0.1], { radial: 16 });
+  b.box(0.12, 0.015, 0.03, 'plastic_black', [0.02, 0.585, 0.1], { rot: [0, 0, -0.2], r: 0.005 });
+  const hose = new THREE.CatmullRomCurve3([new THREE.Vector3(0.02, 0.56, 0.12), new THREE.Vector3(0.1, 0.45, 0.16), new THREE.Vector3(0.09, 0.2, 0.17), new THREE.Vector3(0.07, 0.1, 0.16)]);
+  b.add(new THREE.TubeGeometry(hose, 20, 0.008, 8), 'rubber_black', { uv: 'keep' });
+  b.box(0.1, 0.12, 0.002, 'label', [0, 0.28, 0.179], { r: 0 });
+  b.box(0.06, 0.3, 0.02, 'steel_graphite', [0, 0.35, 0.01], { r: 0.004 });
+  return b.toScene({ category: 'technical', nativeSize: [0.16, 0.6, 0.18] });
+}
+
+/** Square ceiling air diffuser (60 x 60) with concentric louvres. Origin: centre, ceiling plane, facing down. */
+export function ceiling_diffuser() {
+  const b = new Builder('ceiling_diffuser');
+  for (let i = 0; i < 4; i++) {
+    const s = 0.58 - i * 0.12, t = 0.035;
+    const ring = roundedRectShape(s, s, 0.004); ring.holes.push(roundedRectShape(s - t * 2, s - t * 2, 0.003));
+    const g = extrude(ring, 0.01 + i * 0.012); g.rotateX(Math.PI / 2); g.translate(0, 0.002, 0);
+    b.add(g, 'steel_white');
+  }
+  b.box(0.12, 0.004, 0.12, 'steel_white', [0, -0.05, 0], { r: 0.002 });
+  b.box(0.52, 0.002, 0.52, 'plastic_black', [0, 0.012, 0], { r: 0 });
+  return b.toScene({ category: 'fixture' });
+}

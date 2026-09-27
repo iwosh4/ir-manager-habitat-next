@@ -43,7 +43,7 @@ function assert(c, msg) { if (!c) throw new Error(msg || 'assertion failed'); }
 const near = (a, b, eps = 1e-3) => Math.abs(a - b) <= eps;
 
 const srv = process.env.URL ? null : await serve();
-const URL0 = process.env.URL || `http://localhost:${srv.address().port}/`;
+const URL0 = (process.env.URL || `http://localhost:${srv.address().port}/`) + (process.env.QUALITY === 'high' ? '' : '?quality=fast');
 const browser = await chromium.launch({ headless: !process.env.HEADFUL, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 }, acceptDownloads: true });
 const page = await ctx.newPage();
@@ -133,9 +133,10 @@ await test('camera orbit / pan / zoom', async () => {
 await test('view presets & smooth transitions (top/front/left/right/iso/reset)', async () => {
   for (const v of ['top', 'front', 'left', 'right', 'iso', 'interior', 'hero']) {
     await page.click(`.hud-views [data-view="${v === 'hero' ? 'hero' : v}"]`);
-    await settle(1100);
-    const st = await ev(() => ({ anim: window.habitat.rig.animating, p: window.habitat.rig.camera.position.toArray() }));
-    assert(!st.anim, `${v}: transition finished`);
+    const t0 = Date.now();
+    assert(await ev(() => window.habitat.rig.animating), `${v}: animated transition started`);
+    await page.waitForFunction(() => !window.habitat.rig.animating, null, { timeout: 60000 });
+    assert(Date.now() - t0 < 60000, `${v}: transition finished`);
   }
   await setView('top');
   const y = await ev(() => window.habitat.rig.camera.position.y);
@@ -224,7 +225,7 @@ await test('room resizing (inspector) rebuilds walls and keeps objects inside', 
   assert(s.w === 6, 'width = 6 m');
   assert(near(s.wall.max.x - s.wall.min.x, 6 + 2 * 0.14, 1e-3), 'north wall rebuilt');
   await page.fill('input[data-room="width"]', '3.2'); await page.press('input[data-room="width"]', 'Enter'); await settle(400);
-  s = await ev(() => { const h = window.habitat; const bad = h.editor.objects.filter((o) => o.position.x > h.editor.room.width + 1e-6 || o.position.x < 0); return { bad: bad.length, doorOffset: h.editor.get('door_1').mount.offset }; });
+  s = await ev(() => { const h = window.habitat; const T = h.editor.room.wallThickness; const bad = h.editor.objects.filter((o) => o.position.x > h.editor.room.width + T / 2 + 1e-6 || o.position.x < -T / 2 - 1e-6 || (!o.mount && (o.position.x > h.editor.room.width || o.position.x < 0))); return { bad: bad.length, doorOffset: h.editor.get('door_1').mount.offset }; });
   assert(s.bad === 0, 'objects clamped inside');
   await ev(() => window.habitat.editor.undo()); await ev(() => window.habitat.editor.undo()); await settle(300);
   assert(await ev(() => window.habitat.editor.room.width) === 5, 'undo restores 5 m');

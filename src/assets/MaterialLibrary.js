@@ -114,7 +114,7 @@ export class MaterialLibrary {
     E('bulb_hot', 0xffa152, 10);
     E('display', 0xff9a36, 2.2);
     E('display_green', 0x78ffae, 1.6);
-    E('panel_led', 0xfff4e8, 6);
+    E('panel_led', 0xfff4e8, 3.2);
 
     // --- wood, boards ---
     S('oak', { ...this.set('oak', [1.2, 0.6]), color: C(0xffffff), roughness: 1 });

@@ -105,6 +105,10 @@ export class RoomShell {
       this.panels.push({ x: -W / 2 + (i + 0.5) * (W / nx), z: -D / 2 + (j + 0.5) * (D / nz), w: 1.2, d: 0.6, y: H });
     }
     this._buildPanels(H);
+    this.diffusers = [];
+    const nd = Math.max(1, Math.round(D / 2.2));
+    for (let j = 0; j < nd; j++) this.diffusers.push({ x: nx > 1 ? 0 : W * 0.3, z: -D / 2 + (j + 0.5) * (D / nd) });
+    this._buildInstanced('assets/models/ceiling_diffuser.glb', this.diffusers, H, 'diffuserGroup');
     return true;
   }
 
@@ -125,6 +129,21 @@ export class RoomShell {
     this.panelGroup = group;
     this.group.add(group);
     this.ceilingParts.push(group);
+    this.onPanelsReady && this.onPanelsReady();
+  }
+
+  async _buildInstanced(url, items, H, key) {
+    const res = await this.assets.load(url);
+    if (!res || !items.length) return;
+    const group = new THREE.Group();
+    res.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      const inst = new THREE.InstancedMesh(o.geometry, o.material, items.length);
+      items.forEach((p, i) => inst.setMatrixAt(i, new THREE.Matrix4().makeTranslation(p.x, H, p.z)));
+      group.add(inst);
+    });
+    if (this[key]) this.group.remove(this[key]);
+    this[key] = group; this.group.add(group); this.ceilingParts.push(group);
     this.onPanelsReady && this.onPanelsReady();
   }
 

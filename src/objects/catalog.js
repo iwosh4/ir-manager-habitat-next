@@ -108,13 +108,29 @@ export const TYPES = {
     label: 'Power outlet', sub: 'Double socket', category: 'technical', model: 'assets/models/outlet.glb',
     size: { w: 0.16, d: 0.015, h: 0.085 }, placement: 'mounted', elevation: 0.3, resizable: false,
   }),
+  cable_tray: T({
+    label: 'Cable tray', sub: 'Perforated · with drops', category: 'technical', model: 'assets/models/cable_tray.glb',
+    size: { w: 3.8, d: 0.18, h: 0.06 }, placement: 'mounted', elevation: 2.35,
+  }),
+  info_board: T({
+    label: 'Schedule board', sub: 'Husbandry whiteboard', category: 'technical', model: 'assets/models/info_board.glb',
+    size: { w: 1.2, d: 0.02, h: 0.8 }, placement: 'mounted', elevation: 1.3,
+  }),
+  exit_sign: T({
+    label: 'Exit sign', sub: 'Illuminated', category: 'technical', model: 'assets/models/exit_sign.glb',
+    size: { w: 0.36, d: 0.05, h: 0.16 }, placement: 'mounted', elevation: 2.25, resizable: false,
+  }),
+  fire_extinguisher: T({
+    label: 'Fire extinguisher', sub: 'CO₂ · wall bracket', category: 'technical', model: 'assets/models/fire_extinguisher.glb',
+    size: { w: 0.16, d: 0.18, h: 0.6 }, placement: 'mounted', elevation: 0.5, resizable: false,
+  }),
   plant_large: T({
     label: 'Philodendron', sub: 'Large planter', category: 'plant', model: 'assets/models/plant_large.glb',
     size: { w: 1.0, d: 1.03, h: 1.33 }, fit: 'uniform',
   }),
   plant_snake: T({
     label: 'Snake plant', sub: 'Tall planter', category: 'plant', model: 'assets/models/plant_snake.glb',
-    size: { w: 0.51, d: 0.57, h: 1.0 }, fit: 'uniform',
+    size: { w: 0.45, d: 0.5, h: 1.0 }, fit: 'uniform',
   }),
   plant_fern: T({
     label: 'Fern', sub: 'Terracotta pot', category: 'plant', model: 'assets/models/plant_fern.glb',
