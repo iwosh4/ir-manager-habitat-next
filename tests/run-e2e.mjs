@@ -23,7 +23,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 function serve() {
   return new Promise((res) => {
     const srv = http.createServer((req, rsp) => {
-      let p = decodeURIComponent(new URL(req.url, 'http://x').pathname); if (p.endsWith('/')) p += 'index.html';
+      let p; try { p = decodeURIComponent(req.url.split('?')[0].replace(/\/{2,}/g, '/')); } catch { rsp.writeHead(400); return rsp.end(); } if (p.endsWith('/')) p += 'index.html';
       const f = path.join(ROOT, p);
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || !fs.statSync(f).isFile()) { rsp.writeHead(404); return rsp.end(); }
       rsp.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(rsp);
