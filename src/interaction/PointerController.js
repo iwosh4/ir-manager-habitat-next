@@ -116,7 +116,7 @@ export class PointerController {
       s.cand = cand;
       this.app.overlay.showGuides(cand.guides);
       this.app.overlay.show(this.editor.get(s.id), { colliding: cand.collisions.length > 0, dragging: true });
-      this.app.invalidate();
+      this.app.engine.interact();
     } else if (s.mode === 'rotate') {
       const a = this._angleAt(e, s.center);
       let deg = s.rot0 + ((a - s.start) * 180) / Math.PI;
@@ -126,7 +126,7 @@ export class PointerController {
       const o = this.editor.get(s.id);
       this.app.overlay.show(o, { colliding: this.editor.snapper.collisions(o).length > 0, dragging: true });
       this.app.setStatus(`Rotation ${Math.round(o.rotation)}°  (Shift = free)`);
-      this.app.invalidate();
+      this.app.engine.interact();
     }
   }
 
@@ -229,7 +229,7 @@ export class PointerController {
     pl.view.update(JSON.parse(JSON.stringify(pl.obj)));
     this.app.overlay.show(pl.obj, { colliding: cand.collisions.length > 0 });
     this.app.overlay.showGuides(cand.guides);
-    this.app.invalidate();
+    this.app.engine.interact();
   }
 
   _commitPlacement() {

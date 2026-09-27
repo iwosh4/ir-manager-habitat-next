@@ -19,6 +19,7 @@ import { LibraryPanel } from './ui/LibraryPanel.js';
 import { Inspector } from './ui/Inspector.js';
 import { Hud } from './ui/Hud.js';
 import { toast } from './ui/Toast.js';
+import { StaticBatcher } from './renderer/StaticBatcher.js';
 
 export const DEMO_URL = 'data/demo-room.json';
 
@@ -27,7 +28,8 @@ export class App {
   constructor(root) {
     this.root = root;
     this.viewportEl = root.querySelector('#viewport');
-    this.prefs = { quality: 'high', lighting: 'day', library: true, inspector: true, dims: true, ...Persistence.prefs() };
+    this.prefs = { quality: 'auto', lighting: 'day', library: true, inspector: true, dims: true, ...Persistence.prefs() };
+    if (!this.prefs.qualityV2) { this.prefs.quality = 'auto'; Persistence.savePrefs({ quality: 'auto', qualityV2: true }); } // Auto becomes the default
     // URL overrides, e.g. ?quality=fast&lighting=night&view=top (useful for embedding and testing)
     const q = new URLSearchParams(location.search);
     for (const k of ['quality', 'lighting']) if (q.get(k)) this.prefs[k] = q.get(k);
@@ -41,7 +43,7 @@ export class App {
     this.engine = new RenderEngine(this.viewportEl, { quality: this.prefs.quality });
     this.renderer = this.engine.renderer;
     this.scene = new THREE.Scene();
-    this.rig = new CameraRig(this.renderer.domElement, () => this.invalidate());
+    this.rig = new CameraRig(this.renderer.domElement, () => this.engine.interact());
     this.engine.attach(this.scene, this.rig.camera);
     this.labels = new CSS2DRenderer();
     this.labels.domElement.className = 'label-layer';
@@ -55,15 +57,19 @@ export class App {
     this.lighting = new Lighting(this.scene, this.engine);
     this.lighting.onApply = (p) => { this.env.build(p); this.env.setExteriorLevel(p.exterior); };
     this.shell = new RoomShell(this.materials, this.assets);
-    this.shell.onPanelsReady = () => { this._registerPanelMaterial(); this.invalidate(); };
+    this.shell.onPanelsReady = () => { this._registerPanelMaterial(); this.engine.markShadowsDirty(); };
     this.scene.add(this.shell.group);
     this.editor = new Editor();
     this.objects = new ObjectLayer(this.editor, {
       assets: this.assets, materials: this.materials, lighting: this.lighting,
       room: () => this.editor.room,
-      onReady: () => { this.refreshSelection(); this.invalidate(); },
+      onReady: () => { this.refreshSelection(); this.engine.markShadowsDirty(); },
     });
     this.scene.add(this.objects.group);
+    this.batcher = new StaticBatcher(this.scene);
+    // camera gestures drive the interactive render profile
+    this.rig.controls.addEventListener('start', () => { this._controlsActive = true; });
+    this.rig.controls.addEventListener('end', () => { this._controlsActive = false; this.engine.interact(); });
     this.overlay = new SelectionOverlay(this.scene);
     this.persistence = new Persistence(this.editor);
 
@@ -99,6 +105,8 @@ export class App {
     else if (restored && cam) this.rig.setState(cam); else this.rig.goTo('hero', { instant: true });
     this.refreshSelection();
     await this.objects.whenLoaded();
+    progress(0.96, 'Compiling shaders');
+    await this._precompile();
     progress(1, 'Ready');
     this._loop();
     window.addEventListener('beforeunload', () => { this.persistence.autosave(); Persistence.savePrefs({ camera: this.rig.getState() }); });
@@ -137,7 +145,8 @@ export class App {
     this.refreshSelection();
     this.inspector?.refresh();
     this.hud?.refresh();
-    this.invalidate();
+    this.engine.markShadowsDirty(); // placement / geometry changed
+    if (this.pointer?.state || this.inspector?.typing) this.engine.interact();
   }
 
   refreshSelection() {
@@ -161,24 +170,43 @@ export class App {
     const changed = this.objects.setHiddenWalls(hiddenWalls, Math.abs(dir.y) < 0.55);
     this.env.update(cam, this.editor.room);
     this.overlay.setRoomDimsVisible(!ceilingVisible);
+    // cut-away is a viewing aid: walls stay shadow casters (shadow-only layer), so no shadow update here
     if (changed || force) this.engine.invalidate();
+  }
+
+  /** The selected object (or the one being dragged / edited) is drawn from its own meshes. */
+  get detachedId() { return this.pointer?.state?.id || this.editor.selection || null; }
+
+  /**
+   * Compile every program up-front (parallel/async where the browser supports KHR_parallel_shader_compile)
+   * so the first frames and later interactions never stall the main thread on shader compilation.
+   */
+  async _precompile() {
+    this.batcher.sync(this.objects.views.values(), this.detachedId);
+    const t0 = performance.now();
+    try { await this.renderer.compileAsync(this.scene, this.rig.camera); } catch (e) { console.warn('[renderer] compileAsync failed', e); }
+    this.engine.warmup(); // post-processing chains, shadow & batching variants
+    this.engine.stats.compileMs = Math.round(performance.now() - t0);
   }
 
   _loop() {
     let frames = 0, t0 = performance.now();
-    const tick = () => {
+    const tick = (now) => {
       requestAnimationFrame(tick);
-      this.rig.update();
-      if (!this.engine.needsFrame) return;
+      this.rig.update(now);
+      const drag = this.pointer?.state?.mode;
+      this.engine.interacting = !!this._controlsActive || this.rig.animating || drag === 'move' || drag === 'rotate';
+      if (!this.engine.needsFrame) { this.hud?.tick(now); return; }
       this._updateCutaway();
-      this.materials.update(performance.now() / 1000);
-      this.engine.render();
-      this.labels.render(this.scene, this.rig.camera);
-      frames++;
-      const now = performance.now();
-      if (now - t0 > 1000) { this.engine.stats.fps = Math.round((frames * 1000) / (now - t0)); frames = 0; t0 = now; this.hud?.refreshStats(); }
+      this.batcher.sync(this.objects.views.values(), this.detachedId);
+      this.materials.update(now / 1000);
+      if (this.engine.frame(now)) {
+        this.labels.render(this.scene, this.rig.camera);
+        frames++;
+      }
+      if (now - t0 > 500) { this.engine.stats.fps = Math.round((frames * 1000) / (now - t0)); frames = 0; t0 = now; this.hud?.refreshStats(); }
     };
-    tick();
+    requestAnimationFrame(tick);
   }
 
   // ------------------------------------------------------------------ actions (used by UI & keyboard)

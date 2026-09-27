@@ -88,7 +88,12 @@ export class CameraRig {
 
   get animating() { return !!this.anim; }
 
-  update() {
+  update(now = performance.now()) {
+    // Frame-rate independent damping: OrbitControls damps by a fixed fraction *per update*, which at
+    // low frame rates makes the camera glide (and keep the renderer in interactive mode) for seconds.
+    const dt = Math.min(250, Math.max(1, now - (this._lastUpdate || now - 16.7)));
+    this._lastUpdate = now;
+    this.controls.dampingFactor = 1 - Math.pow(1 - 0.085, dt / 16.7);
     if (this.anim) {
       const a = this.anim, cam = this.camera, c = this.controls;
       const t = Math.min(1, (performance.now() - a.t0) / a.duration), k = ease(t);

@@ -60,4 +60,6 @@ export class AssetManager {
 /** Slots rendered on the "special" layer: excluded from AO / outline depth passes. */
 const SPECIAL = new Set(['water_fall', 'glass', 'glass_frosted', 'acrylic_smoke', 'pp_translucent', 'water', 'leaf', 'mesh_screen', 'perforated', 'pegboard', 'grass_dry']);
 export const LAYER_SPECIAL = 1;
+/** Seen only by shadow cameras: cut-away walls keep casting shadows, so cut-away never invalidates them. */
+export const LAYER_SHADOW_ONLY = 2;
 export function layerForSlot(slot) { return SPECIAL.has(slot) ? LAYER_SPECIAL : 0; }

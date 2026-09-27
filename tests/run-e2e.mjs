@@ -34,7 +34,9 @@ function serve() {
 // ---------------------------------------------------------------- harness
 const results = [];
 const errors = [];
+const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
 async function test(name, fn) {
+  if (ONLY && !ONLY.test(name) && !/initial room load/.test(name)) return;
   const t0 = Date.now();
   try { await fn(); results.push({ name, ok: true, ms: Date.now() - t0 }); console.log(`  ✓ ${name} (${Date.now() - t0} ms)`); }
   catch (e) { results.push({ name, ok: false, err: e.message }); console.log(`  ✗ ${name}\n      ${e.message}`); }
@@ -62,6 +64,14 @@ async function screenOf(id, hFrac = 0.5) {
     const rect = h.renderer.domElement.getBoundingClientRect();
     return { x: rect.left + (v.x + 1) / 2 * rect.width, y: rect.top + (1 - v.y) / 2 * rect.height };
   }, [id, hFrac]);
+}
+/** Wait until the progressive renderer has settled on a final-quality frame (dumps state on timeout). */
+async function waitIdle(timeout = 60000) {
+  try { await page.waitForFunction(() => { const e = window.habitat.engine; return e.mode === 'final' && !e.needsFrame; }, null, { timeout, polling: 250 }); }
+  catch (err) {
+    const st = await ev(() => { const e = window.habitat.engine; return { mode: e.mode, dirty: e.dirty, pending: e.pendingFinal, interacting: e.interacting, untilMs: Math.round(e.interactiveUntil - performance.now()), animating: window.habitat.rig.animating, controls: !!window.habitat._controlsActive, pointer: window.habitat.pointer.state?.mode || null }; });
+    throw new Error('renderer did not settle: ' + JSON.stringify(st) + ' errors: ' + errors.slice(-3).join(' | '));
+  }
 }
 async function setView(name) { await ev((n) => window.habitat.rig.goTo(n, { instant: true }), name); await settle(300); }
 
@@ -310,7 +320,8 @@ await test('responsive viewport resizing', async () => {
   await page.setViewportSize({ width: 1000, height: 700 }); await settle(600);
   const a = await ev(() => ({ w: window.habitat.renderer.domElement.clientWidth, aspect: window.habitat.rig.camera.aspect, vp: document.getElementById('viewport').clientWidth }));
   assert(Math.abs(a.w - a.vp) <= 1, 'canvas follows viewport');
-  await page.setViewportSize({ width: 1600, height: 900 }); await settle(600);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.waitForFunction(() => { const c = window.habitat.renderer.domElement; return Math.abs(window.habitat.rig.camera.aspect - c.clientWidth / c.clientHeight) < 0.01 && c.clientWidth > 1000; }, null, { timeout: 60000 });
   const b = await ev(() => ({ w: window.habitat.renderer.domElement.clientWidth, aspect: window.habitat.rig.camera.aspect, h: window.habitat.renderer.domElement.clientHeight }));
   assert(b.w > a.w && Math.abs(b.aspect - b.w / b.h) < 0.01, 'camera aspect updated');
   await page.click('[data-act="library"]'); await settle(500);
@@ -323,6 +334,60 @@ await test('lighting presets & quality levels', async () => {
   for (const l of ['night', 'evening', 'day']) { await page.click(`[data-light="${l}"]`); await settle(250); }
   for (const q of ['fast', 'balanced', 'high']) { await page.selectOption('[data-role="quality"]', q); await settle(300); }
   assert(await ev(() => window.habitat.lighting.presetKey === 'day' && window.habitat.engine.qualityKey === 'high'), 'presets applied');
+});
+
+await test('progressive renderer: interactive while orbiting, final restored after settling', async () => {
+  await setView('overview'); await waitIdle();
+  const box = await page.locator('canvas.viewport-canvas').boundingBox();
+  const shadows0 = await ev(() => window.habitat.engine.stats.shadowUpdates);
+  await page.mouse.move(box.x + box.width / 2, box.y + 30); await page.mouse.down();
+  let sawInteractive = false;
+  for (let i = 0; i < 6; i++) { await page.mouse.move(box.x + box.width / 2 + i * 25, box.y + 32); if (await ev(() => window.habitat.engine.isInteractive)) sawInteractive = true; }
+  const midMode = await ev(() => window.habitat.engine.mode);
+  await page.mouse.up();
+  assert(sawInteractive && midMode === 'interactive', `interactive profile used while orbiting (mode ${midMode})`);
+  await waitIdle();
+  const s = await ev(() => ({ shadows: window.habitat.engine.stats.shadowUpdates, draws: window.habitat.engine.stats.drawCalls }));
+  assert(s.shadows === shadows0, `camera-only movement did not re-render shadow maps (${shadows0} -> ${s.shadows})`);
+});
+
+await test('shadow invalidation on placement change', async () => {
+  const n0 = await ev(() => window.habitat.engine.stats.shadowUpdates);
+  await ev(() => window.habitat.editor.update('fern_1', { position: { x: 2.6, z: 2.4 } }));
+  await page.waitForFunction((n) => window.habitat.engine.stats.shadowUpdates > n, n0, { timeout: 60000 });
+});
+
+await test('no shader recompilation on lighting presets / occupancy / placement preview', async () => {
+  await settle(500);
+  const p0 = await ev(() => window.habitat.renderer.info.programs.length);
+  for (const l of ['night', 'evening', 'day']) { await page.click(`[data-light="${l}"]`); await settle(300); }
+  await ev(() => { const ed = window.habitat.editor; ed.update('terr_a1', { props: { occupied: false } }); ed.update('terr_a1', { props: { occupied: true } }); ed.update('palu_1', { props: { lighting: false } }); ed.update('palu_1', { props: { lighting: true } }); });
+  await settle(800);
+  const p1 = await ev(() => window.habitat.renderer.info.programs.length);
+  assert(p1 === p0, `program count stable (${p0} -> ${p1})`);
+});
+
+await test('static batching reduces draw calls; selection detaches the object', async () => {
+  await ev(() => window.habitat.editor.select(null)); await settle(300);
+  await waitIdle();
+  const s = await ev(() => ({ b: window.habitat.batcher.stats, draws: window.habitat.engine.stats.drawCalls }));
+  assert(s.b.batches > 20 && s.b.instances > 150, `batches ${s.b.batches}, instances ${s.b.instances}`);
+  await ev(() => window.habitat.editor.select('terr_a1')); await settle(300); await waitIdle();
+  const d = await ev(() => { const v = window.habitat.objects.get('terr_a1'); let shown = 0; v.visual.traverse((m) => { if (m.isMesh && m.userData.batchable && m.visible) shown++; }); return { shown, detached: window.habitat.batcher.detachedId }; });
+  assert(d.detached === 'terr_a1' && d.shown > 5, 'selected object drawn from its own meshes (outline works)');
+  await ev(() => window.habitat.editor.select(null));
+});
+
+await test('Auto quality mode available and adaptive diagnostics exposed', async () => {
+  await page.selectOption('[data-role="quality"]', 'auto'); await settle(500);
+  const d = await ev(() => window.habitat.engine.diagnostics());
+  assert(d.quality === 'Auto' && d.finalProfile && typeof d.renderScale === 'number', JSON.stringify(d));
+  await page.keyboard.press('i'); await settle(300);
+  assert(await page.isVisible('.hud-diag'), 'diagnostics panel toggles with I');
+  const txt = await page.textContent('.hud-diag');
+  for (const k of ['Draw calls', 'Triangles', 'Render scale', 'Mode', 'FPS']) assert(txt.includes(k), `diagnostics show ${k}`);
+  await page.keyboard.press('i');
+  await page.selectOption('[data-role="quality"]', 'fast'); await settle(300);
 });
 
 await test('no fatal console errors', async () => {

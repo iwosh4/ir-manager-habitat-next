@@ -34,7 +34,13 @@ export class LibraryPanel {
       const img = item.querySelector('img'); if (img?.src) e.dataTransfer.setDragImage(img, 40, 30);
     });
     this.list.addEventListener('dragend', () => { if (this.app.draggingType) { this.app.draggingType = null; this.app.pointer.cancelPlacement(); } });
-    setTimeout(() => this.loadThumbs(), 600);
+    // Pre-rendered thumbnails (assets/thumbnails, built by tools/build-thumbnails.mjs). Only if one is
+    // missing is it rendered live from the GLB — no second WebGL context in the normal case.
+    this.list.addEventListener('error', (e) => {
+      const img = e.target; if (img.tagName !== 'IMG' || img.dataset.live) return;
+      img.dataset.live = '1'; img.removeAttribute('src');
+      const id = img.dataset.thumb; this.thumbs.get(id, TYPES[id].model).then(() => this._applyThumbs());
+    }, true);
   }
 
   render() {
@@ -47,7 +53,7 @@ export class LibraryPanel {
         <button class="lib-cat-head" data-cat="${c.id}">${icon('chevron', 'chev')}<span>${c.label}</span><em>${items.length}</em></button>
         <div class="lib-grid">${open ? items.map((t) => `
           <div class="lib-item" draggable="true" data-type="${t.id}" title="${t.label} — ${t.sub}">
-            <div class="lib-thumb">${this.thumbs.cache.has(t.id) ? '' : '<span class="thumb-spin"></span>'}<img alt="" data-thumb="${t.id}"></div>
+            <div class="lib-thumb"><img alt="" data-thumb="${t.id}" src="assets/thumbnails/${t.id}.png" loading="lazy" draggable="false"></div>
             <div class="lib-meta"><b>${t.label}</b><span>${t.sub}</span><i>${cm(t.size.w)}×${cm(t.size.d)}×${cm(t.size.h)}</i></div>
           </div>`).join('') : ''}</div>
       </section>`;
@@ -64,10 +70,10 @@ export class LibraryPanel {
   }
 
   _applyThumbs() {
-    for (const img of this.list.querySelectorAll('img[data-thumb]')) {
+    for (const img of this.list.querySelectorAll('img[data-thumb][data-live]')) {
       const p = this.thumbs.cache.get(img.dataset.thumb);
       if (!p) continue;
-      p.then((url) => { if (url && img.src !== url) { img.src = url; img.parentElement.querySelector('.thumb-spin')?.remove(); } else if (!url) img.parentElement.classList.add('missing'); });
+      p.then((url) => { if (url && img.src !== url) img.src = url; else if (!url) img.parentElement.classList.add('missing'); });
     }
   }
 }

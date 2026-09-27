@@ -71,10 +71,10 @@ export class MaterialLibrary {
     S('stainless', { color: C(0xd6d8da), metalness: 0.92, roughness: 1.25, ...brushed(0.5), normalScale: new THREE.Vector2(0.3, 0.3) });
     S('chrome', { color: C(0xf4f4f4), metalness: 1, roughness: 0.06 });
     S('copper', { color: C(0xc98a5a), metalness: 1, roughness: 0.32 });
-    P('steel_graphite', { color: C(0x2b2d31), metalness: 0.35, roughness: 0.46, ...peel(0.25, 0.3), clearcoat: 0.12, clearcoatRoughness: 0.35 });
-    P('steel_white', { color: C(0xe2e2de), metalness: 0.1, roughness: 0.42, ...peel(0.25, 0.12), clearcoat: 0.1, clearcoatRoughness: 0.3 });
-    P('steel_amber', { color: C(0xd9862c), metalness: 0.2, roughness: 0.42, clearcoat: 0.2 });
-    P('door_leaf', { color: C(0x3a3c40), metalness: 0.2, roughness: 0.42, ...peel(0.4, 0.2), clearcoat: 0.15 });
+    S('steel_graphite', { color: C(0x2b2d31), metalness: 0.35, roughness: 0.43, ...peel(0.25, 0.3) });
+    S('steel_white', { color: C(0xe2e2de), metalness: 0.1, roughness: 0.4, ...peel(0.25, 0.12) });
+    S('steel_amber', { color: C(0xd9862c), metalness: 0.2, roughness: 0.38 });
+    S('door_leaf', { color: C(0x3a3c40), metalness: 0.2, roughness: 0.39, ...peel(0.4, 0.2) });
 
     // --- glass & transparent ---
     P('glass', {
@@ -102,7 +102,7 @@ export class MaterialLibrary {
     S('plastic_grey', { color: C(0x5e6166), roughness: 0.5, ...rub(0.2) });
     S('plastic_white', { color: C(0xeceae5), roughness: 0.4, ...rub(0.15) });
     P('pvc_white', { color: C(0xf2f1ec), roughness: 0.32, clearcoat: 0.25, clearcoatRoughness: 0.3 });
-    P('pvc_black', { color: C(0x1c1d1f), roughness: 0.38, clearcoat: 0.2, clearcoatRoughness: 0.35 });
+    S('pvc_black', { color: C(0x1c1d1f), roughness: 0.35 });
     S('cable_black', { color: C(0x101011), roughness: 0.5 });
     S('cable_grey', { color: C(0x8a8d90), roughness: 0.5 });
 
@@ -119,8 +119,8 @@ export class MaterialLibrary {
     // --- wood, boards ---
     S('oak', { ...this.set('oak', [1.2, 0.6]), color: C(0xffffff), roughness: 1 });
     S('mdf_black', { color: C(0x1d1d1e), roughness: 0.55 });
-    P('laminate_grey', { color: C(0x3b3d41), roughness: 0.48, ...peel(0.5, 0.15), clearcoat: 0.08 });
-    P('laminate_white', { color: C(0xe8e6e1), roughness: 0.4, ...peel(0.5, 0.1), clearcoat: 0.1 });
+    S('laminate_grey', { color: C(0x3b3d41), roughness: 0.46, ...peel(0.5, 0.15) });
+    S('laminate_white', { color: C(0xe8e6e1), roughness: 0.38, ...peel(0.5, 0.1) });
 
     // --- naturals ---
     S('sand', { ...this.set('sand', 0.6, { normalScale: 1.2 }), roughness: 1, envMapIntensity: 0.7 });
@@ -133,7 +133,7 @@ export class MaterialLibrary {
     S('moss', { ...this.set('moss', 0.18, { normalScale: 1.5 }), roughness: 1, envMapIntensity: 0.5 });
     S('vermiculite', { ...this.set('vermiculite', 0.15), roughness: 1 });
     P('gravel_wet', { ...this.set('sand', 0.25, { normalScale: 1.6 }), color: C(0x8c7a64), roughness: 0.55, clearcoat: 0.6, clearcoatRoughness: 0.15, envMapIntensity: 0.9 });
-    P('water_fall', { color: C(0xf2f7f6), roughness: 0.15, transmission: 0.55, thickness: 0.01, normalMap: this.tex('water', 'normal.jpg', { repeat: [2, 6] }), normalScale: new THREE.Vector2(1.2, 1.2), side: THREE.DoubleSide });
+    P('water_fall', { color: C(0x7fa89c), roughness: 0.12, transparent: true, opacity: 0.07, depthWrite: false, envMapIntensity: 1.6, normalMap: this.tex('water', 'normal.jpg', { repeat: [2, 6] }), normalScale: new THREE.Vector2(1.2, 1.2), side: THREE.DoubleSide });
     S('sack', { ...this.set('plaster', 0.3, { orm: false, normalScale: 2 }), color: C(0x3d4a3b), roughness: 0.8 });
     S('sack_label', { color: C(0xe6dcc4), roughness: 0.7 });
     S('leaf', {

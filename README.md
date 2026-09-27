@@ -48,7 +48,8 @@ reset.
 | Undo / redo | **Ctrl+Z** / **Ctrl+Y** |
 | Export / import | toolbar: **Export JSON** (Ctrl+S) · **Import JSON** (Ctrl+O) |
 | Lighting | Day / Evening / Night (night = enclosure lighting only) |
-| Quality | Ultra / High / Balanced / Fast (pixel ratio, MSAA, ambient occlusion, bloom, shadow resolution) |
+| Quality | **Auto** (default, adapts to the measured frame time) · Ultra / High / Balanced / Fast manual overrides. While you orbit / pan / zoom / drag, a lighter *interactive* profile is drawn; the full-quality frame returns ≈ 0.2 s after you stop |
+| Diagnostics | click the stats line (bottom-right) or press **I**: FPS, frame time, draw calls, triangles, render scale, interactive/final mode, shadow updates, batches, light pool |
 | Panels / fullscreen | **[** library · **]** inspector · **F11** fullscreen (viewport becomes the whole screen) |
 
 Enclosures have **Occupied** and **Lighting** switches: occupied enclosures are lit and show their animal,
@@ -80,6 +81,8 @@ data/demo-room.json        prebuilt demonstration room
 schema/                    JSON Schema of the room document
 tools/asset-pipeline/      reproducible model & texture authoring (Node)
 tools/serve.mjs            static server · tools/vendor-three.mjs copies three.js into vendor/
+tools/build-thumbnails.mjs pre-renders library thumbnails into assets/thumbnails/
+tests/benchmark.mjs        performance benchmark (static frame + mouse orbit/zoom/pan)
 tests/run-e2e.mjs          end-to-end browser tests
 vendor/three/              three.js r186 (MIT), only the files the app imports
 ```
@@ -91,6 +94,7 @@ Models and textures are committed, so this is only needed when changing them:
 ```bash
 npm install                 # three (geometry/exporter) + @napi-rs/canvas (texture writer)
 npm run build:assets        # textures + GLB models (≈ 30 s)
+node tools/build-thumbnails.mjs   # library thumbnails (needs Playwright)
 npm run vendor              # refresh vendor/three from node_modules
 ```
 
@@ -105,15 +109,14 @@ The suite starts its own server and covers: initial load, GLB loading, missing-a
 pan / zoom, view presets, fullscreen, selection, move + undo, rotation, duplicate, delete, snapping
 (wall, grid, stacking, collisions), room resizing, adding an enclosure (click-to-place), adding furniture
 (drag & drop), wall placement of doors/windows, JSON export, JSON re-import (+ invalid file rejection),
-browser refresh (autosave), responsive resizing, lighting/quality switching and console errors.
+browser refresh (autosave), responsive resizing, lighting/quality switching, the progressive renderer
+(interactive while orbiting, final after settling), shadow invalidation, no shader recompilation on
+preset/occupancy changes, static batching, Auto quality + diagnostics, and console errors (26 tests).
 Results are written to `tests/last-run.json`.
 
-## Performance notes
+## Performance
 
-* Render-on-demand: frames are only rendered while something changes (camera, edits, transitions).
-* Every GLB is merged per material slot; all objects share one material/texture set (≈ 70 materials total).
-* Enclosure interiors do not cast shadows; one soft directional shadow map covers the room.
-* Pixel ratio is capped per quality level; *Balanced* / *Fast* are intended for integrated GPUs.
-* Ceiling panels and repeated drain slots use `InstancedMesh`.
+See **PERFORMANCE.md** — progressive (interactive / final) rendering, Auto quality, static batching,
+shadow invalidation, fixed light pool, measurements and the benchmark script (`tests/benchmark.mjs`).
 
 See **ARCHITECTURE.md** for the data model and the integration plan, **ASSET_LICENSES.md** for licences.

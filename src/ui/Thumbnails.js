@@ -13,7 +13,7 @@ export class Thumbnails {
   _init() {
     if (this.renderer) return;
     const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-    r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    r.setPixelRatio(1);
     r.setSize(this.size[0], this.size[1], false);
     r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0;
     this.renderer = r;

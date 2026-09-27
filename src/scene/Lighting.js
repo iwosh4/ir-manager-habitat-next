@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LAYER_SPECIAL } from '../assets/AssetManager.js';
+import { LAYER_SPECIAL, LAYER_SHADOW_ONLY } from '../assets/AssetManager.js';
 
 /**
  * Lighting rig and presets. Lights are "believable fixtures": every emissive panel in the room has a
@@ -23,7 +23,48 @@ export class Lighting {
     this.hemi = new THREE.HemisphereLight(0xf5f1ea, 0x3a332c, 0.3);
     this.group.add(this.hemi);
     this.rig = [];
+    this._buildPool();
   }
+
+  /**
+   * Fixed-size pools of enclosure / task lights. The number of lights in the scene never changes after
+   * start-up, so switching presets, toggling occupancy, placing or hiding objects never triggers a
+   * recompilation of every shader program (the main cause of multi-second freezes). Unused lights sit
+   * at intensity 0. Lights are never made invisible (that would change the light count as well).
+   */
+  _buildPool(spots = 18, points = 2, rects = 1) {
+    this.pool = { spot: [], point: [], rect: [] };
+    this.poolGroup = new THREE.Group(); this.poolGroup.name = 'light-pool';
+    this.group.add(this.poolGroup);
+    this._grow('spot', spots); this._grow('point', points); this._grow('rect', rects);
+    this.poolGrowths = 0;
+  }
+
+  _grow(kind, n) {
+    for (let i = 0; i < n; i++) {
+      const l = kind === 'spot' ? new THREE.SpotLight(0xffffff, 0, 1, 1, 0.9, 1)
+        : kind === 'point' ? new THREE.PointLight(0xffffff, 0, 1, 2) : new THREE.RectAreaLight(0xe4ecff, 0, 1, 1);
+      l.userData.free = true; l.position.set(0, -50, 0);
+      this.poolGroup.add(l); if (l.target) this.poolGroup.add(l.target);
+      this.pool[kind].push(l);
+    }
+  }
+
+  /**
+   * Borrow a light. When the pool is exhausted (e.g. the user adds more enclosures than the room was
+   * started with) it grows by a small chunk: one shader recompilation on that explicit edit, instead
+   * of one on every preset switch / occupancy toggle / cut-away change.
+   */
+  acquire(kind = 'spot') {
+    let l = this.pool[kind].find((x) => x.userData.free);
+    if (!l) { this._grow(kind, kind === 'spot' ? 4 : 1); this.poolGrowths++; l = this.pool[kind].find((x) => x.userData.free); }
+    l.userData.free = false;
+    return l;
+  }
+
+  release(l) { if (!l) return; l.intensity = 0; l.userData.free = true; l.position.set(0, -50, 0); }
+
+  poolUsage() { const u = (k) => `${this.pool[k].filter((l) => !l.userData.free).length}/${this.pool[k].length}`; return { spot: u('spot'), point: u('point'), rect: u('rect') }; }
 
   /** (Re)build the ceiling rig for the room & panel layout. */
   build(room, panels) {
@@ -47,6 +88,7 @@ export class Lighting {
     sun.shadow.mapSize.set(this.engine.shadowMapSize || 2048, this.engine.shadowMapSize || 2048);
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02; sun.shadow.radius = 5; sun.shadow.blurSamples = 16;
     sun.shadow.camera.layers.enable(LAYER_SPECIAL);
+    sun.shadow.camera.layers.enable(LAYER_SHADOW_ONLY);
     sun.userData.base = 1.1; sun.userData.kind = 'ceiling';
     this.group.add(sun, sun.target); this.rig.push(sun);
     this.apply();
@@ -68,19 +110,19 @@ export class Lighting {
 
   _applyEntry(e) {
     const k = this.factor(e.kind) * (e.enabled === false ? 0 : 1);
-    if (e.light) { e.light.intensity = e.base * k; e.light.visible = k > 0.001; }
+    if (e.light) e.light.intensity = e.base * k; // never toggle .visible (would recompile all programs)
     if (e.material) e.material.emissiveIntensity = e.baseEmissive * (e.kind === 'enclosure' ? (e.enabled === false ? 0.0 : 1) : Math.max(k, 0.02));
   }
 
   apply() {
     const p = this.preset;
-    for (const l of this.rig) { const k = l.isDirectionalLight ? p.sun : p.ceiling; l.intensity = l.userData.base * k; l.visible = k > 0.001; }
+    for (const l of this.rig) { const k = l.isDirectionalLight ? p.sun : p.ceiling; l.intensity = l.userData.base * k; }
     this.hemi.intensity = p.hemi;
     for (const e of this.dynamic) this._applyEntry(e);
     this.engine.renderer.toneMappingExposure = p.exposure;
     this.scene.environmentIntensity = p.env;
     this.scene.background = new THREE.Color(p.background);
     this.onApply && this.onApply(p);
-    this.engine.invalidate();
+    this.engine.markShadowsDirty();
   }
 }

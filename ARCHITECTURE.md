@@ -102,8 +102,12 @@ toast and an inspector warning; the logical object is unaffected and still expor
   presets Day / Evening / Night.
 * `Environment`: PMREM-filtered procedural light probe matching the facility + CC0 HDRI seen through the
   window.
-* `RenderEngine`: HDR half-float MSAA target → GTAO → bloom (emitters only) → selection outline →
-  ACES tone mapping → finishing grade (vignette, grain) → optional SMAA; render-on-demand; quality presets.
+* `RenderEngine`: progressive renderer. Final (stationary) chain: HDR half-float MSAA target → GTAO →
+  bloom (emitters only) → selection outline → ACES tone mapping → finishing grade → optional SMAA.
+  Interactive chain (while manipulating): reduced resolution, no MSAA/AO/bloom. Render-on-demand,
+  shadow maps only re-rendered when invalidated, Auto quality. Details in PERFORMANCE.md.
+* `StaticBatcher`: folds all objects' GLB meshes into one `BatchedMesh` per shared material (multi-draw);
+  purely a rendering concern — logical data and ObjectViews are unchanged.
 
 ## 5. Editor
 

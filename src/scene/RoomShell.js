@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { LAYER_SHADOW_ONLY } from '../assets/AssetManager.js';
 import { getType } from '../objects/catalog.js';
 import { WALLS, wallFrame } from '../model/RoomDocument.js';
 
@@ -78,11 +80,11 @@ export class RoomShell {
       // cove skirting along the interior face, interrupted at door openings
       const segs = [[0, f.length]];
       for (const op of openings.filter((p) => p.wall === wall && p.sill < 0.1)) splitSegments(segs, op.offset - op.w / 2 - 0.05, op.offset + op.w / 2 + 0.05);
-      for (const [a, b] of segs) {
-        if (b - a < 0.02) continue;
-        const sk = new THREE.Mesh(coveGeometry(b - a), M('skirting'));
+      const pieces = [];
+      for (const [a, b] of segs) { if (b - a >= 0.02) pieces.push(coveGeometry(b - a).translate(a, 0, 0)); }
+      if (pieces.length) {
+        const sk = new THREE.Mesh(pieces.length > 1 ? mergeGeometries(pieces) : pieces[0], M('skirting')); // one draw per wall
         sk.position.copy(start); sk.rotation.y = mesh.rotation.y;
-        sk.translateX(a);
         sk.receiveShadow = true;
         this.group.add(sk);
         this.wallAttached[wall].push(sk);
@@ -154,7 +156,7 @@ export class RoomShell {
     const hidden = new Set();
     for (const w of WALLS) {
       const vis = !outside[w];
-      if (this.walls[w]) this.walls[w].visible = vis;
+      if (this.walls[w]) this.walls[w].layers.set(vis ? 0 : LAYER_SHADOW_ONLY); // hidden from the camera, still casting
       for (const o of this.wallAttached[w] || []) o.visible = vis;
       if (!vis) hidden.add(w);
     }
