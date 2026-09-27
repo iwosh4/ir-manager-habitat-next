@@ -1,0 +1,19 @@
+{
+  "name": "ir-manager-habitat-studio-next",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "IR Manager - Habitat Studio Next: standalone 3D reptile facility room planner",
+  "scripts": {
+    "build:textures": "node tools/asset-pipeline/build-textures.mjs",
+    "build:models": "node tools/asset-pipeline/build-models.mjs",
+    "build:assets": "npm run build:textures && npm run build:models",
+    "vendor": "node tools/vendor-three.mjs",
+    "serve": "node tools/serve.mjs",
+    "test": "node tests/run-e2e.mjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "three": "^0.186.1"
+  }
+}

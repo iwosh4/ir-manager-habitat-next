@@ -1,0 +1,530 @@
+{
+  "schema": "ir-manager/habitat-room",
+  "version": 1,
+  "room": {
+    "id": "room_demo_a",
+    "name": "Reptile room A",
+    "width": 5.0,
+    "depth": 4.0,
+    "height": 2.7,
+    "wallThickness": 0.14,
+    "finishes": {
+      "floor": "concrete_polished",
+      "walls": "warm_grey",
+      "accentWall": "north"
+    }
+  },
+  "objects": [
+    {
+      "id": "stand_a",
+      "type": "stand_cabinet",
+      "name": "Stand A",
+      "position": {
+        "x": 0.62,
+        "z": 0.25
+      },
+      "elevation": 0,
+      "rotation": 0,
+      "size": {
+        "w": 1.0,
+        "d": 0.5,
+        "h": 0.8
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "terr_a1",
+      "type": "terrarium_arid",
+      "name": "Python enclosure A1",
+      "position": {
+        "x": 0.62,
+        "z": 0.25
+      },
+      "elevation": 0.8,
+      "rotation": 0,
+      "size": {
+        "w": 1.0,
+        "d": 0.5,
+        "h": 0.5
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": true,
+        "animal": {
+          "species": "Python regius",
+          "code": "PR-01"
+        },
+        "notes": "Basking 32 \u00b0C \u00b7 cool side 26 \u00b0C"
+      }
+    },
+    {
+      "id": "stand_b",
+      "type": "stand_cabinet",
+      "name": "Stand B",
+      "position": {
+        "x": 1.5,
+        "z": 0.225
+      },
+      "elevation": 0,
+      "rotation": 0,
+      "size": {
+        "w": 0.6,
+        "d": 0.45,
+        "h": 0.8
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "terr_b1",
+      "type": "terrarium_tropical",
+      "name": "Crested gecko B1",
+      "position": {
+        "x": 1.5,
+        "z": 0.225
+      },
+      "elevation": 0.8,
+      "rotation": 0,
+      "size": {
+        "w": 0.6,
+        "d": 0.45,
+        "h": 0.9
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": true,
+        "animal": {
+          "species": "Correlophus ciliatus",
+          "code": "CC-04"
+        },
+        "notes": "Mist 2\u00d7 daily \u00b7 70\u201380 % RH"
+      }
+    },
+    {
+      "id": "rack_1",
+      "type": "rack_glass",
+      "name": "Enclosure rack R1",
+      "position": {
+        "x": 2.55,
+        "z": 0.25
+      },
+      "elevation": 0,
+      "rotation": 0,
+      "size": {
+        "w": 1.2,
+        "d": 0.5,
+        "h": 1.9
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": true
+      }
+    },
+    {
+      "id": "palu_1",
+      "type": "paludarium",
+      "name": "Paludarium P1",
+      "position": {
+        "x": 3.9,
+        "z": 0.25
+      },
+      "elevation": 0,
+      "rotation": 0,
+      "size": {
+        "w": 1.2,
+        "d": 0.5,
+        "h": 1.4
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": true,
+        "animal": {
+          "species": "Dendrobates tinctorius",
+          "code": "DT-02"
+        }
+      }
+    },
+    {
+      "id": "plant_1",
+      "type": "plant_snake",
+      "name": "Snake plant",
+      "position": {
+        "x": 4.73,
+        "z": 0.3
+      },
+      "elevation": 0,
+      "rotation": 0,
+      "size": {
+        "w": 0.51,
+        "d": 0.57,
+        "h": 1.0
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "quar_1",
+      "type": "quarantine",
+      "name": "Quarantine Q1",
+      "position": {
+        "x": 0.25,
+        "z": 1.0
+      },
+      "elevation": 0,
+      "rotation": 90,
+      "size": {
+        "w": 0.9,
+        "d": 0.5,
+        "h": 1.14
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": true,
+        "animal": {
+          "species": "Python regius",
+          "code": "Q-07"
+        },
+        "notes": "Arrived 2026-09-12 \u00b7 90 day protocol"
+      }
+    },
+    {
+      "id": "tubs_1",
+      "type": "rack_tubs",
+      "name": "Tub rack B",
+      "position": {
+        "x": 0.31,
+        "z": 2.11
+      },
+      "elevation": 0,
+      "rotation": 90,
+      "size": {
+        "w": 1.22,
+        "d": 0.62,
+        "h": 1.78
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": false,
+        "animal": {
+          "species": "Python regius",
+          "code": "Rack B"
+        }
+      }
+    },
+    {
+      "id": "incu_1",
+      "type": "incubator",
+      "name": "Incubator I1",
+      "position": {
+        "x": 0.3,
+        "z": 3.11
+      },
+      "elevation": 0,
+      "rotation": 90,
+      "size": {
+        "w": 0.62,
+        "d": 0.6,
+        "h": 1.25
+      },
+      "mount": null,
+      "props": {
+        "occupied": true,
+        "lighting": true,
+        "animal": {
+          "species": "Clutch 2026-08",
+          "code": "INC-1"
+        },
+        "notes": "31.5 \u00b0C \u00b7 90 % RH"
+      }
+    },
+    {
+      "id": "panel_1",
+      "type": "control_panel",
+      "name": "Distribution board",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 1.35,
+      "rotation": 90,
+      "size": {
+        "w": 0.5,
+        "d": 0.16,
+        "h": 0.6
+      },
+      "mount": {
+        "wall": "west",
+        "offset": 3.0
+      },
+      "props": {}
+    },
+    {
+      "id": "ac_1",
+      "type": "ac_unit",
+      "name": "Air conditioning",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 2.25,
+      "rotation": 90,
+      "size": {
+        "w": 0.9,
+        "d": 0.23,
+        "h": 0.3
+      },
+      "mount": {
+        "wall": "west",
+        "offset": 1.9
+      },
+      "props": {}
+    },
+    {
+      "id": "store_1",
+      "type": "storage_cabinet",
+      "name": "Storage cabinet",
+      "position": {
+        "x": 0.5,
+        "z": 3.75
+      },
+      "elevation": 0,
+      "rotation": 180,
+      "size": {
+        "w": 0.9,
+        "d": 0.5,
+        "h": 2.0
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "shelf_1",
+      "type": "shelving",
+      "name": "Supply shelving",
+      "position": {
+        "x": 1.6,
+        "z": 3.775
+      },
+      "elevation": 0,
+      "rotation": 180,
+      "size": {
+        "w": 1.2,
+        "d": 0.45,
+        "h": 1.9
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "bench_1",
+      "type": "workbench",
+      "name": "Workbench",
+      "position": {
+        "x": 3.15,
+        "z": 3.625
+      },
+      "elevation": 0,
+      "rotation": 180,
+      "size": {
+        "w": 1.8,
+        "d": 0.75,
+        "h": 1.95
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "sink_1",
+      "type": "sink_unit",
+      "name": "Sink unit",
+      "position": {
+        "x": 4.53,
+        "z": 3.7
+      },
+      "elevation": 0,
+      "rotation": 180,
+      "size": {
+        "w": 0.9,
+        "d": 0.6,
+        "h": 0.9
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "win_1",
+      "type": "window",
+      "name": "Window",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 1.0,
+      "rotation": 270,
+      "size": {
+        "w": 1.4,
+        "d": 0.14,
+        "h": 1.2
+      },
+      "mount": {
+        "wall": "east",
+        "offset": 1.1
+      },
+      "props": {}
+    },
+    {
+      "id": "door_1",
+      "type": "door",
+      "name": "Door",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 0,
+      "rotation": 270,
+      "size": {
+        "w": 1.0,
+        "d": 0.14,
+        "h": 2.1
+      },
+      "mount": {
+        "wall": "east",
+        "offset": 2.7
+      },
+      "props": {}
+    },
+    {
+      "id": "dehu_1",
+      "type": "dehumidifier",
+      "name": "Dehumidifier",
+      "position": {
+        "x": 4.85,
+        "z": 1.0
+      },
+      "elevation": 0,
+      "rotation": 270,
+      "size": {
+        "w": 0.4,
+        "d": 0.3,
+        "h": 0.62
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "fern_1",
+      "type": "plant_fern",
+      "name": "Fern",
+      "position": {
+        "x": 4.58,
+        "z": 1.85
+      },
+      "elevation": 0,
+      "rotation": 0,
+      "size": {
+        "w": 0.81,
+        "d": 0.92,
+        "h": 0.63
+      },
+      "mount": null,
+      "props": {}
+    },
+    {
+      "id": "sens_1",
+      "type": "sensor",
+      "name": "Climate sensor",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 1.5,
+      "rotation": 270,
+      "size": {
+        "w": 0.1,
+        "d": 0.027,
+        "h": 0.1
+      },
+      "mount": {
+        "wall": "east",
+        "offset": 2.0
+      },
+      "props": {}
+    },
+    {
+      "id": "out_1",
+      "type": "outlet",
+      "name": "Outlet",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 0.3,
+      "rotation": 0,
+      "size": {
+        "w": 0.16,
+        "d": 0.015,
+        "h": 0.085
+      },
+      "mount": {
+        "wall": "north",
+        "offset": 1.87
+      },
+      "props": {}
+    },
+    {
+      "id": "out_2",
+      "type": "outlet",
+      "name": "Outlet",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 0.3,
+      "rotation": 270,
+      "size": {
+        "w": 0.16,
+        "d": 0.015,
+        "h": 0.085
+      },
+      "mount": {
+        "wall": "east",
+        "offset": 1.95
+      },
+      "props": {}
+    },
+    {
+      "id": "out_3",
+      "type": "outlet",
+      "name": "Outlet",
+      "position": {
+        "x": 0,
+        "z": 0
+      },
+      "elevation": 1.1,
+      "rotation": 90,
+      "size": {
+        "w": 0.16,
+        "d": 0.015,
+        "h": 0.085
+      },
+      "mount": {
+        "wall": "west",
+        "offset": 0.4
+      },
+      "props": {}
+    }
+  ],
+  "meta": {
+    "created": "2026-09-27T00:00:00.000Z",
+    "modified": "2026-09-27T00:00:00.000Z",
+    "generator": "Habitat Studio Next",
+    "description": "Reference reptile breeding room (demonstration)"
+  }
+}

@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ir-manager.local/schema/habitat-room.schema.json",
+  "title": "IR Manager \u2014 Habitat room document",
+  "description": "Logical room model exported/imported by Habitat Studio. Contains no mesh data: visuals are resolved from `type` via the object catalogue.",
+  "type": "object",
+  "required": [
+    "schema",
+    "version",
+    "room",
+    "objects"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ir-manager/habitat-room"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "room": {
+      "type": "object",
+      "required": [
+        "width",
+        "depth",
+        "height"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "width": {
+          "type": "number",
+          "minimum": 1.5,
+          "maximum": 30,
+          "description": "Interior size west\u2192east (m)"
+        },
+        "depth": {
+          "type": "number",
+          "minimum": 1.5,
+          "maximum": 30,
+          "description": "Interior size north\u2192south (m)"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 2.1,
+          "maximum": 6,
+          "description": "Clear ceiling height (m)"
+        },
+        "wallThickness": {
+          "type": "number",
+          "minimum": 0.06,
+          "maximum": 0.6
+        },
+        "finishes": {
+          "type": "object",
+          "properties": {
+            "floor": {
+              "type": "string"
+            },
+            "walls": {
+              "type": "string"
+            },
+            "accentWall": {
+              "enum": [
+                "none",
+                "north",
+                "east",
+                "south",
+                "west"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/object"
+      }
+    },
+    "meta": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "object": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "position",
+        "size"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identifier; map this to your database primary key or keep as external id."
+        },
+        "type": {
+          "type": "string",
+          "description": "Catalogue type id (see src/objects/catalog.js)",
+          "enum": [
+            "terrarium_arid",
+            "terrarium_tropical",
+            "paludarium",
+            "rack_glass",
+            "rack_tubs",
+            "quarantine",
+            "incubator",
+            "stand_cabinet",
+            "workbench",
+            "sink_unit",
+            "shelving",
+            "storage_cabinet",
+            "door",
+            "window",
+            "control_panel",
+            "ac_unit",
+            "dehumidifier",
+            "sensor",
+            "outlet",
+            "plant_large",
+            "plant_snake",
+            "plant_fern"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "position": {
+          "type": "object",
+          "required": [
+            "x",
+            "z"
+          ],
+          "description": "Footprint centre in plan coordinates (m) from the interior north-west corner",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          }
+        },
+        "elevation": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bottom of the object above the floor (m); window sill height for windows"
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360,
+          "description": "Degrees around the vertical axis; 0 = front faces south (+z)"
+        },
+        "size": {
+          "type": "object",
+          "required": [
+            "w",
+            "d",
+            "h"
+          ],
+          "description": "Logical (collision / footprint) box in metres",
+          "properties": {
+            "w": {
+              "type": "number"
+            },
+            "d": {
+              "type": "number"
+            },
+            "h": {
+              "type": "number"
+            }
+          }
+        },
+        "mount": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "wall",
+                "offset"
+              ],
+              "properties": {
+                "wall": {
+                  "enum": [
+                    "north",
+                    "east",
+                    "south",
+                    "west"
+                  ]
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "Distance along the wall from its start to the object centre (m). Wall starts: north=NW corner, east=NE, south=SE, west=SW."
+                }
+              }
+            }
+          ]
+        },
+        "props": {
+          "type": "object",
+          "properties": {
+            "occupied": {
+              "type": "boolean"
+            },
+            "lighting": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "animal": {
+              "type": "object",
+              "properties": {
+                "species": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "locked": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
