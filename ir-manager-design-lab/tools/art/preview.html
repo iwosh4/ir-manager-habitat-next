@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><style>body{background:#111;margin:0;display:flex;flex-wrap:wrap;gap:6px;padding:6px}canvas{width:300px;height:300px}</style>
+<script type="module">
+import * as P from './painters.js';
+const jobs = [
+ ['frog', {species:'azureus', seed:1}], ['frog', {species:'azureus', seed:2, bg:'leaf'}], ['frog', {species:'leucomelas', seed:3}], ['frog', {species:'leucomelas', seed:4, bg:'leaf'}],
+ ['gecko', {morph:'harlequin', seed:1}], ['gecko', {morph:'dalmatian', seed:2}], ['cham', {locale:'ambilobe', seed:1}], ['cham', {locale:'nosybe', seed:2}],
+ ['snake', {species:'regius', seed:1}], ['snake', {species:'spilota', seed:2}], ['snake', {species:'squamigera', seed:3, bg:'moss'}], ['snake', {species:'lindheimeri', seed:4}], ['snake', {species:'leucistic', seed:5}],
+ ['clutch', {count:7, seed:1}], ['clutch', {count:2, seed:2, gecko:true, size:0.2}], ['dubia', {seed:1}], ['cricket', {seed:2}], ['jar', {label:'DENDROCARE'}],
+];
+const fn = {frog:P.paintFrog, gecko:P.paintGecko, cham:P.paintChameleon, snake:P.paintSnake, clutch:P.paintClutch, dubia:P.paintDubia, cricket:P.paintCricket, jar:P.paintJar};
+const t0=performance.now();
+for (const [k,o] of jobs) { const c=document.createElement('canvas'); c.width=c.height=480; document.body.append(c); fn[k](c.getContext('2d'),480,480,o); }
+document.title='done '+Math.round(performance.now()-t0);
+</script>

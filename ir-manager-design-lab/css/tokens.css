@@ -1,0 +1,59 @@
+/* IR Manager Enterprise — Concept B design tokens.
+   Dark "graphite lab" identity with the IR Manager amber as the single strong brand accent; a restrained
+   supporting palette encodes event semantics (care, reproduction, health, inventory, finance). */
+
+@font-face { font-family: "Inter"; src: url(../assets/fonts/inter-latin-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Inter"; src: url(../assets/fonts/inter-latin-ext-wght-normal.woff2) format("woff2"); font-weight: 100 900; font-display: swap; unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Fraunces"; src: url(../assets/fonts/fraunces-latin-wght-italic.woff2) format("woff2"); font-style: italic; font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: "Fraunces"; src: url(../assets/fonts/fraunces-latin-ext-wght-italic.woff2) format("woff2"); font-style: italic; font-weight: 100 900; font-display: swap; unicode-range: U+0100-02AF, U+1E00-1EFF; }
+@font-face { font-family: "Fraunces"; src: url(../assets/fonts/fraunces-latin-wght-normal.woff2) format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: "Fraunces"; src: url(../assets/fonts/fraunces-latin-ext-wght-normal.woff2) format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; unicode-range: U+0100-02AF, U+1E00-1EFF; }
+@font-face { font-family: "JetBrains Mono"; src: url(../assets/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url(../assets/fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url(../assets/fonts/jetbrains-mono-latin-ext-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+0100-02AF; }
+
+:root {
+  color-scheme: dark;
+  /* surfaces */
+  --bg: #0c0e10; --bg-2: #101316; --surface: #15181b; --surface-2: #1a1e22; --surface-3: #22272c; --surface-4: #2b3137;
+  --line: #23282d; --line-2: #2e343a; --line-3: #3b424a;
+  /* text */
+  --text: #ecebe7; --text-2: #b4b1ab; --text-3: #7f7c77; --text-4: #5c5a56;
+  /* brand */
+  --amber: #f0a13c; --amber-2: #ffc16b; --amber-3: #c9781f; --amber-ink: #1b1206; --amber-bg: rgba(240, 161, 60, 0.12); --amber-line: rgba(240, 161, 60, 0.42);
+  /* semantics */
+  --ok: #7cc47a; --ok-bg: rgba(124, 196, 122, 0.12);
+  --warn: #e9b949; --warn-bg: rgba(233, 185, 73, 0.12);
+  --danger: #ee6a5f; --danger-bg: rgba(238, 106, 95, 0.12);
+  --info: #6aa8f0; --info-bg: rgba(106, 168, 240, 0.12);
+  /* event families */
+  --c-feed: #f0a13c; --c-water: #5aa9f0; --c-mist: #43b8b0; --c-clean: #c8a877; --c-weight: #8fa3c7; --c-shed: #b79be8; --c-health: #ee6a5f;
+  --c-med: #e0708e; --c-repro: #a58cf0; --c-incub: #f2d9a6; --c-encl: #87a0b0; --c-inv: #d6b36a; --c-note: #9a978f; --c-task: #d9d4c9; --c-fin: #72c29a;
+  /* widget accents (user-selectable, controlled palette) */
+  --acc-neutral: #7f858c; --acc-amber: #f0a13c; --acc-blue: #5a9cf0; --acc-violet: #a58cf0; --acc-red: #ee6a5f; --acc-green: #6fbf73; --acc-teal: #43b8b0; --acc-sand: #cfae70;
+  /* type */
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --fs-xs: 11px; --fs-sm: 12px; --fs: 13px; --fs-md: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 26px; --fs-3xl: 34px;
+  /* space & shape */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
+  --r-sm: 6px; --r: 10px; --r-lg: 14px; --r-xl: 18px; --r-pill: 999px;
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --glow-amber: 0 0 0 1px rgba(240, 161, 60, 0.35), 0 6px 22px rgba(240, 161, 60, 0.16);
+  /* layout */
+  --rail-w: 232px; --rail-w-c: 64px; --top-h: 56px; --ctx-h: 50px; --bnav-h: 68px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1); --t-fast: 120ms; --t: 200ms; --t-slow: 320ms;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eeece8; --bg-2: #e7e4df; --surface: #f8f7f4; --surface-2: #ffffff; --surface-3: #f0eee9; --surface-4: #e4e1db;
+  --line: #e0ddd6; --line-2: #d4d0c8; --line-3: #c2bdb4;
+  --text: #1b1a18; --text-2: #4d4a45; --text-3: #7a766f; --text-4: #a19c94;
+  --amber: #d9861f; --amber-2: #b86a0c; --amber-3: #9a5708; --amber-ink: #fff8ee; --amber-bg: rgba(217, 134, 31, 0.12); --amber-line: rgba(217, 134, 31, 0.5);
+  --shadow-1: 0 1px 2px rgba(40, 30, 10, 0.08); --shadow-2: 0 8px 24px rgba(40, 30, 10, 0.1); --shadow-3: 0 24px 64px rgba(40, 30, 10, 0.18);
+  --c-incub: #b88a3a;
+}

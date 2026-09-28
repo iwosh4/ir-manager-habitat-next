@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>gen</title>
+<script type="module">
+import * as P from './painters.js';
+window.render = (fn, opts, w, h, q = 0.82, macro = false) => {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const ctx = c.getContext('2d');
+  if (macro) P.macro(ctx, w, h, P[fn], opts); else P[fn](ctx, w, h, opts);
+  return c.toDataURL('image/webp', q);
+};
+document.title = 'ready';
+</script>

@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><style>body{background:#111;margin:0}canvas{width:480px}</style>
+<script type="module">
+import * as P from './painters.js';
+const q = new URLSearchParams(location.search); const fn = P[q.get('f')]; const o = JSON.parse(q.get('o') || '{}');
+const c=document.createElement('canvas'); c.width=c.height=480; document.body.append(c); fn(c.getContext('2d'),480,480,o); document.title='done';
+</script>
