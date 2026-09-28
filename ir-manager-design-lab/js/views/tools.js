@@ -7,6 +7,8 @@ import { TOOLS, renderTool } from '../widgets/tools.js';
 import { openToolDrawer } from '../widgets/tooldrawer.js';
 import { docsOf, ws, saveWs } from '../widgets/wsstore.js';
 import { materialize } from '../widgets/workspace.js';
+import { WIDGETS } from '../widgets/registry.js';
+const widgetType = (k) => (k === 'feedplan' ? 'feeddemand' : WIDGETS[k]?.tool === k ? k : `${k}-tool`);
 
 const GROUPS = [['Lists & notes', ['shopping', 'notes', 'checklist']], ['Calculate', ['calculator', 'converter', 'dates', 'price', 'energy', 'volume', 'incubation']], ['Collection', ['feedplan', 'stockcount', 'pricelist', 'labels', 'links']]];
 let cur = 'feedplan', q = '';
@@ -27,5 +29,5 @@ actions({
   'tp-open': (el) => { cur = el.dataset.k; store.emit('change'); },
   'tp-q': (el) => { q = el.value; store.emit('change'); },
   'tp-drawer': (el) => openToolDrawer(el.dataset.k),
-  'tp-pin': (el) => { const S = ws(), k = el.dataset.k, T = TOOLS[k]; S.layouts.dashboard ||= []; const d = T.doc ? docsOf(T.doc)[0] : null; const inst = materialize({ type: k, size: 'm' }); if (d) inst.docId = d.id; S.layouts.dashboard.unshift(inst); saveWs(true); toast(`${T.name} added to your dashboard`, { action: () => { location.hash = '#/dashboard'; }, actionLabel: 'View' }); },
+  'tp-pin': (el) => { const S = ws(), k = el.dataset.k, T = TOOLS[k]; S.layouts.dashboard ||= []; const d = T.doc ? docsOf(T.doc)[0] : null; const inst = materialize({ type: widgetType(k), size: 'm' }); if (d) inst.docId = d.id; S.layouts.dashboard.unshift(inst); saveWs(true); toast(`${T.name} added to your dashboard`, { action: () => { location.hash = '#/dashboard'; }, actionLabel: 'View' }); },
 });

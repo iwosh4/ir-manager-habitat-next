@@ -158,9 +158,10 @@ export const WIDGETS = {
     render() { const db = store.get(); return `<div class="list">${db.documents.map((d) => `<a class="li" href="${d.animal ? `#/animals/a/${d.animal}?tab=origin` : '#/settings/app'}"><span class="sp-ico">${icon('file')}</span><span class="li-main"><b>${esc(d.name)}</b><span>${esc(d.kind)} · ${dShort(d.date)} · ${esc(d.size)}</span></span></a>`).join('')}</div>`; } },
 };
 // ---------------------------------------------------------------- TOOL WIDGETS (multi-instance where useful)
-for (const [k, T] of Object.entries(TOOLS)) {
-  if (WIDGETS[k]) continue;
-  WIDGETS[k] = { name: T.name, icon: T.icon, cat: T.doc === 'notes' || T.doc === 'checklist' ? 'Notes' : T.doc === 'shopping' ? 'Inventory' : 'Tools', desc: T.desc, sizes: ['s', 'm', 'l', 'w'], size: k === 'calculator' ? 's' : k === 'energy' || k === 'feedplan' || k === 'labels' ? 'l' : 'm', tool: k, multi: !!T.doc || k === 'calculator', doc: T.doc };
+for (const [tk, T] of Object.entries(TOOLS)) {
+  if (tk === 'feedplan') continue; // exposed as the 'feeddemand' widget
+  const k = WIDGETS[tk] && !WIDGETS[tk].tool ? `${tk}-tool` : tk; // e.g. 'incubation' info widget vs 'incubation-tool' calculator
+  WIDGETS[k] = { name: T.name, icon: T.icon, cat: T.doc === 'notes' || T.doc === 'checklist' ? 'Notes' : T.doc === 'shopping' ? 'Inventory' : 'Tools', desc: T.desc, sizes: ['s', 'm', 'l', 'w'], size: tk === 'calculator' ? 's' : tk === 'energy' || tk === 'labels' ? 'l' : 'm', tool: tk, multi: !!T.doc || tk === 'calculator', doc: T.doc };
 }
 WIDGETS.feeddemand.tool = 'feedplan';
 

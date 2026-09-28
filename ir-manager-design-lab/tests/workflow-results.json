@@ -1,0 +1,380 @@
+{
+  "at": "2026-09-28T21:27:05.355Z",
+  "base": "http://localhost:8095/ir-manager-design-lab/index.html",
+  "results": [
+    {
+      "section": "desktop 1440×900"
+    },
+    {
+      "name": "Scheduled feeding (single animal) → FED",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "p_feed_a_msp01 fed · supplement —"
+    },
+    {
+      "name": "Grouped feeding \"Feeding ×8\" → all FED in one tap",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "12 records"
+    },
+    {
+      "name": "Scheduled water / misting / cleaning → DONE",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "done p_clean_e_q1"
+    },
+    {
+      "name": "Feeding refused",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "refused recorded, rotation not advanced"
+    },
+    {
+      "name": "Postpone (Later → +1 hour)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "postponed"
+    },
+    {
+      "name": "Skip (More → Skip)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "skipped (task)"
+    },
+    {
+      "name": "Undo last action (toast Undo)",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "restored"
+    },
+    {
+      "name": "Weight — inline weigh-in in Planner (type + SAVE)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "saved 1234 g"
+    },
+    {
+      "name": "Weight — from animal profile (Weight → value → SAVE)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "saved 45.5 g"
+    },
+    {
+      "name": "Weight — global Quick Record (open → Weight → animal → value → SAVE)",
+      "interactions": 5,
+      "budget": 5,
+      "pass": true,
+      "verified": true,
+      "note": "saved (filter change not counted: “All” is one extra tap when the animal is not due)"
+    },
+    {
+      "name": "Shed from profile (Shed → SHED)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "shed recorded"
+    },
+    {
+      "name": "Health observation from profile (Health → chip → SAVE)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "health record + follow-up"
+    },
+    {
+      "name": "Bulk care — Quick Care: Water → All animals → All → GO",
+      "interactions": 4,
+      "budget": 4,
+      "pass": true,
+      "verified": true,
+      "note": "29 animals watered in one pass"
+    },
+    {
+      "name": "Bulk care — Quick Record multi-select (open → type → Select all due → DONE)",
+      "interactions": 2,
+      "budget": 4,
+      "pass": true,
+      "verified": true,
+      "note": "no activity has ≥2 animals due at this hour"
+    },
+    {
+      "name": "Group husbandry — mist group AZ-01 (4 frogs) from its profile as one record",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "one record covers all 4 members"
+    },
+    {
+      "name": "New task (N → title → CREATE)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "task created"
+    },
+    {
+      "name": "Clutch check in incubator (Check OK)",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "check recorded"
+    },
+    {
+      "name": "Stock correction (+ on Inventory)",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "stock +1"
+    },
+    {
+      "name": "Low stock → shopping list",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "items on list"
+    },
+    {
+      "name": "Global search → open animal (/ → type → Enter)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "opened PR-02"
+    },
+    {
+      "name": "Workspace: edit → add widget from library search → done (persisted after reload)",
+      "interactions": 5,
+      "budget": 5,
+      "pass": true,
+      "verified": true,
+      "note": "added & persisted"
+    },
+    {
+      "name": "Workspace: resize + recolour + move + duplicate + remove (with undo)",
+      "interactions": 7,
+      "budget": null,
+      "pass": true,
+      "verified": true,
+      "note": "size W, moved to #2, duplicate kept, remove undone, persisted"
+    },
+    {
+      "name": "Workspace: preset “Breeding focus” + reset to default",
+      "interactions": 6,
+      "budget": null,
+      "pass": true,
+      "verified": true,
+      "note": "a=today,kpis,kpis,attention,incubation,repro,quickcare,lowstock,healthalerts,activity,favorites,habitat,notes,incubation-tool b=kpis,today,attention,incubation,repro,quickcare,lowstock,healthalerts,activity,favorites,habitat,notes"
+    },
+    {
+      "name": "Workspace: two independent shopping lists as widgets",
+      "interactions": 0,
+      "budget": null,
+      "pass": true,
+      "verified": true,
+      "note": "2 lists (FEED ORDER, EQUIPMENT)"
+    },
+    {
+      "name": "No uncaught page errors during run",
+      "interactions": 0,
+      "budget": null,
+      "pass": true,
+      "verified": true,
+      "note": "clean"
+    },
+    {
+      "section": "mobile 390×844"
+    },
+    {
+      "name": "Scheduled feeding (single animal) → FED",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "p_feed_a_msp01 fed · supplement —"
+    },
+    {
+      "name": "Grouped feeding \"Feeding ×8\" → all FED in one tap",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "12 records"
+    },
+    {
+      "name": "Scheduled water / misting / cleaning → DONE",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "done p_clean_e_q1"
+    },
+    {
+      "name": "Feeding refused",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "refused recorded, rotation not advanced"
+    },
+    {
+      "name": "Postpone (Later → +1 hour)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "postponed"
+    },
+    {
+      "name": "Skip (More → Skip)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "skipped (task)"
+    },
+    {
+      "name": "Undo last action (toast Undo)",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "restored"
+    },
+    {
+      "name": "Weight — inline weigh-in in Planner (type + SAVE)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "saved 1234 g"
+    },
+    {
+      "name": "Weight — from animal profile (Weight → value → SAVE)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "saved 45.5 g"
+    },
+    {
+      "name": "Weight — global Quick Record (open → Weight → animal → value → SAVE)",
+      "interactions": 5,
+      "budget": 5,
+      "pass": true,
+      "verified": true,
+      "note": "saved (filter change not counted: “All” is one extra tap when the animal is not due)"
+    },
+    {
+      "name": "Shed from profile (Shed → SHED)",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "shed recorded"
+    },
+    {
+      "name": "Health observation from profile (Health → chip → SAVE)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "health record + follow-up"
+    },
+    {
+      "name": "Bulk care — Quick Care: Water → All animals → All → GO",
+      "interactions": 4,
+      "budget": 4,
+      "pass": true,
+      "verified": true,
+      "note": "29 animals watered in one pass"
+    },
+    {
+      "name": "Bulk care — Quick Record multi-select (open → type → Select all due → DONE)",
+      "interactions": 2,
+      "budget": 4,
+      "pass": true,
+      "verified": true,
+      "note": "no activity has ≥2 animals due at this hour"
+    },
+    {
+      "name": "Group husbandry — mist group AZ-01 (4 frogs) from its profile as one record",
+      "interactions": 2,
+      "budget": 2,
+      "pass": true,
+      "verified": true,
+      "note": "one record covers all 4 members"
+    },
+    {
+      "name": "New task (N → title → CREATE)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "task created"
+    },
+    {
+      "name": "Clutch check in incubator (Check OK)",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "check recorded"
+    },
+    {
+      "name": "Stock correction (+ on Inventory)",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "stock +1"
+    },
+    {
+      "name": "Low stock → shopping list",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "items on list"
+    },
+    {
+      "name": "Global search → open animal (/ → type → Enter)",
+      "interactions": 3,
+      "budget": 3,
+      "pass": true,
+      "verified": true,
+      "note": "opened PR-02"
+    },
+    {
+      "name": "No uncaught page errors during run",
+      "interactions": 0,
+      "budget": null,
+      "pass": true,
+      "verified": true,
+      "note": "clean"
+    }
+  ]
+}

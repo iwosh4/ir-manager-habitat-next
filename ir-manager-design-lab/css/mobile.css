@@ -27,7 +27,7 @@
   #app { grid-template-columns: minmax(0, 1fr) !important; height: 100dvh; }
   .rail { display: none; }
   .main-col { grid-template-rows: var(--top-h) auto minmax(0, 1fr); }
-  .view { padding: 12px 16px calc(var(--bnav-h) + 28px + env(safe-area-inset-bottom)); scroll-behavior: auto; }
+  .view { padding: 12px 16px calc(var(--bnav-h) + 28px + env(safe-area-inset-bottom)); scroll-behavior: auto; scroll-padding: 60px 0 calc(var(--bnav-h) + 24px); }
   .hide-m { display: none !important; }
   .m-only { display: inline-flex !important; }
 

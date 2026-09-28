@@ -1,0 +1,33 @@
+# IR Manager Enterprise — Concept B (static design lab). No server-side code, no database access.
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_mime.c>
+  AddType text/javascript .js .mjs
+  AddType image/webp .webp
+  AddType font/woff2 .woff2
+  AddType text/markdown .md
+</IfModule>
+
+# Development-only material is not served.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(tests|tools)(/|$) - [F,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'self'"
+  <FilesMatch "\.(webp|woff2)$">
+    Header set Cache-Control "public, max-age=2592000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/json image/svg+xml
+</IfModule>

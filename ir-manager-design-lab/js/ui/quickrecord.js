@@ -75,7 +75,7 @@ function targetStep() {
   <div class="qr-filters">${f('due', `Due now`, dueIds.length)}${f('recent', 'Recent')}${f('fav', 'Favourites', db.favorites.length)}${f('groups', 'Groups')}${f('all', 'All')}</div>
   ${S.filter === 'due' && !S.q && list.length > 1 ? `<button class="qr-selall" data-q="select-all">${icon('checkCircle')}Select all ${list.length} due</button>` : ''}
   <div class="qr-targets">${list.length ? list.map((a) => { const sp = SPECIES[a.species], on = S.subjects.has(a.id), e = db.enclosures.find((x) => x.id === a.enclosureId); return `<button class="qt ${on ? 'on' : ''}" data-q="toggle" data-id="${a.id}" aria-pressed="${on}">${avatar(a, 40)}<span class="qt-t"><b><span class="code">${esc(a.code)}</span>${a.name ? ` ${esc(a.name)}` : ''}${a.kind === 'group' ? ` <em>×${a.count}</em>` : ''}</b><i class="latin">${esc(latin(sp))}</i></span><span class="qt-m">${e ? esc(e.code) : ''}${dueIds.includes(a.id) ? `<span class="pill amber">due</span>` : ''}</span><span class="qt-cb">${icon('check')}</span></button>`; }).join('') : `<p class="muted pad">Nothing ${S.filter === 'due' ? 'due for this activity now' : 'here'} — try <button class="link" data-q="filter" data-v="all">All animals</button>.</p>`}</div>
-  <div class="qr-foot"><span class="muted">${selN ? `${selN} selected` : 'Tap to select — select several for bulk care'}</span><button class="btn primary lg" data-q="targets-done" ${selN ? '' : 'disabled'}>Continue ${icon('arrowRight')}</button></div>`;
+  <div class="qr-foot"><span class="muted">${selN ? `${selN} selected` : 'Tap a row to record · tick boxes for bulk care'}</span><button class="btn primary lg" data-q="targets-done" ${selN ? '' : 'disabled'}>Continue ${icon('arrowRight')}</button></div>`;
 }
 
 // ---------------------------------------------------------------- step 3: minimal details → one primary action
@@ -166,7 +166,8 @@ function onClick(e) {
   if (q === 'type') return pickType(v);
   if (q === 'clear-subj') { S.subjects.clear(); S.preset = false; return draw(); }
   if (q === 'filter') { S.filter = v; S.q = ''; return draw(); }
-  if (q === 'toggle') { S.subjects.has(b.dataset.id) ? S.subjects.delete(b.dataset.id) : S.subjects.add(b.dataset.id); b.classList.toggle('on'); b.setAttribute('aria-pressed', S.subjects.has(b.dataset.id)); const f = S.h.el.querySelector('[data-q=targets-done]'); f.disabled = !S.subjects.size; S.h.el.querySelector('.qr-foot .muted').textContent = S.subjects.size ? `${S.subjects.size} selected` : 'Tap to select — select several for bulk care'; return; }
+  if (q === 'toggle' && !S.subjects.size && !e.target.closest('.qt-cb') && S.type !== 'task') { S.subjects.add(b.dataset.id); S.pickMore = false; return draw(); } // one tap on a row = choose it & continue; the check box starts multi-select
+  if (q === 'toggle') { S.subjects.has(b.dataset.id) ? S.subjects.delete(b.dataset.id) : S.subjects.add(b.dataset.id); b.classList.toggle('on'); b.setAttribute('aria-pressed', S.subjects.has(b.dataset.id)); const f = S.h.el.querySelector('[data-q=targets-done]'); f.disabled = !S.subjects.size; S.h.el.querySelector('.qr-foot .muted').textContent = S.subjects.size ? `${S.subjects.size} selected` : 'Tap a row to record · tick boxes for bulk care'; return; }
   if (q === 'select-all') { for (const id of candidates().list.map((a) => a.id)) S.subjects.add(id); S.pickMore = false; return draw(); }
   if (q === 'targets-done') { S.pickMore = false; return draw(); }
   if (q === 'back-target') { S.pickMore = true; S.preset = false; return draw(); }

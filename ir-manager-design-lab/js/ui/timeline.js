@@ -87,7 +87,7 @@ export function itemHTML(it, mode = 'full') {
       ${subjectHTML(it, compact)}</div><div class="tl-acts">${actionsHTML(it, mode)}</div></div></div>`;
   }
   const whyOpen = UI.why === it.id;
-  return `<div class="tl-it st-${st} ${it.kind === 'milestone' ? 'milestone' : ''} ${it.kind === 'record' ? 'rec' : ''}" data-id="${esc(it.id)}" style="--c:${T.color}">
+  return `<div class="tl-it st-${st} ${it.kind === 'milestone' ? 'milestone' : ''} ${it.kind === 'record' ? 'rec' : ''}" data-id="${esc(it.id)}" data-type="${it.type}" style="--c:${T.color}">
     <div class="tl-time"><button class="tl-hm" ${isOpen(it) && it.kind !== 'milestone' ? `data-act="tl-time" data-id="${esc(it.id)}" title="Reschedule"` : 'tabindex="-1"'}>${hm(it.t)}</button><em>${st === 'overdue' ? ago(it.t) : it.t > Date.now() && it.t - Date.now() < 12 * HOUR && daysBetween(Date.now(), it.t) === 0 ? rel(it.t) : ''}</em></div><span class="tl-node"></span>
     <div class="tl-card">
       <div class="tl-main">${typeDot(it.type)}<div class="tl-tx"><div class="tl-title"><b>${esc(it.kind === 'milestone' ? it.title : (it.src === 'occ' ? T.label : it.title))}</b>${it.src === 'occ' && it.title !== T.label && it.type !== 'maintenance' ? `<span class="dim">${esc(it.title)}</span>` : it.type === 'maintenance' ? `<span class="dim">${esc(it.title)}</span>` : ''}${compact ? '' : originTag(it.origin)}${compact ? '' : `<button class="why ${whyOpen ? 'on' : ''}" data-act="tl-why" data-id="${esc(it.id)}" title="Why is this here?">${icon('help')}</button>`}</div>
