@@ -38,7 +38,61 @@ space kept as its own entry, the saved assembly re-opens identically. ✓
 
 ## Full e2e suite
 
-RESULTS_PLACEHOLDER
+`node tests/run-e2e.mjs` — **43 tests**. The first full run gave 41/43. The two failures were real
+regressions from this phase and were fixed, then both tests were re-run and pass:
+
+* *selection by clicking an object*: the Inspector chip showed the renamed library category "Starting
+  templates" for a placed enclosure → it shows "Enclosure" again (`chip` on the category).
+* *JSON export*: the test still expected document version 1 → it now checks version 2 plus the
+  `enclosures` / `instances` / `assemblies` arrays (v1 files still import — `tests/stress.mjs` feeds v1).
+
+In-suite performance line: `{"members":75,"assemblies":5,"draws":28,"tris":304833,"batches":5,"instances":265,"ids":75}`.
+
+| Test | Result |
+|---|---|
+| initial room load (demo room, UI panels, render loop) | ✓ |
+| GLB loading (all catalogue models load, materials bound) | ✓ |
+| missing asset handling (placeholder, logical object intact, no crash) | ✓ |
+| camera orbit / pan / zoom | ✓ |
+| view presets & smooth transitions (top/front/left/right/iso/reset) | ✓ |
+| fullscreen toggle | ✓ |
+| selection by clicking an object | ✓ (fixed, re-run) |
+| move by dragging (grid snapped) + undo | ✓ |
+| rotation (keyboard R, inspector) + snapping angle | ✓ |
+| duplicate (Ctrl+D) and delete (Del) | ✓ |
+| snapping: wall snap, grid snap, stacking on a stand, collision report | ✓ |
+| room resizing (inspector) rebuilds walls and keeps objects inside | ✓ |
+| add enclosure from library (click-to-place) | ✓ |
+| add furniture by drag & drop from the library | ✓ |
+| wall placement: door & window follow walls and cut openings | ✓ |
+| JSON export (download) | ✓ (fixed, re-run) |
+| JSON re-import (round trip) | ✓ |
+| browser refresh restores the autosaved room | ✓ |
+| responsive viewport resizing | ✓ |
+| lighting presets & quality levels | ✓ |
+| progressive renderer: interactive while orbiting, final restored after settling | ✓ |
+| shadow invalidation on placement change | ✓ |
+| no shader recompilation on lighting presets / occupancy / placement preview | ✓ |
+| static batching reduces draw calls; selection detaches the object | ✓ |
+| Auto quality mode available and adaptive diagnostics exposed | ✓ |
+| Planner ↔ Showcase switching leaves RoomDocument, ids and transforms untouched | ✓ |
+| Planner renders the room cheaply (batched painted materials, no lights, no shadow maps) | ✓ |
+| Planner selection by clicking (amber rim on the detached object) | ✓ |
+| edits in Planner are shown by Showcase (stale mode re-synced on activation) | ✓ |
+| export / import round trip in Planner mode is identical to Showcase | ✓ |
+| Planner lighting presets & selector UI | ✓ |
+| Planner starts without loading the realistic pipeline (lazy Showcase) | ✓ |
+| Enclosure Designer: create "TERRA 60" (60×60×60, glass, sliding doors, ventilation, tropical) via the UI | ✓ |
+| Designer rebuilds parametrically — resizing never scales the model | ✓ |
+| Enclosure Designer: create "RACK 30" rack box (30×45×18) | ✓ |
+| Assembly Builder: drag TERRA 60 ×9 (3×3) and RACK 30 ×6 above — magnetic snapping, no overlaps | ✓ |
+| Assembly Builder: technical cabinet below, save as "TEST BREEDING WALL" (dimensions verified) | ✓ |
+| Drag TEST BREEDING WALL from MY ASSEMBLIES into the room; move & rotate it as ONE structure | ✓ |
+| ENTER ASSEMBLY → select one terrarium → exit (hierarchical selection) | ✓ |
+| Save project, reload: assembly placement, all ids, relative positions and dimensions preserved; Planner/Showcase switching safe | ✓ |
+| Mixed Tetris: large + stacked smalls, normals below, rack boxes above, reserved space, tech cabinet — no uniform grid | ✓ |
+| Performance: 5 assemblies / 50+ enclosure members in the room stay batched | ✓ |
+| no fatal console errors | ✓ |
 
 ## Performance (5 assemblies / 75 enclosures)
 
