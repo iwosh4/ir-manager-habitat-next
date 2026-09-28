@@ -129,3 +129,11 @@ Press **I** (or click the stats line bottom-right) for live diagnostics: mode (i
 quality and the effective final profile, FPS, frame time, draw calls, triangles, render scale, shadow-map
 updates, batches, light-pool usage, program count and GPU name. The orange dot means the interactive
 profile is active; green means the final frame is on screen.
+
+## Phase 3 note — settle-window fix (Showcase)
+
+The settle window after an interaction is counted from the *end* of the slow frame so queued input is
+not cut short. It is now extended **once per input event**; previously it was re-extended after every
+interactive frame, which on very slow hardware (≥ 1 s interactive frames) could keep the Showcase in
+the interactive profile indefinitely and never draw the final frame. No visual or pipeline change.
+The Planner renderer and its measurements are documented in **STYLIZED_RENDERER.md**.

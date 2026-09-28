@@ -1,0 +1,583 @@
+{
+  "date": "2026-09-28T09:33:53.277Z",
+  "viewport": "1280x720",
+  "views": {
+    "hero": {
+      "date": "2026-09-28T09:33:57.004Z",
+      "camera": {
+        "pos": [
+          2,
+          1.7200000000000002,
+          1.4400000000000002
+        ],
+        "target": [
+          -1,
+          1,
+          -1.68
+        ],
+        "fov": 56
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 8439.3,
+          "interactiveMs": 2689.9,
+          "drawCalls": 371,
+          "triangles": 834917,
+          "drawCallsInteractive": 243,
+          "trianglesInteractive": 569346,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 870.2,
+          "interactiveMs": 548.8,
+          "drawCalls": 18,
+          "triangles": 62004,
+          "drawCallsInteractive": 18,
+          "trianglesInteractive": 62004,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 9.7,
+        "interactive": 4.9,
+        "drawCalls": 20.6,
+        "triangles": 13.5
+      }
+    },
+    "iso": {
+      "date": "2026-09-28T09:35:29.008Z",
+      "camera": {
+        "pos": [
+          5.950000000000002,
+          7.45,
+          5.800000000000001
+        ],
+        "target": [
+          0,
+          0.54,
+          0
+        ],
+        "fov": 38
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 5222.5,
+          "interactiveMs": 1569.2,
+          "drawCalls": 334,
+          "triangles": 812961,
+          "drawCallsInteractive": 218,
+          "trianglesInteractive": 555234,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 410.7,
+          "interactiveMs": 215.4,
+          "drawCalls": 13,
+          "triangles": 61746,
+          "drawCallsInteractive": 13,
+          "trianglesInteractive": 61746,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 12.72,
+        "interactive": 7.29,
+        "drawCalls": 25.7,
+        "triangles": 13.2
+      }
+    },
+    "top": {
+      "date": "2026-09-28T09:35:58.039Z",
+      "camera": {
+        "pos": [
+          0,
+          7.367982996663562,
+          0.001000000001449703
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "fov": 38
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 7955.8,
+          "interactiveMs": 2495.7,
+          "drawCalls": 366,
+          "triangles": 847143,
+          "drawCallsInteractive": 240,
+          "trianglesInteractive": 578130,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 740.8,
+          "interactiveMs": 462.6,
+          "drawCalls": 17,
+          "triangles": 63328,
+          "drawCallsInteractive": 17,
+          "trianglesInteractive": 63328,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 10.74,
+        "interactive": 5.39,
+        "drawCalls": 21.5,
+        "triangles": 13.4
+      }
+    },
+    "front": {
+      "date": "2026-09-28T09:36:42.728Z",
+      "camera": {
+        "pos": [
+          0,
+          1.3499999999999999,
+          6.879074274495384
+        ],
+        "target": [
+          0,
+          1.215,
+          0
+        ],
+        "fov": 38
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 5563.9,
+          "interactiveMs": 1773.9,
+          "drawCalls": 337,
+          "triangles": 778529,
+          "drawCallsInteractive": 220,
+          "trianglesInteractive": 531826,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 552.9,
+          "interactiveMs": 315.8,
+          "drawCalls": 16,
+          "triangles": 59756,
+          "drawCallsInteractive": 16,
+          "trianglesInteractive": 59756,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 10.06,
+        "interactive": 5.62,
+        "drawCalls": 21.1,
+        "triangles": 13
+      }
+    },
+    "interior": {
+      "date": "2026-09-28T09:37:14.452Z",
+      "camera": {
+        "pos": [
+          1.8000000000000007,
+          1.6200000000000006,
+          1.7200000000000015
+        ],
+        "target": [
+          -0.6,
+          1.05,
+          -1.4
+        ],
+        "fov": 58
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 8082.7,
+          "interactiveMs": 2538.7,
+          "drawCalls": 374,
+          "triangles": 836493,
+          "drawCallsInteractive": 245,
+          "trianglesInteractive": 570718,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 807.8,
+          "interactiveMs": 574.2,
+          "drawCalls": 18,
+          "triangles": 62892,
+          "drawCallsInteractive": 18,
+          "trianglesInteractive": 62892,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 10.01,
+        "interactive": 4.42,
+        "drawCalls": 20.8,
+        "triangles": 13.3
+      }
+    },
+    "arid": {
+      "date": "2026-09-28T09:38:00.125Z",
+      "camera": {
+        "pos": [
+          -1.6600000000000004,
+          1.35,
+          -0.7500000000000003
+        ],
+        "target": [
+          -1.8800000000000003,
+          1.05,
+          -1.7500000000000002
+        ],
+        "fov": 42
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 7718.6,
+          "interactiveMs": 2390.5,
+          "drawCalls": 183,
+          "triangles": 276339,
+          "drawCallsInteractive": 115,
+          "trianglesInteractive": 190870,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 701.6,
+          "interactiveMs": 560.3,
+          "drawCalls": 13,
+          "triangles": 44898,
+          "drawCallsInteractive": 13,
+          "trianglesInteractive": 44898,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 11,
+        "interactive": 4.27,
+        "drawCalls": 14.1,
+        "triangles": 6.2
+      }
+    },
+    "tropical": {
+      "date": "2026-09-28T09:38:43.721Z",
+      "camera": {
+        "pos": [
+          -0.8200000000000001,
+          1.4299999999999997,
+          -0.6250000000000002
+        ],
+        "target": [
+          -1,
+          1.25,
+          -1.7750000000000004
+        ],
+        "fov": 44
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 6952.4,
+          "interactiveMs": 2177.5,
+          "drawCalls": 188,
+          "triangles": 484087,
+          "drawCallsInteractive": 118,
+          "trianglesInteractive": 326790,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 715,
+          "interactiveMs": 485.6,
+          "drawCalls": 14,
+          "triangles": 44612,
+          "drawCallsInteractive": 14,
+          "trianglesInteractive": 44612,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 9.72,
+        "interactive": 4.48,
+        "drawCalls": 13.4,
+        "triangles": 10.9
+      }
+    },
+    "paludarium": {
+      "date": "2026-09-28T09:39:23.213Z",
+      "camera": {
+        "pos": [
+          1.68,
+          1.412,
+          -0.2999999999999998
+        ],
+        "target": [
+          1.4,
+          1.0919999999999999,
+          -1.75
+        ],
+        "fov": 42
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 6965.8,
+          "interactiveMs": 2181,
+          "drawCalls": 215,
+          "triangles": 373137,
+          "drawCallsInteractive": 137,
+          "trianglesInteractive": 253018,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 804.5,
+          "interactiveMs": 520.2,
+          "drawCalls": 14,
+          "triangles": 36840,
+          "drawCallsInteractive": 14,
+          "trianglesInteractive": 36840,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 8.66,
+        "interactive": 4.19,
+        "drawCalls": 15.4,
+        "triangles": 10.1
+      }
+    },
+    "rack": {
+      "date": "2026-09-28T09:40:03.279Z",
+      "camera": {
+        "pos": [
+          0.3999999999999999,
+          1.1999999999999995,
+          0.6000000000000001
+        ],
+        "target": [
+          0.04999999999999981,
+          0.9499999999999997,
+          -1.75
+        ],
+        "fov": 44
+      },
+      "viewport": [
+        1280,
+        676
+      ],
+      "devicePixelRatio": 1,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "modes": {
+        "showcase": {
+          "finalMs": 8468.1,
+          "interactiveMs": 2737.1,
+          "drawCalls": 258,
+          "triangles": 586683,
+          "drawCallsInteractive": 166,
+          "trianglesInteractive": 397382,
+          "pixelRatio": 1,
+          "interactiveScale": 0.75,
+          "profile": "Balanced",
+          "materials": 128,
+          "textures": 97,
+          "meshes": 392,
+          "lights": 27,
+          "shadowCasters": 1,
+          "programs": 115
+        },
+        "planner": {
+          "finalMs": 816.1,
+          "interactiveMs": 548.1,
+          "drawCalls": 17,
+          "triangles": 54832,
+          "drawCallsInteractive": 17,
+          "trianglesInteractive": 54832,
+          "pixelRatio": 1,
+          "interactiveScale": 1,
+          "profile": "Painted ×1",
+          "materials": 40,
+          "textures": 1,
+          "meshes": 129,
+          "lights": 0,
+          "shadowCasters": 0,
+          "programs": 115
+        }
+      },
+      "ratio": {
+        "final": 10.38,
+        "interactive": 4.99,
+        "drawCalls": 15.2,
+        "triangles": 10.7
+      }
+    }
+  },
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+}

@@ -94,6 +94,14 @@ toast and an inspector warning; the logical object is unaffected and still expor
 
 ## 4. Scene & rendering
 
+Two render modes share the document, editor, camera and canvas (see **STYLIZED_RENDERER.md**):
+`PlannerMode` (default, stylised hand-painted: `src/planner`) and `ShowcaseMode` (the realistic renderer
+described below, loaded lazily). `App` exposes the active mode's `engine / scene / objects / batcher /
+shell`; the inactive mode is marked stale on edits and re-synced when activated. `ObjectLayer` receives
+its view class (`PlannerView` or `ObjectView`), which share one contract.
+
+Showcase:
+
 * `RoomShell` generates architecture from the room + opening objects: walls are extruded shapes with real
   holes/notches for windows and doors, coved skirting, suspended ceiling, instanced LED panels, floor drain.
   Walls whose outside faces the camera are cut away (plus, in elevation views, furniture backed against

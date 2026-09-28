@@ -9,8 +9,9 @@ import { LAYER_SPECIAL } from '../renderer/layers.js';
  *   one blit pass   → painterly grade (soft shoulder, warm/cool split, vignette) + linear→sRGB
  *
  * Two draws of fixed cost around a scene that is a handful of batched meshes. Stationary frames
- * render at the full pixel ratio; while the user interacts the same pass renders at an adaptive
- * scale that only drops if the measured frame time exceeds the 60 fps budget (≥ 30 fps floor).
+ * render at the full pixel ratio with 4× MSAA; while the user interacts the same pass renders into a
+ * non-MSAA target at an adaptive scale that only drops if the measured frame time exceeds the 60 fps
+ * budget. The MSAA frame is drawn once when the interaction settles.
  * Same public contract as RenderEngine (interact / invalidate / frame / diagnostics …).
  */
 const AUTO = { targetMs: 16.7, minScale: 0.5, maxScale: 1, evalEveryMs: 300 };
@@ -54,6 +55,9 @@ export class PlannerEngine {
     this._ema = 0; this._lastEval = 0; this._probe = null; this._probeInteractive = false;
     this.target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthBuffer: true });
     this.target.depthTexture = new THREE.DepthTexture(1, 1); // resolved from MSAA; drives the ink edge
+    // interactive frames: same pass, no MSAA, adaptive resolution (bandwidth is what weak iGPUs lack)
+    this.fastTarget = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 0, depthBuffer: true });
+    this.fastTarget.depthTexture = new THREE.DepthTexture(1, 1);
     this.blitMat = new THREE.ShaderMaterial({
       uniforms: {
         tColor: { value: this.target.texture }, tDepth: { value: this.target.depthTexture }, uRes: { value: new THREE.Vector2(1, 1) },
@@ -108,11 +112,13 @@ export class PlannerEngine {
     this.invalidate();
   }
 
-  _sizeTarget(scale) {
+  _sizeTarget(scale, rt = this.target) {
     const pr = this.basePixelRatio * scale;
     const w = Math.max(1, Math.round(this.cssW * pr)), h = Math.max(1, Math.round(this.cssH * pr));
-    if (this.target.width !== w || this.target.height !== h) this.target.setSize(w, h);
+    if (rt.width !== w || rt.height !== h) rt.setSize(w, h);
     this.blitMat.uniforms.uRes.value.set(w, h);
+    this.blitMat.uniforms.tColor.value = rt.texture;
+    this.blitMat.uniforms.tDepth.value = rt.depthTexture;
   }
 
   // ------------------------------------------------------------------ invalidation (same contract as RenderEngine)
@@ -127,21 +133,22 @@ export class PlannerEngine {
     if (!this.needsFrame) { this._ema = 0; return false; }
     const interactive = this.isInteractive;
     // stationary frames are the same pass at full scale (nothing expensive is switched on)
-    this._render(interactive ? this.renderScale : 1);
+    this._render(interactive ? this.renderScale : 1, interactive);
     this.mode = interactive ? 'interactive' : 'final';
-    this.pendingFinal = interactive && this.renderScale < 1;
+    this.pendingFinal = interactive;
     this._probe = now; this._probeInteractive = interactive;
     this.dirty = false;
     return true;
   }
 
-  _render(scale) {
+  _render(scale, interactive = false) {
     const r = this.renderer;
     const t0 = performance.now();
-    this._sizeTarget(scale);
+    const rt = interactive && this.msaa ? this.fastTarget : this.target;
+    this._sizeTarget(scale, rt);
     r.info.reset();
     const prevTM = r.toneMapping; r.toneMapping = THREE.NoToneMapping;
-    r.setRenderTarget(this.target);
+    r.setRenderTarget(rt);
     r.setClearColor(this.background, 1); r.clear();
     r.render(this.scene, this.camera);
     const calls = r.info.render.calls, tris = r.info.render.triangles;
@@ -168,10 +175,10 @@ export class PlannerEngine {
     this.renderScale = Math.min(AUTO.maxScale, Math.max(AUTO.minScale, Math.round(s * 20) / 20));
   }
 
-  warmup() { this._render(1); this._render(this.renderScale); this.stats.frames = 0; this.dirty = true; }
+  warmup() { this._render(1); this._render(this.renderScale, true); this.stats.frames = 0; this.dirty = true; }
   render() { this._render(1); this.dirty = false; this.pendingFinal = false; this.mode = 'final'; }
   renderFinal() { this.render(); }
-  renderInteractive() { this._render(this.renderScale); this.dirty = true; }
+  renderInteractive() { this._render(this.renderScale, true); this.dirty = true; }
   setSelection() { this.invalidate(); } // selection is drawn by the view (amber rim) + overlay
 
   diagnostics() {

@@ -320,7 +320,8 @@ await test('browser refresh restores the autosaved room', async () => {
 });
 
 await test('responsive viewport resizing', async () => {
-  await page.setViewportSize({ width: 1000, height: 700 }); await settle(600);
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.waitForFunction(() => Math.abs(window.habitat.renderer.domElement.clientWidth - document.getElementById('viewport').clientWidth) <= 1, null, { timeout: 30000 }).catch(() => {});
   const a = await ev(() => ({ w: window.habitat.renderer.domElement.clientWidth, aspect: window.habitat.rig.camera.aspect, vp: document.getElementById('viewport').clientWidth }));
   assert(Math.abs(a.w - a.vp) <= 1, 'canvas follows viewport');
   await page.setViewportSize({ width: 1600, height: 900 });
@@ -450,7 +451,9 @@ await test('Planner selection by clicking (amber rim on the detached object)', a
   await ev(() => window.habitat.editor.select(null));
   await setView('hero'); await waitIdle();
   const p = await screenOf('rack_1', 0.45);
-  await page.mouse.click(p.x, p.y); await settle(500);
+  await page.mouse.click(p.x, p.y);
+  // the batcher detaches the selection on the next rendered frame
+  await page.waitForFunction(() => window.habitat.batcher.detachedId === window.habitat.editor.selection, null, { timeout: 30000 }).catch(() => {});
   const s = await ev(() => { const h = window.habitat, v = h.objects.get('rack_1'); return { sel: h.editor.selection, selected: v.selected, detached: h.batcher.detachedId, rim: v.visual.children.some((m) => /_sel$/.test(m.material.name)) }; });
   assert(s.sel === 'rack_1', 'selected by click: ' + s.sel);
   assert(s.selected && s.rim, 'selected view uses the amber rim materials');

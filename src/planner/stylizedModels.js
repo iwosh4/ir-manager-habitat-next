@@ -96,8 +96,14 @@ const MODELS = {
       for (let k = 0; k < cols; k++) {
         const x = -W / 2 + t + colW / 2 + k * (colW + t);
         const th = rowH - 0.03;
-        b.add(rbox(colW - 0.02, th, 0.012, 0.004), 'tub_front', { mode: TILE_CLAMP, uv: 'keep', pos: [x, y + 0.012 + th / 2, D / 2 - 0.03], color: occupied ? [0.8, 0.8, 0.78] : [0.55, 0.55, 0.55] });
-        b.add(rbox(colW - 0.03, th - 0.01, D - 0.1), 'plastic_white', { pos: [x, y + 0.012 + th / 2, -0.02], color: [0.55, 0.55, 0.52] });
+        // translucent tub: milky front with lip, recessed grip, label card; dim body behind
+        const ty = y + 0.012 + th / 2, tz = D / 2 - 0.03, tw = colW - 0.02;
+        box(b, tw, th, 0.014, 'plastic_white', [x, ty, tz], { color: occupied ? [0.78, 0.78, 0.74] : [0.6, 0.6, 0.58], r: 0.006, grad: [0.72, 1.05] });
+        box(b, tw + 0.006, 0.012, 0.022, 'plastic_white', [x, ty + th / 2 - 0.004, tz + 0.004], { color: [0.86, 0.86, 0.83], r: 0.004 });
+        box(b, Math.min(0.14, tw * 0.3), 0.026, 0.01, 'plastic_black', [x - tw * 0.18, ty + th * 0.12, tz + 0.006], { color: [0.35, 0.35, 0.37], r: 0.008 });
+        b.add(quad(Math.min(0.1, tw * 0.22), Math.min(0.045, th * 0.4)), 'label', { mode: TILE_CLAMP, uv: 'keep', pos: [x + tw * 0.24, ty + th * 0.08, tz + 0.0075], color: occupied ? [1, 1, 1] : [0.6, 0.6, 0.6] });
+        if (occupied) b.add(flat(tw * 0.8, D * 0.6), 'shadow', { bucket: 'decal', mode: TILE_CLAMP, uv: 'keep', pos: [x, y + 0.02, -0.03], alpha: 0.35 });
+        b.add(rbox(colW - 0.03, th - 0.01, D - 0.1), 'plastic_white', { pos: [x, ty, -0.02], color: [0.42, 0.42, 0.4] });
       }
     }
     labelCard(b, [W / 2 - 0.1, H - 0.04, D / 2 + 0.002], { status: occupied ? 'ok' : null });

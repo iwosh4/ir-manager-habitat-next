@@ -13,6 +13,36 @@ import { StaticBatcher } from '../renderer/StaticBatcher.js';
  * five shader materials, procedurally generated parametric assets, no lights, no shadow maps, no
  * post-processing chain. Starts without downloading any realistic asset (GLB, HDRI, PBR textures).
  */
+/** Amber corner brackets around the selected object's logical box (thin, drawn on top, no fill). */
+class SelectionBrackets {
+  constructor() {
+    const pts = [];
+    for (const x of [-0.5, 0.5]) for (const y of [0, 1]) for (const z of [-0.5, 0.5]) {
+      const c = new THREE.Vector3(x, y, z);
+      for (const [ax, dir] of [['x', -Math.sign(x)], ['y', y ? -1 : 1], ['z', -Math.sign(z)]]) { const e = c.clone(); e[ax] += dir * 0.18; pts.push(c, e); }
+    }
+    this.base = pts;
+    this.geo = new THREE.BufferGeometry().setFromPoints(pts);
+    this.object = new THREE.LineSegments(this.geo, new THREE.LineBasicMaterial({ color: 0xf0a04b, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false }));
+    this.object.renderOrder = 20; this.object.visible = false; this.object.frustumCulled = false;
+  }
+  show(view) {
+    if (!view) { this.object.visible = false; return; }
+    view.root.updateMatrixWorld(true);
+    const m = view.proxy.matrixWorld, s = view.proxy.scale;
+    // bracket arms: 18 % of each edge, capped at 18 cm (so large racks keep slim corners)
+    const k = [Math.min(1, 0.18 / Math.max(0.01, s.x * 0.18)), Math.min(1, 0.18 / Math.max(0.01, s.y * 0.18)), Math.min(1, 0.18 / Math.max(0.01, s.z * 0.18))];
+    const p = this.geo.attributes.position, v = new THREE.Vector3();
+    for (let i = 0; i < this.base.length; i += 2) {
+      const c = this.base[i], e = this.base[i + 1];
+      v.copy(c).applyMatrix4(m); p.setXYZ(i, v.x, v.y, v.z);
+      v.set(c.x + (e.x - c.x) * k[0], c.y + (e.y - c.y) * k[1], c.z + (e.z - c.z) * k[2]).applyMatrix4(m); p.setXYZ(i + 1, v.x, v.y, v.z);
+    }
+    p.needsUpdate = true;
+    this.object.visible = true;
+  }
+}
+
 export class PlannerMode {
   constructor(app) {
     this.app = app;
@@ -35,6 +65,8 @@ export class PlannerMode {
     this.batcher = new StaticBatcher(this.scene);
     this.mats.setPreset(app.prefs.lighting);
     this.selectedId = null;
+    this.brackets = new SelectionBrackets();
+    this.scene.add(this.brackets.object);
     return this;
   }
 
@@ -63,6 +95,8 @@ export class PlannerMode {
   setSelected(id) { this.selectedId = id || null; this._applySelection(); this.engine.invalidate(); }
   _applySelection() {
     for (const v of this.objects.views.values()) { const on = v.id === this.selectedId; if (v.selected !== on) v.setSelected(on); }
+    const v = this.selectedId && this.objects.get(this.selectedId);
+    this.brackets.show(v && v.root.visible ? v : null);
   }
 
   updateCutaway(force = false) {
@@ -70,6 +104,7 @@ export class PlannerMode {
     const { hiddenWalls, ceilingVisible } = this.shell.updateVisibility(app.editor.room, cam);
     const dir = app.rig.controls.target.clone().sub(cam).normalize();
     const changed = this.objects.setHiddenWalls(hiddenWalls, Math.abs(dir.y) < 0.55);
+    if (changed) this._applySelection();
     if (changed || force) this.engine.invalidate();
     return { ceilingVisible };
   }

@@ -31,7 +31,8 @@ export class PaintBuilder {
 
   /** Nested local frame (translation, Y rotation, optional uniform/xyz scale). */
   push(pos = [0, 0, 0], rotY = 0, rot = null) {
-    _e.set(...(rot || [0, rotY, 0]));
+    const [rx, ry, rz] = rot || [0, rotY, 0];
+    _e.set(rx, ry, rz, 'YXZ'); // yaw, then pitch in the yawed frame
     _m.compose(_v.set(...pos), _q.setFromEuler(_e), _s.set(1, 1, 1));
     this.stack.push(this.matrix.clone().multiply(_m));
     return this;
@@ -54,6 +55,7 @@ export class PaintBuilder {
    * o.color    tint (hex / [r,g,b] linear / THREE.Color), o.alpha (glass/decal opacity), o.glow (0..1 self-illumination)
    * o.grad     [bottom, top] brightness along the part's local Y extent (painted gradient)
    * o.ao       fn(pObject, nObject) -> multiplier   (baked occlusion)
+   * o.rot      [x, y, z] Euler, order o.order (default 'YXZ': yaw first, then tilt in the yawed frame)
    * o.lit      receive painted lamps
    * o.room     room lighting (ceiling panels, daylight): dimmed by Evening / Night presets
    */
@@ -61,7 +63,8 @@ export class PaintBuilder {
     const bucket = o.bucket || 'opaque';
     const pos = geo.attributes.position, nor = geo.attributes.normal, uvA = geo.attributes.uv;
     const count = pos.count;
-    _e.set(...(o.rot || [0, 0, 0]));
+    const [rx, ry, rz] = o.rot || [0, 0, 0];
+    _e.set(rx, ry, rz, o.order || 'YXZ'); // default: yaw about Y, then tilt about the part's own X (rosettes)
     const scl = o.scale ? (Array.isArray(o.scale) ? o.scale : [o.scale, o.scale, o.scale]) : [1, 1, 1];
     const local = new THREE.Matrix4().compose(_v.set(...(o.pos || [0, 0, 0])), _q.setFromEuler(_e), _s.set(...scl));
     const M = this.matrix.clone().multiply(local);
@@ -148,7 +151,7 @@ export class PaintBuilder {
         }
         // painted pool of light: shadowed baseline, warm/cool lamp colour where the fixture reaches
         c.C[i * 4] *= 0.5 + r * 1.15; c.C[i * 4 + 1] *= 0.5 + g * 1.15; c.C[i * 4 + 2] *= 0.5 + bl * 1.15;
-        if (c.bucket === 'opaque' || c.bucket === 'cutout') c.C[i * 4 + 3] = Math.min(1, c.C[i * 4 + 3] + glow * 0.75);
+        if (c.bucket === 'opaque' || c.bucket === 'cutout') c.C[i * 4 + 3] = Math.min(1, c.C[i * 4 + 3] + glow * 0.9);
       }
       c.lit = false;
     }

@@ -82,7 +82,7 @@ void main() {
   col *= mix(0.78, 1.0, smoothstep(0.0, 0.45, vWP.y) * (1.0 - abs(n.y)) + abs(n.y)); // grounding
   col += base * vColor.a * uEmissive * mix(1.0, uRoomLight, room); // painted self-illumination
   #ifdef SELECTED
-    col += vec3(1.0, 0.56, 0.16) * (pow(1.0 - ndv, 2.2) * 0.85 + 0.05);
+    col += vec3(1.0, 0.56, 0.16) * (pow(1.0 - ndv, 3.0) * 0.6 + 0.025);  // thin amber rim + faint lift
   #endif
   gl_FragColor = vec4(col, 1.0);
 }`;
@@ -98,7 +98,7 @@ void main() {
   vec3 v = normalize(cameraPosition - vWP);
   float fres = pow(1.0 - clamp(abs(dot(n, v)), 0.0, 1.0), 3.0);
   vec3 col = tex.rgb * vColor.rgb * mix(0.85, 1.12, smoothstep(0.3, 0.8, dot(n, uKeyDir) * 0.5 + 0.5));
-  float a = clamp(tex.a * vColor.a * 0.65 + fres * uGlass * vColor.a, 0.0, 0.55);
+  float a = clamp(tex.a * vColor.a * 0.5 + fres * uGlass * vColor.a, 0.0, 0.55);
   col = mix(col, vec3(0.62, 0.66, 0.66), fres * 0.6);            // neutral sheen at grazing angles
   gl_FragColor = vec4(col * (0.7 + 0.3 * uEmissive), a);
 }`;
@@ -187,8 +187,8 @@ export class PaintedMaterials {
     const U = this.uniforms;
     const P = {
       day: { key: [1.1, 1.0, 0.88], shade: [0.44, 0.46, 0.57], sky: [0.34, 0.35, 0.4], ground: [0.2, 0.16, 0.13], emissive: 1.0, glow: 0.9, room: 1 },
-      evening: { key: [0.62, 0.5, 0.4], shade: [0.2, 0.2, 0.28], sky: [0.16, 0.14, 0.17], ground: [0.1, 0.08, 0.06], emissive: 1.2, glow: 1.1, room: 0.45 },
-      night: { key: [0.17, 0.18, 0.26], shade: [0.055, 0.06, 0.095], sky: [0.05, 0.055, 0.08], ground: [0.03, 0.025, 0.025], emissive: 1.55, glow: 1.4, room: 0.04 },
+      evening: { key: [0.62, 0.5, 0.4], shade: [0.2, 0.2, 0.28], sky: [0.16, 0.14, 0.17], ground: [0.1, 0.08, 0.06], emissive: 1.6, glow: 1.2, room: 0.45 },
+      night: { key: [0.17, 0.18, 0.26], shade: [0.055, 0.06, 0.095], sky: [0.05, 0.055, 0.08], ground: [0.03, 0.025, 0.025], emissive: 2.6, glow: 1.6, room: 0.04 },
     }[key] || null;
     if (!P) return;
     U.uKey.value.setRGB(...P.key); U.uShade.value.setRGB(...P.shade);

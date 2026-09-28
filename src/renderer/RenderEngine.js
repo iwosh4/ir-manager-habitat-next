@@ -198,7 +198,7 @@ export class RenderEngine {
   /** Something changed that needs a new (final-quality) frame. */
   invalidate() { this.dirty = true; }
   /** Continuous manipulation: draw with the interactive profile until it settles. */
-  interact(ms = SETTLE_MS) { this.interactiveUntil = Math.max(this.interactiveUntil, performance.now() + this._settleMs(ms)); this.dirty = true; }
+  interact(ms = SETTLE_MS) { this._lastInput = performance.now(); this.interactiveUntil = Math.max(this.interactiveUntil, this._lastInput + this._settleMs(ms)); this.dirty = true; }
 
   /**
    * Settle window: at least `ms`, but never shorter than ~2.5 interactive frames. On slow hardware a
@@ -227,7 +227,8 @@ export class RenderEngine {
       this._interProbe = now;
       // count the settle window from the *end* of this frame (inputs that arrived meanwhile are queued)
       const end = performance.now();
-      if (this.interactiveUntil > now - 1) this.interactiveUntil = Math.max(this.interactiveUntil, end + this._settleMs());
+      // (once per input event: re-extending after every slow frame would never let the final frame come)
+      if (this._lastInput > (this._extendedFor || 0)) { this._extendedFor = this._lastInput; this.interactiveUntil = Math.max(this.interactiveUntil, end + this._settleMs()); }
     } else {
       this.mode = 'final';
       this._renderWith(this.composer, now, false);

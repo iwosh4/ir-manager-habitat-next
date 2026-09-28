@@ -1,8 +1,10 @@
 # IR Manager — Habitat Studio Next
 
-A standalone, browser-based **3D planner for reptile breeding facilities**. Real-time physically based
-rendering (three.js r186, WebGL 2), a detailed reference breeding room, and a real editor: select, move,
-rotate, duplicate, delete, snap, resize, place from a library, export/import JSON.
+A standalone, browser-based **3D planner for reptile breeding facilities** (three.js r186, WebGL 2) with
+two renderers over the same room: **PLANNER** — a stylised hand-painted real-time renderer, fast on any
+GPU (default) — and **SHOWCASE** — the approved physically based realistic renderer (loaded on demand).
+A detailed reference breeding room and a real editor: select, move, rotate, duplicate, delete, snap,
+resize, place from a library, export/import JSON.
 
 This is a greenfield prototype meant to be integrated into IR Manager (PHP/MySQL) **after** visual
 review. It has no server-side dependencies: it runs from any static web server.
@@ -31,6 +33,18 @@ The demonstration room (`data/demo-room.json`) opens automatically on first laun
 state is restored from browser storage (autosave); use **Load demonstration room** in the toolbar to
 reset.
 
+## Render modes
+
+| Mode | What it is | Switch |
+|---|---|---|
+| **PLANNER** (default) | stylised hand-painted renderer: painted atlas + 5 tiny shader materials, painted light, no real-time lights / shadow maps / post chain; ≈20 draw calls for the whole room | toolbar **PLANNER** · `?mode=planner` |
+| **SHOWCASE** | the approved realistic renderer (GLB + PBR + HDRI + shadows + GTAO + bloom), downloaded and compiled the first time you switch | toolbar **SHOWCASE** · `?mode=showcase` |
+
+Both render the same `RoomDocument`: switching never changes the room, ids, transforms, selection or undo
+history, and export/import is identical in both. The diagnostics panel (**I**) has **Compare Showcase ↔
+Planner**: it renders the current camera with both renderers and shows the frames side by side with
+GPU-synchronised timings, draw calls, triangles, materials and textures. Details: **STYLIZED_RENDERER.md**.
+
 ## Using the editor
 
 | Action | How |
@@ -49,7 +63,8 @@ reset.
 | Export / import | toolbar: **Export JSON** (Ctrl+S) · **Import JSON** (Ctrl+O) |
 | Lighting | Day / Evening / Night (night = enclosure lighting only) |
 | Quality | **Auto** (default, adapts to the measured frame time) · Ultra / High / Balanced / Fast manual overrides. While you orbit / pan / zoom / drag, a lighter *interactive* profile is drawn; the full-quality frame returns ≈ 0.2 s after you stop |
-| Diagnostics | click the stats line (bottom-right) or press **I**: FPS, frame time, draw calls, triangles, render scale, interactive/final mode, shadow updates, batches, light pool |
+| Diagnostics | click the stats line (bottom-right) or press **I**: renderer, FPS, frame time, draw calls, triangles, render scale, interactive/final mode, batches, materials/textures, light pool (Showcase), GPU · **Compare Showcase ↔ Planner** for the current camera |
+| Render mode | **PLANNER** / **SHOWCASE** selector at the left of the toolbar |
 | Panels / fullscreen | **[** library · **]** inspector · **F11** fullscreen (viewport becomes the whole screen) |
 
 Enclosures have **Occupied** and **Lighting** switches: occupied enclosures are lit and show their animal,
@@ -60,7 +75,11 @@ empty ones go dark and quiet. Species and animal ID are printed on the enclosure
 ```
 index.html                 entry page (import map → local three.js)
 src/
-  App.js                   composition root (wires logical state ↔ 3D ↔ UI)
+  App.js                   composition root (logical state ↔ active render mode ↔ UI, shared canvas)
+  modes/                   PlannerMode (default) · ShowcaseMode (lazy) — one view set per renderer
+  planner/                 PLANNER renderer: PaintedMaterials, PlannerEngine, PaintBuilder, parametric
+                           component kit (components.js), stylised models, PlannerView, PlannerShell
+  diagnostics/             Showcase vs Planner comparison (same camera)
   model/RoomDocument.js    logical data model, validation, migration, wall frames
   objects/catalog.js       object types: logical defaults, placement rules, model reference
   objects/ObjectView.js    visual binding of one logical object (GLB fitted into its logical box)
@@ -77,13 +96,18 @@ src/
 assets/models/             GLB models (+ manifest.json)
 assets/textures/           PBR texture sets (albedo / normal / ORM)
 assets/environment/        HDRI
+assets/planner/            hand-painted atlas for the Planner (atlas.webp + atlas.json)
+docs/comparison/           Showcase vs Planner screenshots from identical cameras + report.json
 data/demo-room.json        prebuilt demonstration room
 schema/                    JSON Schema of the room document
 tools/asset-pipeline/      reproducible model & texture authoring (Node)
 tools/serve.mjs            static server · tools/vendor-three.mjs copies three.js into vendor/
 tools/build-thumbnails.mjs pre-renders library thumbnails into assets/thumbnails/
+tools/compare-renderers.mjs Showcase vs Planner from identical cameras → docs/comparison/
+tools/asset-pipeline/build-planner-atlas.mjs  paints the Planner atlas
 tests/benchmark.mjs        performance benchmark (static frame + mouse orbit/zoom/pan)
 tests/run-e2e.mjs          end-to-end browser tests
+tests/stress.mjs           scalability: generated facility with hundreds of enclosures
 vendor/three/              three.js r186 (MIT), only the files the app imports
 ```
 
@@ -94,6 +118,7 @@ Models and textures are committed, so this is only needed when changing them:
 ```bash
 npm install                 # three (geometry/exporter) + @napi-rs/canvas (texture writer)
 npm run build:assets        # textures + GLB models (≈ 30 s)
+node tools/asset-pipeline/build-planner-atlas.mjs   # Planner atlas (≈ 2 min)
 node tools/build-thumbnails.mjs   # library thumbnails (needs Playwright)
 npm run vendor              # refresh vendor/three from node_modules
 ```
@@ -111,12 +136,23 @@ pan / zoom, view presets, fullscreen, selection, move + undo, rotation, duplicat
 (drag & drop), wall placement of doors/windows, JSON export, JSON re-import (+ invalid file rejection),
 browser refresh (autosave), responsive resizing, lighting/quality switching, the progressive renderer
 (interactive while orbiting, final after settling), shadow invalidation, no shader recompilation on
-preset/occupancy changes, static batching, Auto quality + diagnostics, and console errors (26 tests).
-Results are written to `tests/last-run.json`.
+preset/occupancy changes, static batching, Auto quality + diagnostics, and console errors (26 tests,
+run against the Showcase with `?mode=showcase`). Planner tests: Planner ↔ Showcase switching leaves the
+RoomDocument, object ids, transforms, selection and undo history untouched; the Planner renders batched
+without lights/shadow maps and shows its diagnostics; click selection in the Planner; Planner edits appear
+in the Showcase; export/import in Planner mode; presets and the mode selector; a Planner session loads no
+GLB/HDR/post-processing (7 tests). Results are written to `tests/last-run.json`.
+
+```bash
+node tools/compare-renderers.mjs      # identical-camera screenshots + metrics → docs/comparison/
+node tests/stress.mjs 300             # 300 enclosures (MODES=planner,showcase)
+MODE=planner node tests/benchmark.mjs # orbit / zoom / pan benchmark for one renderer
+```
 
 ## Performance
 
-See **PERFORMANCE.md** — progressive (interactive / final) rendering, Auto quality, static batching,
+See **STYLIZED_RENDERER.md** for the Planner (architecture, art pipeline, materials, lighting, draw-call
+strategy, measurements, builder asset kit) and **PERFORMANCE.md** for the Showcase — progressive (interactive / final) rendering, Auto quality, static batching,
 shadow invalidation, fixed light pool, measurements and the benchmark script (`tests/benchmark.mjs`).
 
 See **ARCHITECTURE.md** for the data model and the integration plan, **ASSET_LICENSES.md** for licences.

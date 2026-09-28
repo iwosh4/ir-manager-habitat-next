@@ -19,7 +19,7 @@ import { rng, fbm, rbox, cyl, lathe, heightfield, skirt, taperTube, rock, leafCa
 // status & identity accents; enclosure interiors carry the saturated, natural colour.
 export const TINT = {
   frame: [0.55, 0.56, 0.6], graphite: [1.5, 1.52, 1.62], steel: [0.95, 0.96, 1.0], white: [0.8, 0.78, 0.75],
-  laminate: [2.3, 2.3, 2.4], black: [0.9, 0.9, 0.95], glassEdge: [0.55, 0.85, 0.78],
+  laminate: [2.3, 2.3, 2.4], black: [0.9, 0.9, 0.95], glassEdge: [0.5, 0.72, 0.68],
   warmRock: [1.0, 0.9, 0.78], sand: [1.02, 0.94, 0.8], leaf: [0.85, 1.0, 0.8], moss: [0.95, 1.05, 0.85],
 };
 const WARM = 0xffd6a0, COOL = 0xdcebff, AMBER = [1.0, 0.58, 0.18];
@@ -45,7 +45,7 @@ export function frameProfile(b, a, c, { w = 0.018, h = 0.018, tile = 'metal_dark
   const dir = C.clone().sub(A).normalize();
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
   const e = new THREE.Euler().setFromQuaternion(q);
-  b.add(g, tile, { pos: A.add(C).multiplyScalar(0.5).toArray(), rot: [e.x, e.y, e.z], color, uvScale: 6, ...o });
+  b.add(g, tile, { pos: A.add(C).multiplyScalar(0.5).toArray(), rot: [e.x, e.y, e.z], order: 'XYZ', color, uvScale: 6, ...o });
 }
 
 /** Thin bright edge (painted highlight on a frame edge). */
@@ -59,8 +59,8 @@ export function glassPanel(b, w, h, pos, { rotY = 0, edge = true, alpha = 1, tin
   b.push(pos, rotY);
   b.add(quad(w, h), 'glass', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', color: tint, alpha });
   if (edge) {
-    for (const s of [-1, 1]) b.add(rbox(0.004, h, 0.005), 'glass', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', pos: [s * (w / 2 - 0.002), 0, 0], color: TINT.glassEdge, alpha: 0.9 });
-    b.add(rbox(w, 0.004, 0.005), 'glass', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', pos: [0, h / 2 - 0.002, 0], color: TINT.glassEdge, alpha: 0.9 });
+    for (const s of [-1, 1]) b.add(rbox(0.004, h, 0.005), 'glass', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', pos: [s * (w / 2 - 0.002), 0, 0], color: TINT.glassEdge, alpha: 0.45 });
+    b.add(rbox(w, 0.004, 0.005), 'glass', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', pos: [0, h / 2 - 0.002, 0], color: TINT.glassEdge, alpha: 0.45 });
   }
   b.pop();
 }
@@ -306,15 +306,18 @@ export function grassTuft(b, pos, { h = 0.1, seed = 4, color = [1, 0.95, 0.8] } 
   for (let i = 0; i < 3; i++) b.add(leafCard(h, h * 1.1, { bend: 0.05, fold: 0, segs: 1 }), 'grass', { bucket: 'cutout', mode: TILE_CLAMP, uv: 'keep', pos, rot: [0, (i / 3) * Math.PI + r() * 0.4, 0], color, lit: true });
 }
 
-export function succulent(b, pos, { size = 0.05, seed = 5, color = [0.72, 0.95, 0.85] } = {}) {
+export function succulent(b, pos, { size = 0.05, seed = 5, color = [0.8, 1.0, 0.92] } = {}) {
+  // fleshy rosette: three rings of fat leaves, inner ring more upright
   const r = rng(seed);
-  for (let ring = 0; ring < 2; ring++) {
-    const n = ring ? 5 : 7;
+  const rings = [[8, 1.0, 1.05], [6, 0.72, 0.7], [4, 0.45, 0.35]];
+  rings.forEach(([n, k, tilt], ri) => {
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + ring * 0.4 + r() * 0.2, len = size * (ring ? 0.6 : 1);
-      b.add(leafCard(len, len * 0.55, { bend: -0.2, fold: 0.4, segs: 2 }), 'leaf_oval', { bucket: 'cutout', mode: TILE_CLAMP, uv: 'keep', pos, rot: [ring ? 0.5 : 1.05, a, 0], color, lit: true });
+      const a = (i / n) * Math.PI * 2 + ri * 0.45 + r() * 0.2, len = size * k * 0.55;
+      const g = ellipsoid(len * 0.42, len * 0.18, len, 7);
+      g.translate(0, 0, len * 0.8);
+      b.add(g, 'succulent', { pos: [pos[0], pos[1] + size * 0.1 * ri, pos[2]], rot: [-tilt * 0.6, a, 0], color: ri === 2 ? color.map((c) => c * 1.12) : color, lit: true });
     }
-  }
+  });
 }
 
 export function groundCover(b, pos, { radius = 0.07, count = 14, seed = 6, size = 0.03, color = [0.75, 1.0, 0.7], surf = null } = {}) {
@@ -327,8 +330,23 @@ export function groundCover(b, pos, { radius = 0.07, count = 14, seed = 6, size 
   }
 }
 
-export function mossMound(b, pos, r, { sy = 0.35, color = TINT.moss, seed = 1 } = {}) {
-  b.add(dome(r, sy, 10), 'moss', { pos, uvScale: 9, color, lit: true, jitter: 0.2 });
+export function mossMound(b, pos, r, { sy = 0.62, color = TINT.moss, seed = 1 } = {}) {
+  // cushion of 3 overlapping domes: reads as volume, not as a flat disc
+  const q = rng(Math.round(seed * 13 + 7));
+  b.add(dome(r, sy, 12), 'moss', { pos, uvScale: 9, color, lit: true, jitter: 0.25 });
+  for (let i = 0; i < 2; i++) {
+    const a = q() * 6.28, d = r * (0.55 + q() * 0.3), rr = r * (0.45 + q() * 0.25);
+    b.add(dome(rr, sy * 1.1, 10), 'moss', { pos: [pos[0] + Math.cos(a) * d, pos[1] - 0.002, pos[2] + Math.sin(a) * d], uvScale: 9, color: color.map((c) => c * (0.9 + q() * 0.2)), lit: true, jitter: 0.25 });
+  }
+}
+
+/** Leaf litter: small dry leaves scattered on the substrate (tropical floors). */
+export function leafLitter(b, I, surf, { count = 24, seed = 3 } = {}) {
+  const r = rng(seed), w = I.x1 - I.x0, d = I.z1 - I.z0;
+  for (let i = 0; i < count; i++) {
+    const x = I.x0 + 0.02 + r() * (w - 0.04), z = I.z0 + d * (0.3 + r() * 0.68), sz = 0.018 + r() * 0.016;
+    b.add(leafCard(sz, sz * 0.7, { bend: 0.1, segs: 1 }), r() > 0.4 ? 'leaf_oval' : 'leaf_heart', { bucket: 'cutout', mode: TILE_CLAMP, uv: 'keep', pos: [x, surf(x, z) + 0.002, z], rot: [1.45 + r() * 0.2, r() * 6.28, 0], color: [1.3, 0.85, 0.45], lit: true });
+  }
 }
 
 export function vine(b, points, { leaf = 0.045, seed = 7, every = 0.05, color = [0.9, 1.05, 0.85] } = {}) {
@@ -344,19 +362,21 @@ export function vine(b, points, { leaf = 0.045, seed = 7, every = 0.05, color = 
 
 // ----------------------------------------------------------------------------------------- animals
 export function coiledPython(b, pos, { scale = 1, yaw = 0 } = {}) {
-  const pts = [];
-  const turns = 2.3, n = 26;
+  // ball python at rest: two stacked coils, head resting on top pointing outwards
+  const s = scale, pts = [];
+  const n = 40, turns = 2.15;
   for (let i = 0; i <= n; i++) {
     const t = i / n, a = t * turns * Math.PI * 2;
-    const rad = (0.085 - t * 0.05) * scale;
-    pts.push(new THREE.Vector3(Math.cos(a) * rad, (0.018 + t * 0.03) * scale, Math.sin(a) * rad));
+    const rad = (0.078 - t * 0.036) * s;
+    pts.push(new THREE.Vector3(Math.cos(a) * rad, (0.019 + Math.min(1, t * 1.6) * 0.03) * s, Math.sin(a) * rad));
   }
-  const tail = [new THREE.Vector3(0.1 * scale, 0.012 * scale, -0.02 * scale)];
-  const g = taperTube([...tail, ...pts], 0.012 * scale, 0.02 * scale, { radial: 8, segs: 48, vScale: 9 });
+  const tail = [new THREE.Vector3(0.11 * s, 0.01 * s, 0.03 * s), new THREE.Vector3(0.095 * s, 0.014 * s, 0.0)];
+  const neck = pts[pts.length - 1];
+  const headPos = neck.clone().add(new THREE.Vector3(0.03 * s, 0.012 * s, 0.035 * s));
   b.push(pos, yaw);
-  b.add(g, 'skin_python', { uv: 'keep', uvScale: [1, 1], color: [1.0, 0.95, 0.9], lit: true });
-  const end = pts[pts.length - 1];
-  b.add(ellipsoid(0.024 * scale, 0.014 * scale, 0.034 * scale, 10), 'skin_python', { pos: [end.x - 0.005, end.y + 0.02 * scale, end.z + 0.03 * scale], rot: [0.2, 0.4, 0], color: [0.9, 0.82, 0.72], lit: true });
+  b.add(taperTube([...tail, ...pts, headPos.clone().lerp(neck, 0.4)], 0.008 * s, 0.021 * s, { radial: 9, segs: 64, vScale: 10 }), 'skin_python', { uv: 'keep', color: [1.1, 1.0, 0.9], lit: true });
+  b.add(ellipsoid(0.02 * s, 0.013 * s, 0.03 * s, 10), 'skin_python', { pos: headPos.toArray(), rot: [0.15, Math.atan2(0.03, 0.035), 0], color: [0.72, 0.55, 0.38], lit: true });
+  for (const k of [-1, 1]) b.add(ellipsoid(0.0028 * s, 0.0028 * s, 0.0028 * s, 6), 'plastic_black', { pos: [headPos.x + k * 0.012 * s, headPos.y + 0.006 * s, headPos.z + 0.012 * s], color: [0.05, 0.05, 0.05] });
   b.pop();
 }
 
@@ -404,7 +424,7 @@ export function aridInterior(b, I, { seed = 1, occupied = true, rich = true, ani
   const r = rng(seed + 40);
   for (let i = 0; i < Math.round(w * 10); i++) { const x = cx + (r() - 0.5) * w * 0.85, z = I.z0 + d * (0.3 + r() * 0.65); stone(b, [x, surf(x, z) + 0.002, z], 0.008 + r() * 0.012, { seed: seed + 50 + i, sy: 0.6, ao }); }
   if (w > 0.45) corkTube(b, [cx + w * 0.22, surf(cx + w * 0.22, I.z0 + d * 0.3) - 0.01, I.z0 + d * 0.3], { len: Math.min(0.28, w * 0.3), r: Math.min(0.065, d * 0.14), rotY: 0.25 });
-  branch(b, [[cx + w * 0.42, surf(cx + w * 0.42, I.z0 + d * 0.8), I.z0 + d * 0.8], [cx + w * 0.25, I.floor + (I.top - I.floor) * 0.3, I.z0 + d * 0.5], [cx + w * 0.05, I.floor + (I.top - I.floor) * 0.55, I.z0 + d * 0.35], [cx - w * 0.12, I.floor + (I.top - I.floor) * 0.68, I.z0 + d * 0.22]], { r0: 0.018, r1: 0.008, seed: seed + 4, twigs: 2, color: [1.0, 0.9, 0.8] });
+  branch(b, [[cx + w * 0.42, surf(cx + w * 0.42, I.z0 + d * 0.8), I.z0 + d * 0.8], [cx + w * 0.25, I.floor + (I.top - I.floor) * 0.3, I.z0 + d * 0.5], [cx + w * 0.05, I.floor + (I.top - I.floor) * 0.55, I.z0 + d * 0.35], [cx - w * 0.12, I.floor + (I.top - I.floor) * 0.68, I.z0 + d * 0.22]], { r0: 0.018, r1: 0.008, seed: seed + 4, twigs: 2, tile: 'driftwood', color: [1.15, 1.05, 0.92] });
   waterBowl(b, [cx - w * 0.3, surf(cx - w * 0.3, I.z0 + d * 0.78) - 0.008, I.z0 + d * 0.78], { r: Math.min(0.07, w * 0.07) });
   strapPlant(b, [cx + w * 0.4, surf(cx + w * 0.4, I.z0 + d * 0.2) - 0.005, I.z0 + d * 0.2], { size: Math.min(0.26, (I.top - I.floor) * 0.6), leaves: 6, seed: seed + 21 });
   succulent(b, [cx + 0.02, surf(cx + 0.02, I.z0 + d * 0.85) - 0.004, I.z0 + d * 0.85], { size: 0.045, seed: seed + 22 });
@@ -433,7 +453,7 @@ export function tropicalInterior(b, I, { seed = 1, occupied = true, rich = true 
   const surf = (x, z) => drain + 0.045 + (1 - (z - I.z0) / d) * Math.min(0.04, h * 0.06) + (fbm(x * 7 + seed, z * 7, 2) - 0.5) * 0.016;
   substrateVolume(b, I, surf, { top: 'soil', section: 'section_tropical', uvScale: 5 });
   const at = (fx, fz) => { const x = cx + fx * w, z = I.z0 + fz * d; return [x, surf(x, z), z]; };
-  for (const [fx, fz, s] of [[-0.3, 0.72, 1], [0.22, 0.62, 1.25], [0.0, 0.3, 0.85], [0.35, 0.85, 0.7]]) { const p = at(fx, fz); mossMound(b, [p[0], p[1] - 0.004, p[2]], 0.05 * s * Math.min(1, w * 1.8), {}); }
+  for (const [fx, fz, s] of [[-0.3, 0.72, 1], [0.22, 0.62, 1.25], [0.0, 0.3, 0.85], [0.35, 0.85, 0.7]]) { const p = at(fx, fz); mossMound(b, [p[0], p[1] - 0.006, p[2]], 0.04 * s * Math.min(1, w * 1.8), { sy: 0.42, seed: seed + fx * 10 + 3 }); }
   branch(b, [at(-0.34, 0.6), [cx - w * 0.16, I.floor + h * 0.38, I.z0 + d * 0.45], [cx + w * 0.08, I.floor + h * 0.62, I.z0 + d * 0.3], [cx + w * 0.34, I.floor + h * 0.82, I.z0 + d * 0.22]], { r0: 0.02, r1: 0.009, seed: seed + 8, twigs: 3 });
   if (rich) branch(b, [at(0.38, 0.72), [cx + w * 0.25, I.floor + h * 0.34, I.z0 + d * 0.5], [cx + w * 0.03, I.floor + h * 0.46, I.z0 + d * 0.35]], { r0: 0.014, r1: 0.007, seed: seed + 9, twigs: 1 });
   const bs = Math.min(1.35, h * 1.6);
@@ -444,7 +464,8 @@ export function tropicalInterior(b, I, { seed = 1, occupied = true, rich = true 
   fernClump(b, at(-0.33, 0.28), { size: 0.2 * bs, seed: seed + 6, fronds: 8 });
   vine(b, [at(0.34, 0.12), [cx + w * 0.37, I.floor + h * 0.35, I.z0 + 0.05], [cx + w * 0.2, I.floor + h * 0.55, I.z0 + 0.06], [cx - w * 0.08, I.floor + h * 0.7, I.z0 + 0.05], [cx - w * 0.33, I.floor + h * 0.85, I.z0 + 0.06]], { leaf: 0.05 * bs, seed: seed + 7 });
   if (rich) vine(b, [[cx - w * 0.4, I.floor + h * 0.9, I.z0 + 0.05], [cx - w * 0.36, I.floor + h * 0.68, I.z0 + 0.07], [cx - w * 0.4, I.floor + h * 0.5, I.z0 + 0.06]], { leaf: 0.045 * bs, seed: seed + 8 });
-  groundCover(b, at(0.03, 0.72), { radius: 0.08 * Math.min(1, w * 1.6), count: rich ? 18 : 10, seed: seed + 9, surf });
+  groundCover(b, at(0.03, 0.72), { radius: 0.08 * Math.min(1, w * 1.6), count: rich ? 22 : 12, seed: seed + 9, surf, size: 0.035 });
+  leafLitter(b, I, surf, { count: rich ? 26 : 12, seed: seed + 12 });
   if (rich) groundCover(b, at(-0.2, 0.85), { radius: 0.05, count: 9, seed: seed + 10, surf });
   // mist nozzle
   box(b, 0.014, 0.02, 0.014, 'plastic_black', [cx + w * 0.34, I.top - 0.01, I.z0 + d * 0.2], { color: TINT.black });
@@ -477,11 +498,11 @@ export function paludariumInterior(b, I, { seed = 1, occupied = true, lit = true
   b.add(quad(wx1 - wx0, 0.012), 'foam', { bucket: 'glow', mode: TILE_CLAMP, uv: 'keep', pos: [(wx0 + wx1) / 2, waterY - 0.004, I.z1 + 0.009], rot: [0, 0, Math.PI / 2], alpha: 0.12, color: [0.6, 0.9, 0.9] });
   // waterfall ribbon down the rock wall
   const fx = cx - w * 0.24;
-  const fall = new THREE.PlaneGeometry(0.05, 0.26, 1, 8); const fp = fall.attributes.position;
+  const fall = new THREE.PlaneGeometry(0.075, 0.26, 1, 8); const fp = fall.attributes.position;
   for (let i = 0; i < fp.count; i++) { const t = fp.getY(i) / 0.26 + 0.5; fp.setZ(i, 0.06 * (1 - t) * (1 - t)); }
   fall.computeVertexNormals();
   b.add(fall, 'foam', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', pos: [fx, waterY + 0.13, I.z0 + 0.04], alpha: 0.85, color: [0.9, 1.0, 1.0] });
-  if (lit) b.add(fall, 'foam', { bucket: 'glow', mode: TILE_CLAMP, uv: 'keep', pos: [fx, waterY + 0.13, I.z0 + 0.042], alpha: 0.25, color: [0.5, 0.75, 0.8] });
+  b.add(fall, 'foam', { bucket: 'glow', mode: TILE_CLAMP, uv: 'keep', pos: [fx, waterY + 0.13, I.z0 + 0.042], alpha: lit ? 0.6 : 0.2, color: [0.55, 0.8, 0.85] });
   b.add(new THREE.RingGeometry(0.012, 0.06, 16).rotateX(-Math.PI / 2), 'foam', { bucket: 'glass', mode: TILE_CLAMP, uv: 'keep', pos: [fx, waterY + 0.002, I.z0 + 0.1], alpha: 0.6 });
   stone(b, [fx, waterY + 0.26, I.z0 + 0.05], 0.06, { seed: seed + 90, sx: 1.2, sy: 0.5, sz: 0.8, tile: 'rock_dark', color: [0.85, 0.9, 0.9] });
   // driftwood
@@ -498,6 +519,15 @@ export function paludariumInterior(b, I, { seed = 1, occupied = true, lit = true
   vine(b, [[cx - w * 0.05, I.floor + h * 0.95, I.z0 + 0.06], [cx - w * 0.12, I.floor + h * 0.7, I.z0 + 0.08], [cx - w * 0.1, I.floor + h * 0.52, I.z0 + 0.07]], { leaf: 0.055, seed: seed + 38 });
   for (const [fx2, fz, s] of [[0.18, 0.55, 1], [0.36, 0.6, 0.8]]) { const p = at(fx2, fz); mossMound(b, [p[0], p[1] - 0.003, p[2]], 0.05 * s, {}); }
   for (let i = 0; i < 4; i++) { const p = at(-0.42 + i * 0.08, 0.3); strapPlant(b, [p[0], p[1], p[2]], { size: 0.14, leaves: 4, seed: seed + 40 + i, color: [0.6, 0.95, 0.6], spread: 0.1 }); }
+  // epiphytes & moss on the rock wall, moss carpet on the land
+  for (const [fx2, fy, sz, sd] of [[-0.05, 0.62, 0.09, 1], [0.3, 0.72, 0.1, 2], [-0.3, 0.8, 0.07, 3], [0.1, 0.9, 0.08, 4]]) {
+    const x = cx + fx2 * w, y = I.floor + fy * h;
+    mossMound(b, [x, y - 0.02, I.z0 + 0.05], 0.035, { sy: 0.5, seed: seed + 50 + sd });
+    if (sd % 2) bromeliad(b, [x, y, I.z0 + 0.06], { size: sz, seed: seed + 60 + sd, leaves: 8, heart: sd === 3 ? 'leaf_red' : null });
+    else fernClump(b, [x, y, I.z0 + 0.06], { size: sz * 1.3, seed: seed + 70 + sd, fronds: 6 });
+  }
+  for (const [fx2, fz, s2] of [[0.12, 0.72, 1.1], [0.3, 0.82, 0.9], [0.44, 0.5, 0.8], [0.2, 0.35, 0.7]]) { const p = at(fx2, fz); mossMound(b, [p[0], p[1] - 0.004, p[2]], 0.045 * s2, { seed: seed + 80 + fz * 10 }); }
+  leafLitter(b, { x0: landX + 0.05, x1: I.x1, z0: I.z0, z1: I.z1 }, surf, { count: 14, seed: seed + 90 });
   // pump & heater
   box(b, 0.05, 0.08, 0.04, 'plastic_black', [I.x0 + 0.04, I.floor + 0.06, I.z0 + 0.03], { color: TINT.black });
   if (occupied) frog(b, at(0.3, 0.55), { yaw: 0.6 });
