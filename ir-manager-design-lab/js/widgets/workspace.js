@@ -13,7 +13,7 @@ const SIZES = [['s', 'Small'], ['m', 'Medium'], ['l', 'Large'], ['w', 'Wide']];
 const ICONS = ['dashboard', 'star', 'feed', 'repro', 'egg', 'health', 'shopping', 'notebook', 'checklist', 'calculator', 'flag', 'pin', 'truck', 'coins', 'sun', 'leaf', 'bug', 'box3d', 'tag', 'bolt'];
 let editing = null; // workspace key in edit mode
 
-function materialize(inst) {
+export function materialize(inst) {
   const W = WIDGETS[inst.type];
   const o = { id: wid(), type: inst.type, size: inst.size || W?.size || 'm', title: inst.title || '', accent: inst.accent || (W?.doc ? 'neutral' : 'neutral'), frame: inst.frame || (inst.accent ? 'strip' : 'line'), icon: inst.icon || '', density: inst.density || 'comfortable', collapsed: false, cfg: inst.cfg || {} };
   if (W?.doc) o.docId = newDoc(W.doc, { title: inst.title || W.name, accent: inst.accent || 'neutral', ...(inst.seed || {}), items: (inst.seed?.items || []).map((x) => ({ id: Math.random().toString(36).slice(2, 8), done: false, ...x })) });

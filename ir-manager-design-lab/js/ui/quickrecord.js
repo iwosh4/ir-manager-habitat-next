@@ -17,6 +17,8 @@ export const QR_ACTIONS = [
   ['feeding', 'Feeding', 'feed'], ['water', 'Water', 'water'], ['misting', 'Misting', 'mist'], ['cleaning', 'Cleaning', 'clean'], ['weight', 'Weight', 'weight'],
   ['shed', 'Shed', 'shed'], ['health', 'Health', 'health'], ['repro', 'Reproduction', 'repro'], ['task', 'Task', 'tasks'], ['animal', 'Add animal', 'plus'],
 ];
+/** Quick Record tiles honour Settings → Activities (order + hidden). */
+export function qrActions() { const c = store.get().activityCfg; if (!c) return QR_ACTIONS; const ord = c.order || []; return QR_ACTIONS.filter((a) => !(c.hidden || []).includes(a[0])).sort((a, b) => (ord.indexOf(a[0]) + 1 || 99) - (ord.indexOf(b[0]) + 1 || 99)); }
 const OBS = ['Not eating', 'Retained shed', 'Lethargic', 'Regurgitation', 'Wound / injury', 'Weight loss', 'Respiratory signs', 'Parasite suspicion', 'Other'];
 const REPRO_EV = [['pairing', 'Pairing'], ['mating', 'Observed mating'], ['ovulation', 'Ovulation'], ['prelay', 'Pre-lay shed'], ['clutch', 'Clutch / birth'], ['calling', 'Calling / courtship'], ['note', 'Note']];
 
@@ -48,7 +50,7 @@ function draw() {
 function actionStep() {
   const db = store.get(), last = A.lastOwnRecord();
   const ctxLine = S.subjects.size ? `<div class="qr-ctx">${icon('pin')}<span>For <b>${[...S.subjects].map((id) => esc(subjectOf(db, id)?.code || id)).join(', ')}</b></span><button class="link" data-q="clear-subj">change</button></div>` : '';
-  return `${ctxLine}<div class="qr-actions">${QR_ACTIONS.map(([k, l, ic], i) => `<button class="qa" data-q="type" data-v="${k}" style="--c:${TYPE[k]?.color || (k === 'animal' ? 'var(--amber)' : 'var(--c-repro)')}"><span class="qa-ico">${icon(ic)}</span><span>${l}</span><kbd>${(i + 1) % 10}</kbd></button>`).join('')}</div>
+  return `${ctxLine}<div class="qr-actions">${qrActions().map(([k, l, ic], i) => `<button class="qa" data-q="type" data-v="${k}" style="--c:${TYPE[k]?.color || (k === 'animal' ? 'var(--amber)' : 'var(--c-repro)')}"><span class="qa-ico">${icon(ic)}</span><span>${l}</span><kbd>${(i + 1) % 10}</kbd></button>`).join('')}</div>
   ${last ? `<div class="qr-last"><span>${icon('history')} Last record</span><b>${esc(TYPE[last.type]?.label || last.type)} · ${esc(subjectOf(db, last.subject)?.code || '')}</b><em>${rel(last.t)}</em><button class="btn sm" data-q="edit-last">${icon('edit')}Edit</button><button class="btn sm" data-q="repeat-last" data-type="${last.type}" data-subject="${last.subject}">${icon('repeat')}Repeat</button></div>` : ''}`;
 }
 
@@ -146,7 +148,7 @@ function onInput(e) {
   if (k === 'title') { const b = S.h.el.querySelector('[data-q=save]'); if (b) b.disabled = !v.trim(); }
 }
 function onKey(e) {
-  if (S.step === 'action' && /^[0-9]$/.test(e.key) && !e.target.matches('input,textarea')) { const i = (+e.key + 9) % 10; const a = QR_ACTIONS[i]; if (a) { e.preventDefault(); pickType(a[0]); } }
+  if (S.step === 'action' && /^[0-9]$/.test(e.key) && !e.target.matches('input,textarea')) { const i = (+e.key + 9) % 10; const a = qrActions()[i]; if (a) { e.preventDefault(); pickType(a[0]); } }
   if (e.key === 'Enter' && e.target.matches('[data-enter-q]')) { e.preventDefault(); save(); }
   if (e.key === 'Enter' && S.step === 'target' && e.target.matches('[data-q-input=q]')) { const first = S.h.el.querySelector('[data-q=toggle]'); if (first) { S.subjects.add(first.dataset.id); S.pickMore = false; draw(); } }
 }
