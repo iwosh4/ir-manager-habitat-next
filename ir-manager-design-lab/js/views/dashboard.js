@@ -12,7 +12,7 @@ import { workspaceHTML, mountWorkspace } from '../widgets/workspace.js';
 import { DAY, startOfDay, hm, dLong } from '../core/time.js';
 
 export function context() {
-  return { sub: dLong(Date.now()), actions: [{ label: 'Planner', icon: 'planner', act: 'go', data: { href: '#/planner/timeline' }, hideM: true }, { label: 'Quick Record', icon: 'plus', act: 'quick-record', primary: true, kbd: 'Q' }] };
+  return { sub: dLong(Date.now()), actions: [{ label: 'Planner', icon: 'planner', act: 'go', data: { href: '#/planner/timeline' }, hideM: true }, { label: 'Quick Record', icon: 'plus', act: 'quick-record', primary: true, kbd: 'Q', hideM: true }] };
 }
 export function render() {
   const db = store.get(), n = Date.now(), sod = startOfDay(n), h = new Date(n).getHours();
