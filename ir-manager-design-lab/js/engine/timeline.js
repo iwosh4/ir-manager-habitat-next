@@ -136,8 +136,9 @@ export function groupItems(items) {
   const out = [], groups = new Map();
   for (const it of items) {
     if (it.group && it.kind === 'occ') {
-      let g = groups.get(it.group);
-      if (!g) { g = { id: `grp:${it.group}`, kind: 'group', type: it.type, t: it.t, items: [], group: it.group, origin: it.origin }; groups.set(it.group, g); out.push(g); }
+      const key = `${it.group}:${isOpen(it) ? 'o' : 'd'}`; // open and finished work never share a card
+      let g = groups.get(key);
+      if (!g) { g = { id: `grp:${key}`, kind: 'group', type: it.type, t: it.t, items: [], group: it.group, origin: it.origin }; groups.set(key, g); out.push(g); }
       g.items.push(it);
     } else out.push(it);
   }
@@ -156,7 +157,7 @@ export function groupItems(items) {
   });
 }
 
-export const isOpen = (it) => it.status === 'open' || it.status === 'overdue';
+export function isOpen(it) { return it.status === 'open' || it.status === 'overdue'; }
 export const FILTERS = {
   all: () => true,
   care: (it) => ['feeding', 'water', 'misting', 'cleaning', 'weight', 'shed'].includes(it.type),

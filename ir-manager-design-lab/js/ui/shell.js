@@ -14,7 +14,7 @@ export function shellHTML() {
   <a class="skip" href="#view">Skip to content</a>
   <aside class="rail" aria-label="Main navigation">
     <div class="rail-brand"><a href="#/dashboard" class="brand" aria-label="IR Manager — Dashboard">${BRAND}<span class="brand-txt"><b>IR MANAGER</b><i>Enterprise · Concept B</i></span></a><button class="icon-btn rail-toggle" data-act="rail-toggle" aria-label="Collapse navigation" title="Collapse">${icon('chevronLeft')}</button></div>
-    <nav class="rail-nav">${NAV.map((g) => `<div class="rail-group"><h6>${t(g.group)}</h6>${g.items.filter((i) => i.id !== 'tools' && i.id !== 'settings').map((i) => `<a href="#/${i.id}" class="rail-item" data-mod="${i.id}" title="${esc(t(i.label))}">${icon(i.icon)}<span>${t(i.label)}</span><em class="rail-badge" data-badge="${i.id}"></em></a>`).join('')}</div>`).join('')}</nav>
+    <nav class="rail-nav">${NAV.filter((g) => g.group !== 'System').map((g) => `<div class="rail-group"><h6>${t(g.group)}</h6>${g.items.filter((i) => i.id !== 'tools' && i.id !== 'settings').map((i) => `<a href="#/${i.id}" class="rail-item" data-mod="${i.id}" title="${esc(t(i.label))}">${icon(i.icon)}<span>${t(i.label)}</span><em class="rail-badge" data-badge="${i.id}"></em></a>`).join('')}</div>`).join('')}</nav>
     <div class="rail-foot">
       <a href="#/tools" class="rail-item" data-mod="tools" title="${t('Tools')}">${icon('tools')}<span>${t('Tools')}</span></a>
       <a href="#/settings" class="rail-item" data-mod="settings" title="${t('Settings')}">${icon('settings')}<span>${t('Settings')}</span></a>

@@ -24,6 +24,9 @@ for (const [slug, f] of Object.entries(SPECIES)) {
   for (let i = 0; i < 6; i++) { const [fn, o] = f(i); await job(`species/${slug}-${i + 1}.webp`, fn, o, 480, 480, 0.8); }
   const [fn, o] = f(0); await job(`species/${slug}-macro.webp`, fn, o, 960, 400, 0.78, true);
 }
+if (!only || only === 'banner') {
+  await job('art/banner.webp', 'banner', { seed: 1 }, 1800, 520, 0.8);
+}
 if (!only || only === 'misc') {
   await job('kpi/clutch-python.webp', 'paintClutch', { count: 7, seed: 3, size: 0.15 }, 640, 480);
   await job('kpi/clutch-gecko.webp', 'paintClutch', { count: 2, seed: 5, size: 0.2, gecko: true }, 640, 480);

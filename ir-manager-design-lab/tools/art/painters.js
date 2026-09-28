@@ -293,11 +293,11 @@ export function paintSnake(ctx, W, H, { species = 'regius', seed = 1, bg = 'bark
   // spiral path from inner (tail) to outer, then head crosses inward over the coils
   const pts = [];
   const thetaMax = turns * Math.PI * 2;
-  for (let th = 0.6; th <= thetaMax; th += 0.012) { const rr = gap * th / (Math.PI * 2) + bw * 0.6; pts.push([cx + Math.cos(th + a0) * rr, cy + Math.sin(th + a0) * rr]); }
+  for (let th = 0.6; th <= thetaMax;) { const rr = gap * th / (Math.PI * 2) + bw * 0.6; pts.push([cx + Math.cos(th + a0) * rr, cy + Math.sin(th + a0) * rr]); th += Math.min(0.012, 1.4 / rr); } // ~1.4 px arc steps at any size
   // neck + head: continue tangentially then curve toward the centre across the coils
   const [lx, ly] = pts[pts.length - 1], [px, py] = pts[pts.length - 2]; let dx = lx - px, dy = ly - py; const dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
   let hx = lx, hy = ly, hdx = dx, hdy = dy;
-  for (let i = 0; i < 90; i++) { const tx = cx - hx, ty = cy - hy, tl = Math.hypot(tx, ty); hdx = lerp(hdx, tx / tl, 0.035); hdy = lerp(hdy, ty / tl, 0.035); const hl = Math.hypot(hdx, hdy); hdx /= hl; hdy /= hl; hx += hdx * 2.6; hy += hdy * 2.6; pts.push([hx, hy]); }
+  const hs = Math.max(1.4, S / 480 * 1.3); for (let i = 0; i < 90 * 2.6 / hs; i++) { const tx = cx - hx, ty = cy - hy, tl = Math.hypot(tx, ty); hdx = lerp(hdx, tx / tl, 0.035 * hs / 2.6); hdy = lerp(hdy, ty / tl, 0.035 * hs / 2.6); const hl = Math.hypot(hdx, hdy); hdx /= hl; hdy /= hl; hx += hdx * hs * S / 480; hy += hdy * hs * S / 480; pts.push([hx, hy]); }
   const N = pts.length; const cum = [0]; for (let i = 1; i < N; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   const total = cum[N - 1];
   const widthAt = (t) => bw * (t < 0.12 ? 0.25 + t / 0.12 * 0.75 : t > 0.93 ? 1 - (t - 0.93) / 0.07 * 0.45 : 1);
@@ -319,7 +319,7 @@ export function paintSnake(ctx, W, H, { species = 'regius', seed = 1, bg = 'bark
       c = mix([0, 0, 0], c, 0.28 + 0.72 * cyl * (0.65 + lightDot * 0.5));
       const scale = 0.9 + 0.2 * (((u * 14 + s * 5) % 1 + 1) % 1 > 0.85 ? 0 : 1); // scale rows
       ctx.fillStyle = rgb(c, scale);
-      ctx.fillRect(x + nx * s * w - 1.1, y + ny * s * w - 1.1, 2.4, 2.4);
+      const px = Math.max(2.4, (2 * w) / LAT + 1.2); ctx.fillRect(x + nx * s * w - px / 2, y + ny * s * w - px / 2, px, px);
     }
   }
   // highlight ridge
@@ -492,9 +492,27 @@ export function paintJar(ctx, W, H, { label = 'DENDROCARE', color = '#e8913a', c
 
 // ------------------------------------------------------------------ macro crop (skin detail) — draws any painter large and crops
 export function macro(ctx, W, H, painter, opts) {
-  const big = new OffscreenCanvas(W * 2.4, W * 2.4), b = big.getContext('2d');
-  painter(b, big.width, big.height, opts);
-  ctx.drawImage(big, big.width * 0.3, big.height * 0.38, W, H, 0, 0, W, H);
-  const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, 'rgba(12,13,15,0.9)'); g.addColorStop(0.55, 'rgba(12,13,15,0.25)'); g.addColorStop(1, 'rgba(12,13,15,0.05)');
+  // gentle zoom (1.6×) so the animal stays recognisable; crop around the upper-centre where heads & patterns are
+  const S = Math.round(W * 1.6), big = new OffscreenCanvas(S, S), b = big.getContext('2d');
+  painter(b, S, S, opts);
+  const snake = painter === paintSnake, sx = (S - W) * (snake ? 0.1 : 0.55), sy = snake ? S * 0.08 : Math.max(0, S * 0.3 - H * 0.25);
+  ctx.drawImage(big, sx, sy, W, H, 0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, 'rgba(12,13,15,0.85)'); g.addColorStop(0.5, 'rgba(12,13,15,0.2)'); g.addColorStop(1, 'rgba(12,13,15,0.0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+// Wide collage banner: several specimen plates blended on one substrate (dashboard brief, login, empty states)
+export function banner(ctx, W, H, { seed = 1 } = {}) {
+  substrate(ctx, W, H, 'leaf', seed + 900);
+  const place = (fn, opts, cx, cy, size, rot = 0) => {
+    const c = new OffscreenCanvas(size, size), x = c.getContext('2d'); fn(x, size, size, opts);
+    const m = new OffscreenCanvas(size, size), mx = m.getContext('2d'); const g = mx.createRadialGradient(size / 2, size / 2, size * 0.22, size / 2, size / 2, size * 0.5); g.addColorStop(0, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)'); mx.fillStyle = g; mx.fillRect(0, 0, size, size);
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0);
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.drawImage(c, -size / 2, -size / 2); ctx.restore();
+  };
+  place(paintSnake, { species: 'regius', seed: 61, bg: 'leaf' }, W * 0.96, H * 0.62, H * 1.35);
+  place(paintClutch, { count: 5, seed: 3, size: 0.16 }, W * 0.72, H * 0.78, H * 0.95, 0.2);
+  place(paintGecko, { morph: 'harlequin', seed: 31, bg: 'leaf' }, W * 0.64, H * 0.28, H * 1.0, -0.3);
+  place(paintFrog, { species: 'azureus', seed: 11, bg: 'moss', scale: 0.45 }, W * 0.84, H * 0.2, H * 0.95, 0.4);
+  place(paintFrog, { species: 'leucomelas', seed: 21, bg: 'moss', scale: 0.4 }, W * 0.5, H * 0.72, H * 0.8, -0.6);
+  studioLight(ctx, W, H, { x: 0.75, y: 0.3, strength: 0.4, vignette: 0.6 });
 }
