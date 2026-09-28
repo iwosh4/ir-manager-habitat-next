@@ -36,7 +36,7 @@ a.kpi:hover .kpi-img { transform: scale(1.06); }
 .kpi.sm { min-height: 86px; } .kpi.sm .kpi-v { font-size: 22px; }
 
 /* ---------------- animal visuals */
-.av { width: var(--s); height: var(--s); border-radius: calc(var(--s) * 0.24); overflow: hidden; flex: none; background: var(--surface-3); position: relative; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset; }
+.av { display: inline-block; vertical-align: middle; width: var(--s); height: var(--s); border-radius: calc(var(--s) * 0.24); overflow: hidden; flex: none; background: var(--surface-3); position: relative; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset; }
 .av img { width: 100%; height: 100%; object-fit: cover; }
 .av.round { border-radius: 50%; }
 .spn { display: grid; line-height: 1.2; min-width: 0; }

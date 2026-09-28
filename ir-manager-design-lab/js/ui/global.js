@@ -44,7 +44,7 @@ actions({
   more: () => openMore(),
   'profile-menu': (el) => profileMenu(el),
   'undo': () => { const l = store.undo(); if (l) info(`Undone: ${l}`); },
-  'go': (el) => { closeAll(); location.hash = el.dataset.href; },
+  'go': (el) => { closeAll(); const h = el.dataset.href; if (h.startsWith('#')) location.hash = h; else window.open(h, '_blank', 'noopener'); },
 });
 
 // ---------------------------------------------------------------- keyboard shortcuts (enhancements, not requirements)
