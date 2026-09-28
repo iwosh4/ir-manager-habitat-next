@@ -49,7 +49,7 @@ export function render(r) {
       </div>
       ${archived ? '' : `<div class="pf-actions">
         <button class="pa pa-main" data-act="${nf && nf.t < startOfDay(n) + DAY ? 'pf-feed' : 'qr-type'}" data-type="feeding" data-subject="${a.id}" data-id="${a.id}" style="--c:var(--c-feed)">${icon('feed')}<span><b>${nf && nf.t < startOfDay(n) + DAY ? 'FED' : 'Feed'}</b><em>${nf ? `${nf.t < n ? 'due now' : nf.t < startOfDay(n) + DAY ? `today ${hm(nf.t)}` : rel(nf.t)}${rs?.next ? ` · ${esc(rs.next)}` : ''}` : 'unscheduled'}</em></span></button>
-        ${[['water', 'Water'], ['misting', 'Mist'], ['weight', 'Weight'], ['health', 'Health'], ['repro', 'Breeding']].map(([k, l]) => `<button class="pa" data-act="qr-type" data-type="${k}" data-subject="${a.id}" style="--c:${TYPE[k].color}">${icon(TYPE[k].icon)}<span><b>${l}</b></span></button>`).join('')}
+        ${[['water', 'Water'], db.plans.some((p) => p.subject === a.id && p.type === 'misting') ? ['misting', 'Mist'] : ['shed', 'Shed'], ['weight', 'Weight'], ['health', 'Health'], ['repro', 'Breeding']].filter(([k]) => a.kind !== 'group' || k !== 'weight' && k !== 'shed').map(([k, l]) => `<button class="pa" data-act="qr-type" data-type="${k}" data-subject="${a.id}" style="--c:${TYPE[k].color}">${icon(TYPE[k].icon)}<span><b>${l}</b></span></button>`).join('')}
         <button class="pa" data-act="pf-more" data-id="${a.id}">${icon('more')}<span><b>More</b></span></button></div>`}
     </section>
     <nav class="pf-nav" role="tablist">${SECTIONS.map(([k, l, ic]) => `<button role="tab" class="${sec === k ? 'on' : ''}" data-act="pf-sec" data-v="${k}" aria-selected="${sec === k}">${icon(ic)}<span>${l}</span>${k === 'health' && openH.length ? `<em>${openH.length}</em>` : ''}</button>`).join('')}</nav>
@@ -157,7 +157,7 @@ actions({
     { icon: 'clean', label: 'Cleaning', run: () => openQuickRecord({ type: 'cleaning', subjects: [id] }) },
     { icon: 'note', label: 'Note', run: () => import('../ui/global.js').then((m) => m.openCommand(false)) },
     { sep: true },
-    { icon: 'tag', label: 'Mark for sale', run: () => { store.mutate('Marked for sale', (d) => { const a = d.animals.find((x) => x.id === id); a.status = 'for-sale'; if (!d.sales.some((s) => s.animal === id && s.status !== 'sold')) d.sales.push({ id: `sl_${id}`, animal: id, status: 'for-sale', price: a.price || 0, listed: Date.now() }); }); done({ label: 'Marked for sale' }); } },
+    { icon: 'finance', label: 'Mark for sale', run: () => { store.mutate('Marked for sale', (d) => { const a = d.animals.find((x) => x.id === id); a.status = 'for-sale'; if (!d.sales.some((s) => s.animal === id && s.status !== 'sold')) d.sales.push({ id: `sl_${id}`, animal: id, status: 'for-sale', price: a.price || 0, listed: Date.now() }); }); done({ label: 'Marked for sale' }); } },
     { icon: 'printer', label: 'Print label', run: () => import('../widgets/tooldrawer.js').then((m) => m.openToolDrawer('labels')) },
   ], { title: 'More' }); },
   'pf-plan': (el) => { const id = el.dataset.id, k = el.dataset.k; A.resolve; store.mutate('Edited care plan', (d) => { const p = d.plans.find((x) => x.id === id); if (k === 'every') p.every = +el.value; if (k === 'active') p.active = el.checked; if (k === 'time') { const [h, m] = el.value.split(':').map(Number); p.times[0] = [h, m]; } }); done({ label: 'Care plan updated — Planner regenerated' }); },

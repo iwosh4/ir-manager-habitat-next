@@ -33,7 +33,7 @@ export function render(r) {
   const sub = r.sub || 'grid';
   if (sub === 'groups') return groupsView();
   const list = filtered(sub === 'archive');
-  return `${sub !== 'archive' ? `<div class="an-ws">${workspaceHTML('animals', { title: 'Collection workspace' })}</div>` : ''}${toolbar(sub, list)}${list.length ? (sub === 'table' ? tableView(list) : sub === 'archive' ? archiveView(list) : gridView(list)) : empty('No animals match', 'Clear filters or search for a code, Latin name or morph.', 'empty', `<button class="btn" data-act="an-clear">${icon('x')}Clear filters</button>`)}${F.sel.size && sub === 'table' ? bulkBar() : ''}`;
+  return `${toolbar(sub, list)}${list.length ? (sub === 'table' ? tableView(list) : sub === 'archive' ? archiveView(list) : gridView(list)) : empty('No animals match', 'Clear filters or search for a code, Latin name or morph.', 'empty', `<button class="btn" data-act="an-clear">${icon('x')}Clear filters</button>`)}${F.sel.size && sub === 'table' ? bulkBar() : ''}${sub !== 'archive' ? `<div class="an-ws">${workspaceHTML('animals', { title: 'Collection workspace' })}</div>` : ''}`;
 }
 export function mount(root, r) { if (r.sub === 'a') return profile.mount?.(root, r); mountWorkspace(root); }
 
