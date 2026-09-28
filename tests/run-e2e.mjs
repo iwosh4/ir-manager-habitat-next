@@ -666,8 +666,10 @@ await test('Assembly Builder: technical cabinet below, save as "TEST BREEDING WA
   await ev(() => { const b = window.habitat.builder; b.sel = null; b.renderProps(); b._draw(); }); await settle(200);
   await shot('2-builder-test-breeding-wall');
   if (process.env.SHOTS) { // close-up of the low RACK 30 row on top of the terrariums
-    const c = await ev(() => { const b = window.habitat.builder; const r = b.canvas.getBoundingClientRect(); const [x0, y0] = b.toScreen(-0.08, 2.52), [x1, y1] = b.toScreen(1.88, 1.9); return { x: r.left + x0, y: r.top + y0, width: x1 - x0, height: y1 - y0 }; });
+    // zoom the elevation onto the top of the wall: the six LOW rack boxes on the terrarium row
+    const c = await ev(() => { const b = window.habitat.builder; b.view.scale = (b.cw - 40) / 1.96; b.view.ox = 20 + 0.08 * b.view.scale; b.view.oy = b.ch / 2 + 2.2 * b.view.scale; b._draw(); const r = b.canvas.getBoundingClientRect(); const [x0, y0] = b.toScreen(-0.08, 2.56), [x1, y1] = b.toScreen(1.88, 1.7); return { x: r.left + x0, y: r.top + Math.max(0, y0), width: x1 - x0, height: y1 - Math.max(0, y0) }; });
     await shot('3-rack30-low-row', c);
+    await ev(() => window.habitat.builder.fit());
   }
   await page.click('.builder [data-act="save"]'); await settle(600);
   const a = await ev(() => { const ed = window.habitat.editor; const a = ed.assemblies.find((x) => x.name === 'TEST BREEDING WALL'); const L = ed.lib; return a && { id: a.id, n: a.members.length, inst: a.members.filter((m) => m.instanceId).map((m) => m.instanceId), allInDoc: a.members.filter((m) => m.instanceId).every((m) => L.instances.has(m.instanceId)) }; });
@@ -705,14 +707,19 @@ await test('Drag TEST BREEDING WALL from MY ASSEMBLIES into the room; move & rot
   const colls = await ev((id) => { const ed = window.habitat.editor; return ed.snapper.collisions(ed.get(id)).length; }, wall.id);
   assert(typeof colls === 'number', 'room collision uses the assembly footprint');
   wall = await ev((id) => JSON.parse(JSON.stringify(window.habitat.editor.get(id))), wall.id);
-  if (process.env.SHOTS) { await ev(() => { const h = window.habitat; h.editor.select(null); h.rig.goTo('hero', { instant: true }); }); await shot('4-room-assembly'); await ev(() => window.habitat.rig.goTo('iso', { instant: true })); await shot('4b-room-assembly-iso'); }
+  if (process.env.SHOTS) { await ev(() => { const h = window.habitat; h.editor.select(null); h.rig.goTo('hero', { instant: true }); }); await shot('4-room-assembly'); await ev(() => window.habitat.rig.goTo('iso', { instant: true })); await shot('4b-room-assembly-iso'); await setView('top'); }
 });
 
 await test('ENTER ASSEMBLY → select one terrarium → exit (hierarchical selection)', async () => {
-  await setView('hero'); await ev((id) => { const h = window.habitat; h.editor.select(id); h.focusSelected(); h.rig.update(performance.now() + 5000); }, wall.id); await settle(1200);
-  const c = await screenOf(wall.id, 0.5);
+  await setView('hero');
+  // frame the wall from its front, slightly from above, so no furniture in the room stands between camera and wall
+  await ev(async (id) => { const T = await import('three'); const h = window.habitat; h.editor.select(id); const o = h.editor.get(id), v = h.objects.get(id); const a = o.rotation * Math.PI / 180; const c = new T.Box3().setFromObject(v.proxy).getCenter(new T.Vector3()); h.rig.animateTo(c.clone().add(new T.Vector3(Math.sin(a) * 2.2, 0.9, Math.cos(a) * 2.2)), c, 50, 0); }, wall.id); await settle(1200);
+  // double-click a VISIBLE point of the wall (another object may stand in front of its centre)
+  let c = await screenOf(wall.id, 0.5);
+  for (const f of [0.5, 0.65, 0.8, 0.35, 0.9]) { const q = await screenOf(wall.id, f); if (await ev(([x, y, id]) => window.habitat.pointer.pickObject({ clientX: x, clientY: y }) === id, [q.x, q.y, wall.id])) { c = q; break; } }
+  const under = await ev(([x, y]) => { const h = window.habitat; const id = h.pointer.pickObject({ clientX: x, clientY: y }); return { id, type: id && h.editor.get(id)?.type, cam: h.rig.camera.position.toArray().map((v) => +v.toFixed(2)), sel: h.editor.selection }; }, [c.x, c.y]);
   await page.mouse.dblclick(c.x, c.y); await settle(500);
-  assert(await ev(() => !!window.habitat.assemblyContext), 'assembly entered (double-click)');
+  assert(await ev(() => !!window.habitat.assemblyContext), 'assembly entered (double-click); under cursor: ' + JSON.stringify({ ...under, c }));
   assert(await page.isVisible('.hud-context'), 'context banner visible');
   // click the member at the centre of the terrarium block
   const mp = await ev(async (id) => { const T = await import('three'); const h = window.habitat, v = h.objects.get(id); const m = [...v.members.values()].find((x) => x.part.member?.enclosureId && x.part.size.h > 0.5 && x.part.y0 > 1.3); const p = new T.Vector3(); m.proxy.updateMatrixWorld(); p.setFromMatrixPosition(m.proxy.matrixWorld); p.y += m.part.size.h / 2; p.project(h.rig.camera); const r = h.renderer.domElement.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height, id: m.part.id }; }, wall.id);

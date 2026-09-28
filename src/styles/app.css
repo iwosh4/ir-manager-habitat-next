@@ -368,3 +368,8 @@ textarea.notes { width: 100%; background: var(--bg-2); border: 1px solid var(--l
 .dim-sum em { font-style: normal; color: var(--text-2); }
 .builder .dim-sum span { flex-basis: 100%; }
 .meta.dims b { color: var(--text); font-family: var(--mono); font-weight: 600; }
+/* stats line on its own row above the status text (no overlap at any viewport width) */
+.hud-stats { bottom: 28px; max-width: calc(100% - 84px); }
+.hud-stats .stats-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-status { right: 60px; overflow: hidden; }
+.hud-status span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
