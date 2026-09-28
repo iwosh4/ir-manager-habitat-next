@@ -24,7 +24,7 @@ export function parseRoute(hash = location.hash) {
 }
 
 let renderQueued = false, token = 0;
-export function rerender() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(true); }); }
+export function rerender() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => setTimeout(() => { renderQueued = false; render(true); }, 0)); } // paint optimistic feedback first, then re-render
 
 function render(keep = false) {
   const v = app.view, r = app.route; if (!v || !r) return;

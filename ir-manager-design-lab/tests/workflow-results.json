@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-28T21:27:05.355Z",
+  "at": "2026-09-28T22:09:30.917Z",
   "base": "http://localhost:8095/ir-manager-design-lab/index.html",
   "results": [
     {
@@ -187,7 +187,7 @@
       "budget": null,
       "pass": true,
       "verified": true,
-      "note": "a=today,kpis,kpis,attention,incubation,repro,quickcare,lowstock,healthalerts,activity,favorites,habitat,notes,incubation-tool b=kpis,today,attention,incubation,repro,quickcare,lowstock,healthalerts,activity,favorites,habitat,notes"
+      "note": "preset applied, then reset to default"
     },
     {
       "name": "Workspace: two independent shopping lists as widgets",
@@ -375,6 +375,25 @@
       "pass": true,
       "verified": true,
       "note": "clean"
+    },
+    {
+      "section": "mobile 390×844, clock pinned to 08:10"
+    },
+    {
+      "name": "Morning misting round — + → Misting → Select all due → DONE",
+      "interactions": 4,
+      "budget": 4,
+      "pass": true,
+      "verified": true,
+      "note": "12 animals misted"
+    },
+    {
+      "name": "Morning round from Home — grouped Misting ×N in Planner → one tap",
+      "interactions": 1,
+      "budget": 1,
+      "pass": true,
+      "verified": true,
+      "note": "12 records in one tap"
     }
   ]
 }

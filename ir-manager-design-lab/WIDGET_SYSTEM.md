@@ -84,21 +84,21 @@ These are shopping list*, notes*, checklist*, calculator*, unit converter, date 
 
 | Workspace | Default widgets |
 |---|---|
-| Dashboard | KPIs (W), Today & Upcoming (L), Needs attention (L), Incubation (L), Active reproduction (L), Quick Care, Low stock, Health alerts, Recent activity, Favourites, Habitat Studio (L), Notes, FEED ORDER + EQUIPMENT shopping lists |
+| Dashboard | KPIs (W), Today & Upcoming (L), Needs attention (L), Incubation (L), Active reproduction (L), Quick Care, Low stock, Health alerts, Recent activity, Favourites, Habitat Studio (L), "Breeding room notes" |
 | Animals | Collection overview, Group overview (L), Favourites, Weigh-in queue, Recent animals |
 | Tasks | Quick Care, Overdue, Supplement rotation, Weigh-in queue (L), Upcoming |
 | Planner | Today (L), Upcoming, Supplement rotation |
-| Health | Health alerts (L), Follow-ups, Medication, "Vet questions" note (red) |
-| Reproduction | Active reproduction (L), Incubation (L), Expected hatchings, "Breeding notes" (violet) |
+| Health | Health alerts (L), Follow-ups, Medication, "Vet questions" note (red), Recent activity |
+| Reproduction | Active reproduction (L), Incubation (L), Expected hatchings, "Breeding notes" (violet), "Hatching prep" checklist |
 | Enclosures | Enclosure status (L), Habitat Studio (L), Volume & substrate, Electricity cost (L) |
-| Inventory | Low stock, FEED ORDER list, Stock count, Feed demand, Recent movements |
-| Finance | Finance summary, Budget, Calculator (finance keys), Monthly overview (L), Sales, Price & margin, "Month-end" checklist (green) |
+| Inventory | Low stock, **FEED ORDER** + **EQUIPMENT** shopping lists (two instances), Feed demand (L), Recent movements, Stock value (S), Calculator (S), "Supplier notes" |
+| Finance | Finance summary, Budget, Calculator (finance keys, S), Monthly overview (L), Sales, Price & margin, "Month-end" checklist (green) |
 
 ## Custom-workspace test (automated, `tests/workflow.test.cjs`)
 
 1. Edit → Add widget → search "incubation window" → add → Done → **reload → still there** (5 interactions).
 2. Resize to W, move, duplicate, remove, then undo the removal → **reload → size, order and count preserved**.
 3. Apply the "Breeding focus" preset (the hatch widget appears), then reset (the default layout returns).
-4. Two independent shopping-list widgets exist (FEED ORDER, EQUIPMENT).
+4. Two independent shopping-list widgets exist (FEED ORDER, EQUIPMENT on the Inventory workspace).
 
 Measured results are in TEST_REPORT.md.

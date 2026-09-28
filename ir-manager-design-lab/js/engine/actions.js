@@ -11,8 +11,12 @@ const rid = (p = 'r') => `${p}_${Date.now().toString(36)}${Math.random().toStrin
 /** Resolve timeline item ids → live items (from a window around now). */
 export function resolve(ids) {
   const db = store.get(), n = Date.now();
-  const items = buildTimeline(db, { from: n - 45 * DAY, to: n + 400 * DAY, includeHistory: true });
-  const m = new Map(items.map((i) => [i.id, i]));
+  // Fast path: almost every action targets something near "now" — build a narrow window first (≈10× cheaper),
+  // widen to the full range (incl. history) only for ids not found there.
+  const due = ids.map((id) => +String(id).split('@')[1]).filter(Number.isFinite);
+  const lo = Math.min(n - 4 * DAY, ...due.map((t) => t - DAY)), hi = Math.max(n + 15 * DAY, ...due.map((t) => t + DAY));
+  let m = new Map(buildTimeline(db, { from: lo, to: hi, includeHistory: false }).map((i) => [i.id, i]));
+  if (ids.some((id) => !m.has(id))) m = new Map(buildTimeline(db, { from: n - 45 * DAY, to: n + 400 * DAY, includeHistory: true }).map((i) => [i.id, i]));
   return ids.map((id) => m.get(id)).filter(Boolean);
 }
 

@@ -139,3 +139,5 @@
 @media (max-width: 1280px) { .pl-grid { grid-template-columns: minmax(0, 1fr); } .pl-side { position: static; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
 .pl-side { position: static; }
 .tl-it[data-id^="stock:"] .mt { white-space: normal; height: auto; padding: 3px 8px; }
+/* optimistic feedback: painted the same frame as the tap, before the view re-renders */
+.tl-it.is-done .tl-card, .grp-row.is-done { opacity: .55; transition: opacity 120ms; } .tl-it.is-done .tl-go { background: var(--ok); border-color: var(--ok); }

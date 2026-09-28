@@ -183,7 +183,7 @@ function noteFor(id, it) {
 }
 
 actions({
-  'tl-done': (el) => done(A.complete([el.dataset.id], { refused: UI.refused.has(el.dataset.id) ? new Set([el.dataset.id]) : null }), { edit: (r) => r.records?.[0] && editRecordPanel(r.records[0].id) }),
+  'tl-done': (el) => { el.closest('.tl-it, .grp-row')?.classList.add('is-done'); return done(A.complete([el.dataset.id], { refused: UI.refused.has(el.dataset.id) ? new Set([el.dataset.id]) : null }), { edit: (r) => r.records?.[0] && editRecordPanel(r.records[0].id) }); },
   'tl-refused': (el) => done(A.complete([el.dataset.id], { refused: new Set([el.dataset.id]) })),
   'tl-skip': (el) => done(A.skip([el.dataset.id])),
   'tl-later': (el) => postponeMenu(el, [el.dataset.id]),

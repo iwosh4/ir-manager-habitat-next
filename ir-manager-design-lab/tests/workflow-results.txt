@@ -1,0 +1,56 @@
+
+=== desktop 1440×900 ===
+PASS  Scheduled feeding (single animal) → FED                           1 / 1  p_feed_a_msp01 fed · supplement —
+PASS  Grouped feeding "Feeding ×8" → all FED in one tap                 1 / 1  12 records
+PASS  Scheduled water / misting / cleaning → DONE                       1 / 1  done p_clean_e_q1
+PASS  Feeding refused                                                   1 / 1  refused recorded, rotation not advanced
+PASS  Postpone (Later → +1 hour)                                        2 / 2  postponed
+PASS  Skip (More → Skip)                                                2 / 2  skipped (task)
+PASS  Undo last action (toast Undo)                                     1 / 1  restored
+PASS  Weight — inline weigh-in in Planner (type + SAVE)                 2 / 2  saved 1234 g
+PASS  Weight — from animal profile (Weight → value → SAVE)              3 / 3  saved 45.5 g
+PASS  Weight — global Quick Record (open → Weight → animal → value → SAVE)  5 / 5  saved (filter change not counted: “All” is one extra tap when the animal is not due)
+PASS  Shed from profile (Shed → SHED)                                   2 / 2  shed recorded
+PASS  Health observation from profile (Health → chip → SAVE)            3 / 3  health record + follow-up
+PASS  Bulk care — Quick Care: Water → All animals → All → GO            4 / 4  29 animals watered in one pass
+PASS  Bulk care — Quick Record multi-select (open → type → Select all due → DONE)  2 / 4  no activity has ≥2 animals due at this hour
+PASS  Group husbandry — mist group AZ-01 (4 frogs) from its profile as one record  2 / 2  one record covers all 4 members
+PASS  New task (N → title → CREATE)                                     3 / 3  task created
+PASS  Clutch check in incubator (Check OK)                              1 / 1  check recorded
+PASS  Stock correction (+ on Inventory)                                 1 / 1  stock +1
+PASS  Low stock → shopping list                                         1 / 1  items on list
+PASS  Global search → open animal (/ → type → Enter)                    3 / 3  opened PR-02
+PASS  Workspace: edit → add widget from library search → done (persisted after reload)  5 / 5  added & persisted
+PASS  Workspace: resize + recolour + move + duplicate + remove (with undo)  7 / –  size W, moved to #2, duplicate kept, remove undone, persisted
+PASS  Workspace: preset “Breeding focus” + reset to default             6 / –  preset applied, then reset to default
+PASS  Workspace: two independent shopping lists as widgets              0 / –  2 lists (FEED ORDER, EQUIPMENT)
+PASS  No uncaught page errors during run                                0 / –  clean
+
+=== mobile 390×844 ===
+PASS  Scheduled feeding (single animal) → FED                           1 / 1  p_feed_a_msp01 fed · supplement —
+PASS  Grouped feeding "Feeding ×8" → all FED in one tap                 1 / 1  12 records
+PASS  Scheduled water / misting / cleaning → DONE                       1 / 1  done p_clean_e_q1
+PASS  Feeding refused                                                   1 / 1  refused recorded, rotation not advanced
+PASS  Postpone (Later → +1 hour)                                        2 / 2  postponed
+PASS  Skip (More → Skip)                                                2 / 2  skipped (task)
+PASS  Undo last action (toast Undo)                                     1 / 1  restored
+PASS  Weight — inline weigh-in in Planner (type + SAVE)                 2 / 2  saved 1234 g
+PASS  Weight — from animal profile (Weight → value → SAVE)              3 / 3  saved 45.5 g
+PASS  Weight — global Quick Record (open → Weight → animal → value → SAVE)  5 / 5  saved (filter change not counted: “All” is one extra tap when the animal is not due)
+PASS  Shed from profile (Shed → SHED)                                   2 / 2  shed recorded
+PASS  Health observation from profile (Health → chip → SAVE)            3 / 3  health record + follow-up
+PASS  Bulk care — Quick Care: Water → All animals → All → GO            4 / 4  29 animals watered in one pass
+PASS  Bulk care — Quick Record multi-select (open → type → Select all due → DONE)  2 / 4  no activity has ≥2 animals due at this hour
+PASS  Group husbandry — mist group AZ-01 (4 frogs) from its profile as one record  2 / 2  one record covers all 4 members
+PASS  New task (N → title → CREATE)                                     3 / 3  task created
+PASS  Clutch check in incubator (Check OK)                              1 / 1  check recorded
+PASS  Stock correction (+ on Inventory)                                 1 / 1  stock +1
+PASS  Low stock → shopping list                                         1 / 1  items on list
+PASS  Global search → open animal (/ → type → Enter)                    3 / 3  opened PR-02
+PASS  No uncaught page errors during run                                0 / –  clean
+
+=== mobile 390×844, clock 08:10 (morning round) ===
+PASS  Morning misting round — + → Misting → Select all due → DONE       4 / 4  12 animals misted
+PASS  Morning round from Home — grouped Misting ×N in Planner → one tap  1 / 1  12 records in one tap
+
+48/48 passed

@@ -144,22 +144,22 @@ const recCount = (d, pred) => d.records.filter(pred).length;
         await tap(`[data-wid="${first}"] [data-act=ws-size][data-v=w]`);
         await tap(`[data-wid="${first}"] [data-act=ws-move][data-d="1"]`);
         await tap(`[data-wid="${first}"] [data-act=ws-dup]`);
-        const cnt = (await ws()).layouts.dashboard.length; await tap(`[data-wid="${first}"] [data-act=ws-remove]`); await tap('.toast .t-undo, .toast [data-undo]');
+        await settle(700); const cnt = (await ws()).layouts.dashboard.length; await tap(`[data-wid="${first}"] [data-act=ws-remove]`); await tap('.toast .t-undo, .toast [data-undo]');
         await tap('[data-act=ws-done]'); await page.reload(); await settle(1200);
         const L = (await ws()).layouts.dashboard, w0 = L.find((x) => x.id === first);
-        return w0 && w0.size === 'w' && L.length === cnt && L.findIndex((x) => x.id === first) === 1 ? 'size W, moved to #2, duplicate kept, remove undone, persisted' : `state ${JSON.stringify({ size: w0?.size, len: L.length, cnt, idx: L.findIndex((x) => x.id === first) })}`;
+        return w0 && w0.size === 'w' && L.length === cnt && L.findIndex((x) => x.id === first) === 1 ? 'size W, moved to #2, duplicate kept, remove undone, persisted' : (console.log('   state', JSON.stringify({ size: w0?.size, len: L.length, cnt, idx: L.findIndex((x) => x.id === first) })), false);
       });
       await test('Workspace: preset “Breeding focus” + reset to default', null, async () => {
-        await go('#/dashboard'); await tap('[data-act=ws-edit][data-ws=dashboard]'); await tap('[data-act=ws-presets][data-ws=dashboard]'); await tap('.menu button:has-text("Breeding")');
-        const a = (await ws()).layouts.dashboard.map((x) => x.type).join(','); await tap('[data-act=ws-reset][data-ws=dashboard]'); await tap('.ov-modal button:has-text("Reset"), .ov-sheet button:has-text("Reset")'); await settle(500);
+        await go('#/dashboard'); await tap('[data-act=ws-edit][data-ws=dashboard]'); await tap('[data-act=ws-presets][data-ws=dashboard]'); await tap('.menu button:has-text("Breeding")'); await settle(700);
+        await settle(700); const a = (await ws()).layouts.dashboard.map((x) => x.type).join(','); await tap('[data-act=ws-reset][data-ws=dashboard]'); await tap('.ov-modal button:has-text("Reset"), .ov-sheet button:has-text("Reset")'); await settle(900);
         const b = (await ws()).layouts.dashboard.map((x) => x.type).join(','); await tap('[data-act=ws-done]').catch(() => {});
-        return a.includes('hatch') && b.startsWith('kpis,today') ? 'preset applied, then reset to default' : `a=${a} b=${b}`;
+        return a.includes('hatch') && b.startsWith('kpis,today') ? 'preset applied, then reset to default' : (console.log('   a/b', a, b), false);
       });
       await test('Workspace: two independent shopping lists as widgets', null, async () => {
         const w = await ws(); const lists = Object.values(w.docs).filter((d) => d.kind === 'shopping'); return lists.length >= 2 ? `${lists.length} lists (${lists.map((l) => l.title).join(', ')})` : false;
       });
     }
-    await test('No uncaught page errors during run', null, async () => (errors.length ? `ERR ${errors.slice(0, 3).join(' | ')}` && false : 'clean'));
+    await test('No uncaught page errors during run', null, async () => (errors.length ? (console.log('   ERR', errors.slice(0, 3).join(' | ')), false) : 'clean'));
     await ctx.close();
   }
   // ---- morning round with the browser clock pinned to 08:10 (misting at 08:00 is due for 12 animals)

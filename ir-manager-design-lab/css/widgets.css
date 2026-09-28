@@ -207,3 +207,4 @@ table.mini { font-size: 12px; } table.mini td, table.mini th { padding: 5px 6px;
 .td-head { display: flex; gap: 12px; align-items: center; } .td-head > .i { width: 26px; height: 26px; color: var(--amber); } .td-head > div { display: grid; }
 .conv-r input { min-width: 0; } .tool .chips { flex-wrap: wrap; } .conv-r.out b { min-width: 0; overflow-wrap: anywhere; }
 .conv-r { min-width: 0; } .conv-r input { width: 0; } .tool { min-width: 0; }
+.tool .tbl.mini { display: block; overflow-x: auto; max-width: 100%; }
