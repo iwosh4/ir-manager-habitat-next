@@ -157,7 +157,7 @@ actions({
     { icon: 'clean', label: 'Cleaning', run: () => openQuickRecord({ type: 'cleaning', subjects: [id] }) },
     { icon: 'note', label: 'Note', run: () => import('../ui/global.js').then((m) => m.openCommand(false)) },
     { sep: true },
-    { icon: 'finance', label: 'Mark for sale', run: () => { store.mutate('Marked for sale', (d) => { const a = d.animals.find((x) => x.id === id); a.status = 'for-sale'; if (!d.sales.some((s) => s.animal === id && s.status !== 'sold')) d.sales.push({ id: `sl_${id}`, animal: id, status: 'for-sale', price: a.price || 0, listed: Date.now() }); }); done({ label: 'Marked for sale' }); } },
+    { icon: 'tag', label: 'Mark for sale', run: () => { store.mutate('Marked for sale', (d) => { const a = d.animals.find((x) => x.id === id); a.status = 'for-sale'; if (!d.sales.some((s) => s.animal === id && s.status !== 'sold')) d.sales.push({ id: `sl_${id}`, animal: id, status: 'for-sale', price: a.price || 0, listed: Date.now() }); }); done({ label: 'Marked for sale' }); } },
     { icon: 'printer', label: 'Print label', run: () => import('../widgets/tooldrawer.js').then((m) => m.openToolDrawer('labels')) },
   ], { title: 'More' }); },
   'pf-plan': (el) => { const id = el.dataset.id, k = el.dataset.k; A.resolve; store.mutate('Edited care plan', (d) => { const p = d.plans.find((x) => x.id === id); if (k === 'every') p.every = +el.value; if (k === 'active') p.active = el.checked; if (k === 'time') { const [h, m] = el.value.split(':').map(Number); p.times[0] = [h, m]; } }); done({ label: 'Care plan updated — Planner regenerated' }); },
