@@ -45,7 +45,10 @@ function assert(c, msg) { if (!c) throw new Error(msg || 'assertion failed'); }
 const near = (a, b, eps = 1e-3) => Math.abs(a - b) <= eps;
 
 const srv = process.env.URL ? null : await serve();
-const URL0 = (process.env.URL || `http://localhost:${srv.address().port}/`) + (process.env.QUALITY === 'high' ? '' : '?quality=fast');
+const BASE = process.env.URL || `http://localhost:${srv.address().port}/`;
+// The approved realistic renderer is exercised explicitly with mode=showcase; the Planner (default mode)
+// has its own section at the end, including Planner ↔ Showcase switching invariance.
+const URL0 = BASE + '?mode=showcase' + (process.env.QUALITY === 'high' ? '' : '&quality=fast');
 const browser = await chromium.launch({ headless: !process.env.HEADFUL, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 }, acceptDownloads: true });
 const page = await ctx.newPage();
@@ -324,9 +327,11 @@ await test('responsive viewport resizing', async () => {
   await page.waitForFunction(() => { const c = window.habitat.renderer.domElement; return Math.abs(window.habitat.rig.camera.aspect - c.clientWidth / c.clientHeight) < 0.01 && c.clientWidth > 1000; }, null, { timeout: 60000 });
   const b = await ev(() => ({ w: window.habitat.renderer.domElement.clientWidth, aspect: window.habitat.rig.camera.aspect, h: window.habitat.renderer.domElement.clientHeight }));
   assert(b.w > a.w && Math.abs(b.aspect - b.w / b.h) < 0.01, 'camera aspect updated');
-  await page.click('[data-act="library"]'); await settle(500);
+  await page.click('[data-act="library"]');
+  // the canvas is resized on the next animation frame (can be > 0.5 s apart on a software rasteriser)
+  await page.waitForFunction((w) => window.habitat.renderer.domElement.clientWidth > w, b.w, { timeout: 30000 }).catch(() => {});
   const c = await ev(() => window.habitat.renderer.domElement.clientWidth);
-  assert(c > b.w, 'collapsing the library enlarges the viewport');
+  assert(c > b.w, `collapsing the library enlarges the viewport (${b.w} → ${c})`);
   await page.click('[data-act="library"]'); await settle(300);
 });
 
@@ -388,6 +393,133 @@ await test('Auto quality mode available and adaptive diagnostics exposed', async
   for (const k of ['Draw calls', 'Triangles', 'Render scale', 'Mode', 'FPS']) assert(txt.includes(k), `diagnostics show ${k}`);
   await page.keyboard.press('i');
   await page.selectOption('[data-role="quality"]', 'fast'); await settle(300);
+});
+
+// ============================================================== PLANNER (stylised renderer) & mode switching
+/** Logical document snapshot: everything that is saved / exported (room + objects). */
+const docSnap = () => ev(() => { const d = window.habitat.editor.toJSON(); return JSON.stringify({ schema: d.schema, version: d.version, room: d.room, objects: d.objects }); });
+/** World transform of every view in the active mode (derived from the document by the mode's views). */
+const viewTransforms = () => ev(() => {
+  const h = window.habitat, out = {};
+  for (const [id, v] of h.objects.views) { const p = v.root.position, pr = v.proxy.scale; out[id] = [p.x, p.y, p.z, v.root.rotation.y, pr.x, pr.y, pr.z, v.root.visible].map((x) => (typeof x === 'number' ? +x.toFixed(5) : x)); }
+  return out;
+});
+async function switchMode(m) {
+  const ok = await ev((m) => window.habitat.setRenderMode(m), m);
+  assert(ok === true, `setRenderMode(${m}) returned ${ok}`);
+  assert(await ev(() => window.habitat.renderMode) === m, `active mode is ${m}`);
+  await settle(400);
+}
+
+await test('Planner ↔ Showcase switching leaves RoomDocument, ids and transforms untouched', async () => {
+  await ev(() => window.habitat.loadDemo({ silent: true })); await settle(800);
+  await ev(() => window.habitat.editor.select('terr_b1'));
+  const before = await docSnap();
+  const hist0 = await ev(() => window.habitat.editor.history.undoStack.length);
+  const tShow = await viewTransforms();
+  await switchMode('planner');
+  assert(await docSnap() === before, 'document unchanged after switching to Planner');
+  const tPlan = await viewTransforms();
+  const ids = Object.keys(tShow).sort();
+  assert(JSON.stringify(Object.keys(tPlan).sort()) === JSON.stringify(ids), 'same object ids have views in both modes');
+  const diff = ids.filter((id) => JSON.stringify(tShow[id]) !== JSON.stringify(tPlan[id]));
+  assert(diff.length === 0, 'view transforms differ between modes: ' + diff.slice(0, 5).join(', '));
+  await switchMode('showcase');
+  await switchMode('planner');
+  assert(await docSnap() === before, 'document unchanged after a round trip of switches');
+  assert(await ev(() => window.habitat.editor.selection) === 'terr_b1', 'selection preserved across switches');
+  const hist1 = await ev(() => window.habitat.editor.history.undoStack.length);
+  assert(hist0 === hist1, 'undo history untouched by switching');
+});
+
+await test('Planner renders the room cheaply (batched painted materials, no lights, no shadow maps)', async () => {
+  await waitIdle();
+  const s = await ev(() => { const h = window.habitat, d = h.engine.diagnostics(); let lights = 0; h.scene.traverse((o) => { if (o.isLight) lights++; }); return { d, lights, batches: h.batcher.stats.batches, views: h.objects.views.size, n: h.editor.objects.length, mats: h.mode.mats.count() }; });
+  assert(s.views === s.n, `every object has a planner view (${s.views}/${s.n})`);
+  assert(s.lights === 0, 'no real-time lights in the Planner scene');
+  assert(s.d.renderer === 'planner' && s.d.drawCalls > 0 && s.d.drawCalls < 60, 'draw calls: ' + s.d.drawCalls);
+  assert(s.d.triangles > 20000, 'room geometry rendered: ' + s.d.triangles);
+  assert(s.mats <= 10, 'material count: ' + s.mats);
+  await page.keyboard.press('i'); await settle(300);
+  const txt = await page.textContent('.hud-diag');
+  for (const k of ['PLANNER', 'Draw calls', 'Triangles', 'Render scale', 'Painted materials', 'GPU']) assert(txt.includes(k), `planner diagnostics show ${k}`);
+  await page.keyboard.press('i');
+});
+
+await test('Planner selection by clicking (amber rim on the detached object)', async () => {
+  await ev(() => window.habitat.editor.select(null));
+  await setView('hero'); await waitIdle();
+  const p = await screenOf('rack_1', 0.45);
+  await page.mouse.click(p.x, p.y); await settle(500);
+  const s = await ev(() => { const h = window.habitat, v = h.objects.get('rack_1'); return { sel: h.editor.selection, selected: v.selected, detached: h.batcher.detachedId, rim: v.visual.children.some((m) => /_sel$/.test(m.material.name)) }; });
+  assert(s.sel === 'rack_1', 'selected by click: ' + s.sel);
+  assert(s.selected && s.rim, 'selected view uses the amber rim materials');
+  assert(s.detached === 'rack_1', 'selected object detached from the batches');
+  await ev(() => window.habitat.editor.select(null)); await settle(200);
+  assert(await ev(() => !window.habitat.objects.get('rack_1').selected), 'deselected view restored');
+});
+
+await test('edits in Planner are shown by Showcase (stale mode re-synced on activation)', async () => {
+  await ev(() => window.habitat.editor.update('dehu_1', { position: { x: 4.6, z: 1.3 } }));
+  await ev(() => window.habitat.editor.update('terr_a1', { props: { occupied: false } }));
+  const snap = await docSnap();
+  const tPlan = await viewTransforms();
+  await switchMode('showcase');
+  await ev(() => window.habitat.objects.whenLoaded());
+  const tShow = await viewTransforms();
+  assert(JSON.stringify(tShow.dehu_1) === JSON.stringify(tPlan.dehu_1), 'moved object has the same transform in Showcase');
+  assert(await docSnap() === snap, 'document unchanged by the switch');
+  await ev(() => { window.habitat.editor.undo(); window.habitat.editor.undo(); });
+  await switchMode('planner');
+});
+
+await test('export / import round trip in Planner mode is identical to Showcase', async () => {
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-act="export"]')]);
+  const file = path.join(os.tmpdir(), 'habitat-export-planner.json');
+  await dl.saveAs(file);
+  const a = JSON.parse(fs.readFileSync(file, 'utf8'));
+  await switchMode('showcase');
+  const b = JSON.parse(await ev(() => JSON.stringify(window.habitat.editor.toJSON())));
+  assert(JSON.stringify(a.objects) === JSON.stringify(b.objects) && JSON.stringify(a.room) === JSON.stringify(b.room), 'export is renderer independent');
+  await switchMode('planner');
+  await ev(() => window.habitat.newRoom()); await settle(300);
+  await page.setInputFiles('#toolbar input[type=file]', file); await settle(1200);
+  const s = await ev(() => ({ n: window.habitat.editor.objects.length, views: window.habitat.objects.views.size, doc: JSON.stringify(window.habitat.editor.toJSON().objects) }));
+  assert(s.n === a.objects.length && s.views === s.n, `import restored ${s.n}/${a.objects.length} objects with planner views`);
+  assert(s.doc === JSON.stringify(a.objects), 'imported objects identical to the export');
+  await switchMode('showcase');
+  assert(await ev(() => window.habitat.objects.views.size) === s.n, 'Showcase re-synced to the imported document');
+  await switchMode('planner');
+});
+
+await test('Planner lighting presets & selector UI', async () => {
+  for (const k of ['night', 'evening', 'day']) {
+    await page.click(`[data-light="${k}"]`); await settle(250);
+    assert(await ev((k) => window.habitat.mode.mats.presetKey === k && window.habitat.prefs.lighting === k, k), `preset ${k} applied`);
+  }
+  assert(await page.isVisible('[data-mode="planner"].on'), 'PLANNER segment active');
+  await page.click('[data-mode="showcase"]');
+  await page.waitForFunction(() => window.habitat.renderMode === 'showcase', null, { timeout: 60000 });
+  await page.click('[data-mode="planner"]');
+  await page.waitForFunction(() => window.habitat.renderMode === 'planner', null, { timeout: 60000 });
+});
+
+await test('Planner starts without loading the realistic pipeline (lazy Showcase)', async () => {
+  const p2 = await ctx.newPage();
+  const errs = []; p2.on('pageerror', (e) => errs.push(e.message));
+  await p2.goto(BASE + '?mode=planner');
+  await p2.evaluate(() => { try { localStorage.clear(); } catch {} });
+  await p2.reload();
+  await p2.waitForFunction(() => window.habitat && window.habitat.engine?.stats.frames > 0, null, { timeout: 180000 });
+  const s = await p2.evaluate(() => {
+    const res = performance.getEntriesByType('resource').map((r) => r.name);
+    return { mode: window.habitat.renderMode, showcase: !!window.habitat.modes.showcase, glb: res.filter((u) => /\.glb|\.hdr/.test(u)).length, post: res.filter((u) => /postprocessing|GLTFLoader|RenderEngine/.test(u)).length, thumbs: res.filter((u) => /thumbnails/.test(u)).length };
+  });
+  await p2.close();
+  assert(s.mode === 'planner' && !s.showcase, 'Planner is the default, Showcase not instantiated');
+  assert(s.glb === 0, `no GLB / HDR downloaded in Planner (${s.glb})`);
+  assert(s.post === 0, `no realistic-pipeline modules loaded (${s.post})`);
+  assert(errs.length === 0, errs.join(' | '));
 });
 
 await test('no fatal console errors', async () => {

@@ -23,7 +23,8 @@ export class Hud {
       <div class="hud-compass" title="North"><div class="needle"><span>N</span></div></div>
       <div class="hud-status"><span class="st-main"></span><span class="st-hover"></span></div>
       <div class="hud-stats" title="Renderer diagnostics — click (or press I) for details"><span class="mode-dot"></span><span class="stats-line"></span></div>
-      <div class="hud-diag" hidden></div>`;
+      <div class="hud-diag" hidden></div>
+      <div class="hud-loading" hidden><div class="hl-text"></div><div class="hl-bar"><i></i></div></div>`;
     viewport.appendChild(el);
     this.el = el;
     el.addEventListener('click', (e) => {
@@ -31,11 +32,13 @@ export class Hud {
       const a = e.target.closest('[data-act]'); if (!a) return;
       if (a.dataset.act === 'focus') app.focusSelected();
       if (a.dataset.act === 'full') app.toggleFullscreen();
+      if (a.dataset.act === 'compare') app.openComparison();
     });
     this.needle = el.querySelector('.needle');
     this.main = el.querySelector('.st-main'); this.hover = el.querySelector('.st-hover');
     this.stats = el.querySelector('.hud-stats'); this.statsLine = el.querySelector('.stats-line'); this.diag = el.querySelector('.hud-diag');
     this.stats.addEventListener('click', () => this.toggleDiag());
+    this.loading = el.querySelector('.hud-loading');
     window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'i' && !/input|textarea|select/i.test(e.target.tagName)) this.toggleDiag(); });
     app.rig.controls.addEventListener('change', () => this.updateCompass());
     this.updateCompass();
@@ -56,6 +59,13 @@ export class Hud {
     const sel = this.app.editor.selected;
     this.main.textContent = this.statusText || (sel ? `${sel.name} selected — drag to move, ring to rotate, Del to delete` : 'Click an object to select · drag empty space to orbit · right-drag to pan · wheel to zoom');
   }
+  showLoading(text, p = 0) {
+    this.loading.hidden = false;
+    this.loading.querySelector('.hl-text').textContent = text;
+    this.loading.querySelector('i').style.width = `${Math.round(p * 100)}%`;
+  }
+  hideLoading() { this.loading.hidden = true; }
+
   toggleDiag() { this.diag.hidden = !this.diag.hidden; this.refreshStats(); }
 
   /** Called every animation frame while idle: flip the mode badge back to "final" once settled. */
@@ -66,11 +76,14 @@ export class Hud {
     const mode = app.engine.isInteractive ? 'interactive' : 'final';
     this.stats.dataset.mode = mode;
     const q = d.quality === 'Auto' ? `AUTO→${d.finalProfile}` : d.quality;
-    this.statsLine.textContent = `${mode === 'interactive' ? 'INTERACTIVE' : 'FINAL'} · ${q} · ${d.fps} fps · ${d.frameMs ? d.frameMs.toFixed(1) : '–'} ms · ${d.drawCalls} draws · ${(d.triangles / 1000).toFixed(0)}k tris · scale ${Math.round(d.renderScale * 100)}%`;
+    const rm = app.renderMode === 'planner' ? 'PLANNER' : 'SHOWCASE';
+    this.stats.dataset.renderer = app.renderMode;
+    this.statsLine.textContent = `${rm} · ${mode === 'interactive' ? 'INTERACTIVE' : 'FINAL'} · ${q} · ${d.fps} fps · ${d.frameMs ? d.frameMs.toFixed(1) : '–'} ms · ${d.drawCalls} draws · ${(d.triangles / 1000).toFixed(0)}k tris · scale ${Math.round(d.renderScale * 100)}%`;
     if (this.diag.hidden) return;
-    const b = app.batcher.stats, pool = app.lighting.poolUsage(), r = app.renderer.info;
+    const r = app.renderer.info, planner = app.renderMode === 'planner';
     const rows = [
-      ['Mode', mode === 'interactive' ? 'Interactive (reduced resolution, no AO/bloom/MSAA)' : 'Final (full quality)'],
+      ['Renderer', planner ? 'PLANNER — stylised hand-painted (1 pass + grade)' : 'SHOWCASE — realistic (PBR, shadows, GTAO, bloom)'],
+      ['Mode', mode === 'interactive' ? (planner ? 'Interactive (adaptive scale, same pass)' : 'Interactive (reduced resolution, no AO/bloom/MSAA)') : 'Final (full quality)'],
       ['Quality', d.quality === 'Auto' ? `Auto — final profile ${d.finalProfile}` : d.quality],
       ['FPS / frame', `${d.fps} fps · ${d.frameMs ? d.frameMs.toFixed(1) : '–'} ms (interactive EMA)`],
       ['Last final frame', d.finalMs ? `${d.finalMs.toFixed(0)} ms` : '–'],
@@ -78,12 +91,11 @@ export class Hud {
       ['Draw calls', d.drawCalls], ['Triangles', d.triangles.toLocaleString()],
       ['Render scale', `${Math.round(d.renderScale * 100)}% (interactive) · pixel ratio ${d.pixelRatio}`],
       ['Shadow map updates', d.shadowUpdates],
-      ['Static batches', `${b.batches} batches · ${b.instances} instances · ${b.rebuilds} rebuilds`],
-      ['Light pool', `spot ${pool.spot} · point ${pool.point} · window ${pool.rect}`],
-      ['Programs / geometries / textures', `${d.programs} / ${r.memory.geometries} / ${r.memory.textures}`],
+      ...app.mode.diagRows(),
+      ['Programs / geometries / textures', `${d.programs} / ${r.memory.geometries} / ${r.memory.textures} (shared context)`],
       ['Shader pre-compile', app.engine.stats.compileMs != null ? `${app.engine.stats.compileMs} ms` : '–'],
       ['GPU', d.gpu || 'n/a'],
     ];
-    this.diag.innerHTML = `<div class="diag-head">Renderer diagnostics <em>I</em></div>` + rows.map(([k, v]) => `<div class="diag-row"><span>${k}</span><b>${v}</b></div>`).join('');
+    this.diag.innerHTML = `<div class="diag-head">Renderer diagnostics <em>I</em><button data-act="compare" title="Render this camera with both renderers and compare">Compare Showcase ↔ Planner</button></div>` + rows.map(([k, v]) => `<div class="diag-row"><span>${k}</span><b>${v}</b></div>`).join('');
   }
 }

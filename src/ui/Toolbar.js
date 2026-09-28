@@ -1,5 +1,5 @@
 import { icon } from './icons.js';
-import { QUALITY } from '../renderer/RenderEngine.js';
+import { QUALITY } from '../renderer/quality.js';
 
 const btn = (id, ico, title, extra = '') => `<button class="tb-btn ${extra}" data-act="${id}" title="${title}">${icon(ico)}</button>`;
 
@@ -11,6 +11,10 @@ export class Toolbar {
     el.innerHTML = `
       <div class="tb-sec tb-brand">
         <div class="brand"><span class="brand-mark"></span><span class="brand-name">IR MANAGER</span><span class="brand-sep"></span><span class="brand-app">Habitat Studio</span></div>
+      </div>
+      <div class="tb-sec seg seg-mode" data-role="render-mode" title="Render mode — same room, two renderers">
+        <button class="seg-btn" data-mode="planner" title="Planner — stylised hand-painted renderer, fast on any GPU">${icon('brush')}<span>Planner</span></button>
+        <button class="seg-btn" data-mode="showcase" title="Showcase — realistic renderer (loads on first use)">${icon('camera')}<span>Showcase</span></button>
       </div>
       <div class="tb-sec">
         ${btn('new', 'file', 'New empty room')}
@@ -46,8 +50,9 @@ export class Toolbar {
     this.file = el.querySelector('[data-role=file]');
     this.file.addEventListener('change', () => { const f = this.file.files[0]; if (f) app.importFile(f); this.file.value = ''; });
     el.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-act]'); const l = e.target.closest('[data-light]');
+      const b = e.target.closest('[data-act]'); const l = e.target.closest('[data-light]'); const md = e.target.closest('[data-mode]');
       if (l) { app.setLighting(l.dataset.light); return; }
+      if (md) { app.setRenderMode(md.dataset.mode); this.updateMode(md.dataset.mode); return; }
       if (!b) return;
       const a = b.dataset.act;
       if (a === 'new') { if (confirm('Start a new empty room? Unsaved changes stay in undo history only.')) app.newRoom(); }
@@ -75,7 +80,7 @@ export class Toolbar {
 
   openFile() { this.file.click(); }
 
-  updateAll() { this.updateHistory(); this.updateSnap(); this.updateLighting(); this.updatePanels(); this.updateRoom(); this.updateSelection(); }
+  updateAll() { this.updateMode(); this.updateHistory(); this.updateSnap(); this.updateLighting(); this.updatePanels(); this.updateRoom(); this.updateSelection(); }
   updateHistory() {
     const h = this.app.editor.history;
     this.el.querySelector('[data-act=undo]').disabled = !h.canUndo();
@@ -85,7 +90,14 @@ export class Toolbar {
     this.el.querySelector('[data-act=snap]').classList.toggle('on', this.app.editor.snap.enabled);
     this.el.querySelector('[data-act=dims]').classList.toggle('on', !!this.app.prefs.dims);
   }
-  updateLighting() { for (const b of this.el.querySelectorAll('[data-light]')) b.classList.toggle('on', b.dataset.light === this.app.lighting.presetKey); }
+  updateLighting() { for (const b of this.el.querySelectorAll('[data-light]')) b.classList.toggle('on', b.dataset.light === this.app.prefs.lighting); }
+  updateMode(pending) {
+    const want = pending || this.app.prefs.renderMode, cur = this.app.renderMode;
+    for (const b of this.el.querySelectorAll('[data-mode]')) {
+      b.classList.toggle('on', b.dataset.mode === want);
+      b.classList.toggle('loading', b.dataset.mode === want && want !== cur);
+    }
+  }
   updatePanels() {
     this.el.querySelector('[data-act=library]').classList.toggle('on', !!this.app.prefs.library);
     this.el.querySelector('[data-act=inspector]').classList.toggle('on', !!this.app.prefs.inspector);

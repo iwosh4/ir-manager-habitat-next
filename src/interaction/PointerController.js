@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { getType } from '../objects/catalog.js';
 import { createObject } from '../model/RoomDocument.js';
-import { LAYER_SPECIAL } from '../assets/AssetManager.js';
+import { LAYER_SPECIAL } from '../renderer/layers.js';
 
 const DRAG_THRESHOLD = 4; // px
 

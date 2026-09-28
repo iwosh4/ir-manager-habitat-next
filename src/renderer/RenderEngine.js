@@ -8,20 +8,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { createFinishPass } from './FinishPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { LAYER_SPECIAL } from '../assets/AssetManager.js';
+import { LAYER_SPECIAL } from './layers.js';
 
-/**
- * Quality levels. `final` = the stationary (approved) image. `interactive` = what is drawn while the
- * user orbits / pans / zooms / drags: same scene & materials, reduced internal resolution, no MSAA,
- * no GTAO, no bloom. `auto` adapts both from measured frame times.
- */
-export const QUALITY = {
-  auto: { label: 'Auto (recommended)', short: 'Auto', auto: true },
-  ultra: { label: 'Ultra', pixelRatio: 2, msaa: 4, ao: true, aoSamples: 16, bloom: true, shadowMap: 2048, smaa: false, interactiveScale: 0.75 },
-  high: { label: 'High', pixelRatio: 1.5, msaa: 4, ao: true, aoSamples: 12, bloom: true, shadowMap: 2048, smaa: false, interactiveScale: 0.7 },
-  balanced: { label: 'Balanced', pixelRatio: 1, msaa: 4, ao: true, aoSamples: 8, bloom: true, shadowMap: 1024, smaa: false, interactiveScale: 0.75 },
-  fast: { label: 'Fast', pixelRatio: 1, msaa: 0, ao: false, aoSamples: 8, bloom: false, shadowMap: 1024, smaa: true, interactiveScale: 0.6 },
-};
+import { QUALITY, createRenderer, gpuName } from './quality.js';
+
+export { QUALITY };
 const AUTO_FINAL_LADDER = ['high', 'balanced', 'fast'];
 
 const AUTO = {
@@ -43,20 +34,10 @@ const SETTLE_MS = 220;     // idle time after the last interaction before the fi
  * room, lighting) — never because the camera moved — and are deferred while the user is interacting.
  */
 export class RenderEngine {
-  constructor(container, { quality = 'auto' } = {}) {
+  constructor(container, { quality = 'auto', renderer = null } = {}) {
     this.container = container;
     RectAreaLightUniformsLib.init();
-    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
-    renderer.shadowMap.autoUpdate = false;           // shadow invalidation (see markShadowsDirty)
-    renderer.setClearColor(0x0b0c0d, 1);
-    renderer.info.autoReset = false;
-    renderer.domElement.className = 'viewport-canvas';
-    container.appendChild(renderer.domElement);
+    renderer = renderer || createRenderer(container);   // shared with the Planner renderer
     this.renderer = renderer;
     this.scene = null;
     this.camera = null;
@@ -71,14 +52,28 @@ export class RenderEngine {
     this.qualityKey = quality in QUALITY ? quality : 'auto';
     this._ema = 0; this._lastTick = 0; this._lastEval = 0; this._lastShadowAt = 0;
     this._finalProbe = null; this._interProbe = null; this._slowFinals = 0;
+    this.active = true;             // only the active renderer owns the shared canvas size
   }
+
+  /** Mode switching: the inactive engine never touches the shared renderer. */
+  activate() {
+    this.active = true;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.shadowMap.needsUpdate = false;
+    this.shadowsDirty = true;
+    this._applyFinal(this.finalKey || this.autoFinal || 'high');
+    this._applyScale(true);
+    this._finalProbe = null; this._interProbe = null;
+    this.resize();
+  }
+  deactivate() { this.active = false; this._finalProbe = null; this._interProbe = null; }
 
   attach(scene, camera) {
     this.scene = scene; this.camera = camera;
     camera.layers.enable(LAYER_SPECIAL);
     this._buildComposers();
     this.setQuality(this.qualityKey);
-    new ResizeObserver(() => this.resize()).observe(this.container);
+    new ResizeObserver(() => { if (this.active) this.resize(); }).observe(this.container);
     this.resize();
   }
 
@@ -150,9 +145,7 @@ export class RenderEngine {
 
   _initialAutoFinal() {
     // start from High on large/high-DPI screens, Balanced where the GPU is clearly weak (software, small caps)
-    const gl = this.renderer.getContext();
-    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-    const name = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    const name = gpuName(this.renderer);
     this.gpuName = name;
     if (/swiftshader|llvmpipe|software|basic render/i.test(name)) return 'balanced';
     return 'high';
@@ -189,6 +182,7 @@ export class RenderEngine {
 
   resize() {
     const w = Math.max(1, this.container.clientWidth), h = Math.max(1, this.container.clientHeight);
+    if (!this.active) { this.composer.setSize(w, h); this.fastComposer?.setSize(w, h); return; }
     this.renderer.setPixelRatio(this.basePixelRatio || 1);
     this.renderer.setSize(w, h, false);
     this.renderer.domElement.style.width = w + 'px';
@@ -269,6 +263,9 @@ export class RenderEngine {
     this.renderer.shadowMap.needsUpdate = false;
     this.stats.frames = 0; this.dirty = true;
   }
+
+  /** Diagnostics / comparison hook: one interactive-profile frame now. */
+  renderInteractive() { this._renderWith(this.fastComposer, performance.now(), true); this.dirty = true; }
 
   /** Legacy/testing hook: force a full-quality frame now. */
   render() { this._renderWith(this.composer, performance.now(), false); this.dirty = false; this.pendingFinal = false; this.mode = 'final'; }

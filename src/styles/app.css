@@ -198,3 +198,40 @@ button, input, select, textarea { font: inherit; color: inherit; }
   :root { --panel-w: 230px; --insp-w: 250px; }
   .tb-room, .seg-btn span { display: none; }
 }
+
+/* ---- render mode selector (PLANNER / SHOWCASE) ---- */
+.seg-mode { margin-left: 2px; }
+.seg-mode .seg-btn { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 10.5px; }
+.seg-mode .seg-btn.loading { position: relative; }
+.seg-mode .seg-btn.loading::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: 3px; height: 2px; border-radius: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); background-size: 200% 100%; animation: seg-load 1s linear infinite; }
+@keyframes seg-load { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.hud-stats[data-renderer="planner"] .stats-line { color: var(--text-2); }
+.hud-loading { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); min-width: 260px; padding: 9px 12px; background: rgba(12,13,14,.92); border: 1px solid var(--line-2); border-radius: 7px; backdrop-filter: blur(8px); font: 11px/1.4 var(--sans, system-ui); color: var(--text-2); z-index: 5; }
+.hud-loading .hl-bar { margin-top: 6px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.hud-loading .hl-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+@media (max-width: 1100px) { .seg-mode .seg-btn span { display: inline; } }
+
+/* ---- renderer comparison (SHOWCASE vs PLANNER, same camera) ---- */
+.compare { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(6,7,8,.72); backdrop-filter: blur(3px); }
+.compare[hidden] { display: none; }
+.compare-card { width: min(1180px, 94%); max-height: 94%; overflow: auto; background: var(--bg-1, #121315); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.compare-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--text); }
+.compare-head span { color: var(--text-3); font-size: 11px; flex: 1; }
+.compare-head button { background: none; border: 1px solid var(--line-2); color: var(--text-2); border-radius: 5px; height: 24px; min-width: 26px; cursor: pointer; }
+.compare-head button:hover { color: var(--accent); border-color: var(--accent); }
+.compare-body { padding: 12px 14px 14px; }
+.compare-wait { padding: 40px; text-align: center; color: var(--text-2); }
+.compare-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.compare-shots figure { margin: 0; position: relative; }
+.compare-shots img { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--line); }
+.compare-shots figcaption { position: absolute; left: 8px; top: 8px; padding: 3px 8px; border-radius: 4px; background: rgba(10,11,12,.82); color: var(--accent); font: 600 10.5px/1.4 var(--mono); letter-spacing: .08em; }
+.compare-shots figcaption em { color: var(--text-3); font-style: normal; font-weight: 400; margin-left: 4px; }
+.compare-table { width: 100%; margin-top: 10px; border-collapse: collapse; font: 11px/1.5 var(--mono); color: var(--text-2); }
+.compare-table th { text-align: right; color: var(--text-3); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.compare-table td { text-align: right; padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,.03); }
+.compare-table td:first-child, .compare-table th:first-child { text-align: left; color: var(--text-2); }
+.compare-table td:nth-child(3) { color: var(--text); }
+.compare-table td:last-child { color: var(--accent); }
+.compare-foot { margin-top: 8px; color: var(--text-3); font: 10.5px/1.5 var(--mono); }
+.diag-head button { float: right; margin-left: 6px; background: none; border: 1px solid var(--line-2); color: var(--text-2); border-radius: 4px; font: 10px var(--mono); padding: 1px 6px; cursor: pointer; }
+.diag-head button:hover { color: var(--accent); border-color: var(--accent); }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { LAYER_SPECIAL } from '../assets/AssetManager.js';
+import { LAYER_SPECIAL } from '../renderer/layers.js';
 import { getType } from '../objects/catalog.js';
 import { footprint } from '../editor/Snapping.js';
 

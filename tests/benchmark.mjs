@@ -1,5 +1,6 @@
 // Performance benchmark: static final-frame cost + continuous mouse orbit / pan / zoom / drag.
 //   node tests/benchmark.mjs [url] [quality]      (default: own server, quality=balanced)
+//   MODE=planner|showcase (default showcase) selects the renderer.
 // Prints JSON; used to produce the before/after tables in PERFORMANCE.md.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -27,7 +28,8 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.addInitScript((q) => { try { localStorage.clear(); localStorage.setItem('irm.habitat-studio.prefs.v1', JSON.stringify({ quality: q, library: true, inspector: true })); } catch {} }, quality);
 page.setDefaultTimeout(300000);
-await page.goto(base + `?quality=${quality}`);
+const MODE = process.env.MODE || 'showcase';
+await page.goto(base + `?mode=${MODE}&quality=${quality}`);
 await page.waitForFunction(() => window.habitat && window.habitat.engine?.stats.frames > 0, null, { timeout: 300000 });
 await page.evaluate(() => window.habitat.objects.whenLoaded());
 await page.waitForTimeout(3000);
@@ -75,5 +77,5 @@ const fs2 = await measure('pan', async () => {
 });
 await page.waitForTimeout(2000);
 const settled = await page.evaluate(() => ({ drawCalls: window.habitat.renderer.info.render.calls, mode: window.habitat.engine.mode || 'final', scale: window.habitat.engine.renderScale ?? 1 }));
-console.log(JSON.stringify({ url: base, quality, viewport: `${W}x${H}`, static: stat, orbit, zoom, pan: fs2, settled }, null, 2));
+console.log(JSON.stringify({ url: base, mode: MODE, quality, viewport: `${W}x${H}`, static: stat, orbit, zoom, pan: fs2, settled }, null, 2));
 await browser.close(); srv?.close();

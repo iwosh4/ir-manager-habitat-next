@@ -34,7 +34,9 @@ export class Thumbnails {
   }
 
   async _render(url) {
-    const res = await this.assets.instantiate(url);
+    const assets = typeof this.assets === 'function' ? this.assets() : this.assets; // Showcase assets load lazily
+    if (!assets) return null;
+    const res = await assets.instantiate(url);
     if (!res) return null;
     this._init();
     const root = res.root;

@@ -1,5 +1,7 @@
 // Compact line icon set (16px grid, 1.5 stroke). Inline SVG keeps the app dependency-free.
 const P = {
+  brush: '<path d="M13.5 2.5L7 9"/><path d="M7 9c-2 0-3 1-3 2.5 0 1-.7 1.7-1.5 2 2.5.6 5.5 0 5.5-2.8z"/>',
+  camera: '<path d="M2.5 5h2.5l1.2-1.8h3.6L11 5h2.5v7.5h-11z"/><circle cx="8" cy="8.6" r="2.3"/>',
   undo: '<path d="M4 7h7a3 3 0 010 6H8"/><path d="M6.5 4.5L4 7l2.5 2.5"/>',
   redo: '<path d="M12 7H5a3 3 0 000 6h3"/><path d="M9.5 4.5L12 7 9.5 9.5"/>',
   file: '<path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3"/>',

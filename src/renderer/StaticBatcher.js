@@ -66,8 +66,9 @@ export class StaticBatcher {
     const groups = new Map();
     for (const v of views) {
       for (const m of StaticBatcher.batchableMeshes(v)) {
-        const k = `${m.material.uuid}|${m.castShadow ? 1 : 0}|${m.layers.mask}`;
-        if (!groups.has(k)) groups.set(k, { material: m.material, castShadow: m.castShadow, layers: m.layers.mask, items: [] });
+        const mat = m.userData.baseMaterial || m.material; // selection variants never leak into a batch
+        const k = `${mat.uuid}|${m.castShadow ? 1 : 0}|${m.layers.mask}`;
+        if (!groups.has(k)) groups.set(k, { material: mat, castShadow: m.castShadow, layers: m.layers.mask, items: [] });
         groups.get(k).items.push({ view: v, mesh: m });
       }
     }
@@ -87,6 +88,7 @@ export class StaticBatcher {
       batch.sortObjects = blended;
       if (blended) batch.setCustomSort(backToFront); // same order as individual meshes would get
       if (g.material.transmission > 0 && g.material.name === 'glass') batch.renderOrder = 1; // panes last
+      if (g.items[0].mesh.renderOrder) batch.renderOrder = g.items[0].mesh.renderOrder; // planner buckets
       const ids = new Map();
       for (const [uuid, geo] of geos) ids.set(uuid, batch.addGeometry(geo));
       for (const it of g.items) {

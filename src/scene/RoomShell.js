@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { LAYER_SHADOW_ONLY } from '../assets/AssetManager.js';
+import { LAYER_SHADOW_ONLY } from '../renderer/layers.js';
 import { getType } from '../objects/catalog.js';
 import { WALLS, wallFrame } from '../model/RoomDocument.js';
 
@@ -188,7 +188,7 @@ function metreUV(geo, plane) {
 }
 
 /** Wall outline with door notches (openings reaching the floor) + window holes. */
-function notchedWall(len, x0, H, T, ops) {
+export function notchedWall(len, x0, H, T, ops) {
   const doors = ops.filter((o) => o.sill <= 0.0001).sort((a, b) => a.offset - b.offset);
   const shape = new THREE.Shape();
   shape.moveTo(x0, 0);
@@ -205,7 +205,7 @@ function notchedWall(len, x0, H, T, ops) {
   return new THREE.ExtrudeGeometry(shape, { depth: T, bevelEnabled: false, curveSegments: 1 });
 }
 
-function splitSegments(segs, a, b) {
+export function splitSegments(segs, a, b) {
   for (let i = segs.length - 1; i >= 0; i--) {
     const [s, e] = segs[i];
     if (b <= s || a >= e) continue;

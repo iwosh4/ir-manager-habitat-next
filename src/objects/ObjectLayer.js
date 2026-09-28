@@ -1,9 +1,12 @@
 import * as THREE from 'three';
-import { ObjectView } from './ObjectView.js';
 import { getType } from './catalog.js';
 import { WALLS, wallFrame } from '../model/RoomDocument.js';
 
-/** Keeps the 3D object views in sync with the editor's logical document. */
+/**
+ * Keeps the 3D object views in sync with the editor's logical document.
+ * `ctx.View` is the view class (ObjectView = Showcase GLB views, PlannerView = painted views); the layer
+ * itself imports neither, so the Planner never loads the GLB pipeline.
+ */
 export class ObjectLayer {
   constructor(editor, ctx) {
     this.editor = editor;
@@ -23,7 +26,7 @@ export class ObjectLayer {
     let v = this.views.get(obj.id);
     if (v && v.type !== obj.type) { v.dispose(); this.views.delete(obj.id); v = null; }
     if (!v) {
-      v = new ObjectView(obj, this.ctx);
+      v = new this.ctx.View(obj, this.ctx);
       this.views.set(obj.id, v);
       this.group.add(v.root);
     }
@@ -62,7 +65,7 @@ export class ObjectLayer {
   /** Placement preview: a real (non-document) view following the cursor. */
   createGhost(obj) {
     this.removeGhost();
-    const v = new ObjectView(obj, this.ctx);
+    const v = new this.ctx.View(obj, this.ctx);
     v.root.userData.ghost = true;
     this.ghost = v; this.group.add(v.root);
     v.update(obj);

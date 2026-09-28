@@ -17,7 +17,7 @@ export class LibraryPanel {
     this.list = el.querySelector('.lib-list');
     this.search = el.querySelector('input');
     this.search.addEventListener('input', () => this.render());
-    this.thumbs = new Thumbnails(app.assets);
+    this.thumbs = new Thumbnails(() => app.assets);
     this.render();
     this.list.addEventListener('click', (e) => {
       const head = e.target.closest('.lib-cat-head');

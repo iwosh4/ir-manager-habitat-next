@@ -1,29 +1,34 @@
 import * as THREE from 'three';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
-import { RenderEngine } from './renderer/RenderEngine.js';
-import { EnvironmentSystem } from './renderer/Environment.js';
-import { MaterialLibrary } from './assets/MaterialLibrary.js';
-import { AssetManager } from './assets/AssetManager.js';
-import { RoomShell } from './scene/RoomShell.js';
-import { Lighting, PRESETS } from './scene/Lighting.js';
+import { createRenderer } from './renderer/quality.js';
 import { CameraRig } from './camera/CameraRig.js';
 import { Editor } from './editor/Editor.js';
-import { ObjectLayer } from './objects/ObjectLayer.js';
 import { SelectionOverlay } from './interaction/SelectionOverlay.js';
 import { PointerController } from './interaction/PointerController.js';
 import { Keyboard } from './interaction/Keyboard.js';
 import { Persistence } from './serialization/Persistence.js';
-import { TYPES, getType } from './objects/catalog.js';
+import { getType } from './objects/catalog.js';
 import { Toolbar } from './ui/Toolbar.js';
 import { LibraryPanel } from './ui/LibraryPanel.js';
 import { Inspector } from './ui/Inspector.js';
 import { Hud } from './ui/Hud.js';
 import { toast } from './ui/Toast.js';
-import { StaticBatcher } from './renderer/StaticBatcher.js';
+import { PlannerMode } from './modes/PlannerMode.js';
+import { ComparisonPanel } from './ui/ComparisonPanel.js';
 
 export const DEMO_URL = 'data/demo-room.json';
+export const RENDER_MODES = { planner: 'Planner', showcase: 'Showcase' };
+export const PRESETS = { day: { label: 'Day' }, evening: { label: 'Evening' }, night: { label: 'Night' } };
 
-/** Application composition root: wires logical editor state to the 3D views and the UI. */
+/**
+ * Application composition root: wires logical editor state to the 3D views and the UI.
+ *
+ * Two render modes share ONE RoomDocument, one editor, one camera and one WebGL canvas:
+ *   PLANNER  (default) stylised hand-painted renderer — src/planner, src/modes/PlannerMode.js
+ *   SHOWCASE approved realistic renderer — src/modes/ShowcaseMode.js, imported and loaded on first use
+ * Each mode owns its own scene & views; the inactive one is marked stale and re-synced when shown.
+ * `engine`, `scene`, `objects`, `batcher`, `shell` resolve to the active mode.
+ */
 export class App {
   constructor(root) {
     this.root = root;
@@ -33,63 +38,58 @@ export class App {
     // URL overrides, e.g. ?quality=fast&lighting=night&view=top (useful for embedding and testing)
     const q = new URLSearchParams(location.search);
     for (const k of ['quality', 'lighting']) if (q.get(k)) this.prefs[k] = q.get(k);
+    if (q.get('mode') in RENDER_MODES) this.prefs.renderMode = q.get('mode');
+    if (!(this.prefs.renderMode in RENDER_MODES)) this.prefs.renderMode = 'planner';
     this.initialView = q.get('view');
     this.draggingType = null;
     this.errors = [];
+    this.modes = {};
+    this.mode = null;
   }
+
+  // active-mode accessors (UI, picking and tests go through these)
+  get engine() { return this.mode?.engine; }
+  get scene() { return this.mode?.scene; }
+  get objects() { return this.mode?.objects; }
+  get batcher() { return this.mode?.batcher; }
+  get shell() { return this.mode?.shell; }
+  get renderMode() { return this.mode?.name; }
+  get lighting() { return this.modes.showcase?.lighting || null; }
+  get materials() { return this.modes.showcase?.materials || null; }
+  get assets() { return this.modes.showcase?.assets || null; }
+  get env() { return this.modes.showcase?.env || null; }
 
   async init(progress = () => {}) {
     progress(0.05, 'Starting renderer');
-    this.engine = new RenderEngine(this.viewportEl, { quality: this.prefs.quality });
-    this.renderer = this.engine.renderer;
-    this.scene = new THREE.Scene();
-    this.rig = new CameraRig(this.renderer.domElement, () => this.engine.interact());
-    this.engine.attach(this.scene, this.rig.camera);
+    this.renderer = createRenderer(this.viewportEl);
+    this.rig = new CameraRig(this.renderer.domElement, () => this.engine?.interact());
     this.labels = new CSS2DRenderer();
     this.labels.domElement.className = 'label-layer';
     this.viewportEl.appendChild(this.labels.domElement);
-    this.engine.onResize = (w, h) => this.labels.setSize(w, h);
     this.labels.setSize(this.viewportEl.clientWidth, this.viewportEl.clientHeight);
-
-    this.materials = new MaterialLibrary(this.renderer, { onError: (url) => this._assetError(url, 'texture') });
-    this.assets = new AssetManager(this.materials, { onError: (url, msg) => this._assetError(url, msg) });
-    this.env = new EnvironmentSystem(this.renderer, this.scene);
-    this.lighting = new Lighting(this.scene, this.engine);
-    this.lighting.onApply = (p) => { this.env.build(p); this.env.setExteriorLevel(p.exterior); };
-    this.shell = new RoomShell(this.materials, this.assets);
-    this.shell.onPanelsReady = () => { this._registerPanelMaterial(); this.engine.markShadowsDirty(); };
-    this.scene.add(this.shell.group);
     this.editor = new Editor();
-    this.objects = new ObjectLayer(this.editor, {
-      assets: this.assets, materials: this.materials, lighting: this.lighting,
-      room: () => this.editor.room,
-      onReady: () => { this.refreshSelection(); this.engine.markShadowsDirty(); },
-    });
-    this.scene.add(this.objects.group);
-    this.batcher = new StaticBatcher(this.scene);
     // camera gestures drive the interactive render profile
     this.rig.controls.addEventListener('start', () => { this._controlsActive = true; });
-    this.rig.controls.addEventListener('end', () => { this._controlsActive = false; this.engine.interact(); });
-    this.overlay = new SelectionOverlay(this.scene);
+    this.rig.controls.addEventListener('end', () => { this._controlsActive = false; this.engine?.interact(); });
+    this.overlay = new SelectionOverlay(new THREE.Scene());
     this.persistence = new Persistence(this.editor);
 
-    progress(0.15, 'Loading materials & environment');
-    await Promise.all([this.env.loadHDR('assets/environment/spruit_sunrise_1k.hdr'), this.materials.whenReady()]);
-
-    progress(0.45, 'Loading 3D models');
-    let loaded = 0; const urls = [...new Set(Object.values(TYPES).map((t) => t.model))].concat(['assets/models/ceiling_panel.glb', 'assets/models/animal_python.glb', 'assets/models/animal_gecko.glb', 'assets/models/animal_frog.glb', 'assets/models/ceiling_diffuser.glb']);
-    await Promise.all(urls.map((u) => this.assets.load(u).then(() => progress(0.45 + 0.4 * (++loaded / urls.length), 'Loading 3D models'))));
-
-    const frosted = this.materials.get('glass_frosted');
-    this.lighting.register({ material: frosted, kind: 'window', baseEmissive: frosted.emissiveIntensity });
+    // the Planner is always available (tiny download); the Showcase is loaded only when requested
+    const planner = new PlannerMode(this);
+    await planner.init((p, m) => progress(0.05 + p * 0.3, m));
+    this.modes.planner = planner;
     this.editor.on('change', (c) => this._onChange(c));
     this.editor.on('selection', () => this.refreshSelection());
     this.editor.on('history', () => this.toolbar?.updateHistory());
 
-    progress(0.88, 'Opening room');
+    progress(0.4, 'Opening room');
     const restored = this.persistence.restore();
     if (!restored) await this.loadDemo({ silent: true });
-    this.lighting.setPreset(this.prefs.lighting);
+    this.rig.setRoom(this.editor.room); this.overlay.setRoom(this.editor.room);
+    if (this.prefs.renderMode === 'showcase') {
+      const sc = await this._loadShowcase((p, m) => progress(0.45 + p * 0.5, m));
+      this._activate(sc || planner);
+    } else this._activate(planner);
 
     this.pointer = new PointerController(this);
     this.keyboard = new Keyboard(this);
@@ -97,6 +97,7 @@ export class App {
     this.library = new LibraryPanel(this, this.root.querySelector('#library'));
     this.inspector = new Inspector(this, this.root.querySelector('#inspector'));
     this.hud = new Hud(this, this.viewportEl);
+    this.comparison = new ComparisonPanel(this, this.viewportEl);
     this.setPanel('library', this.prefs.library); this.setPanel('inspector', this.prefs.inspector);
     this.setDimensions(this.prefs.dims);
 
@@ -104,9 +105,8 @@ export class App {
     if (this.initialView) this.rig.goTo(this.initialView, { instant: true });
     else if (restored && cam) this.rig.setState(cam); else this.rig.goTo('hero', { instant: true });
     this.refreshSelection();
-    await this.objects.whenLoaded();
     progress(0.96, 'Compiling shaders');
-    await this._precompile();
+    await this.mode.precompile();
     progress(1, 'Ready');
     this._loop();
     window.addEventListener('beforeunload', () => { this.persistence.autosave(); Persistence.savePrefs({ camera: this.rig.getState() }); });
@@ -120,39 +120,22 @@ export class App {
     toast(`Missing asset: ${url.split('/').pop()} — using placeholder`, 'warn');
   }
 
-  _registerPanelMaterial() {
-    if (this._panelUnreg) this._panelUnreg();
-    const m = this.shell.panelMaterial;
-    if (m) this._panelUnreg = this.lighting.register({ material: m, kind: 'ceiling', baseEmissive: m.userData.base ??= m.emissiveIntensity });
-  }
-
   // ------------------------------------------------------------------ document → views
   _onChange(c) {
     const room = this.editor.room;
-    if (c.kind === 'document' || c.kind === 'room') {
-      this.rig.setRoom(room);
-      this.overlay.setRoom(room);
-      this.objects.syncAll();
-    } else if (c.kind === 'remove') {
-      for (const id of c.ids) this.objects.remove(id);
-    } else {
-      for (const id of c.ids || []) { const o = this.editor.get(id); if (o) this.objects.sync(o); }
-    }
-    if (this.shell.build(room, this.editor.objects)) {
-      this.lighting.build(room, this.shell.panels);
-      this._updateCutaway(true);
-    }
+    if (c.kind === 'document' || c.kind === 'room') { this.rig.setRoom(room); this.overlay.setRoom(room); }
+    for (const m of Object.values(this.modes)) if (m !== this.mode) m.stale = true; // re-synced on activation
+    if (!this.mode) return; // still starting: the first activation performs a full sync
+    if (this.mode.onChange(c)) this._updateCutaway(true);
     this.refreshSelection();
     this.inspector?.refresh();
     this.hud?.refresh();
-    this.engine.markShadowsDirty(); // placement / geometry changed
     if (this.pointer?.state || this.inspector?.typing) this.engine.interact();
   }
 
   refreshSelection() {
     const o = this.editor.selected;
-    const v = o && this.objects.get(o.id);
-    this.engine.setSelection(v ? v.outlineTargets() : []);
+    this.mode?.setSelected(o?.id || null);
     if (o && !this.pointer?.state) this.overlay.show(o, { colliding: this.editor.snapper.collisions(o).length > 0 });
     else if (!o && !this.pointer?.placing) this.overlay.hide();
     this.inspector?.refresh();
@@ -164,29 +147,66 @@ export class App {
   invalidate(ms = 0) { this.engine?.invalidate(ms); }
 
   _updateCutaway(force = false) {
-    const cam = this.rig.camera.position;
-    const { hiddenWalls, ceilingVisible } = this.shell.updateVisibility(this.editor.room, cam);
-    const dir = this.rig.controls.target.clone().sub(cam).normalize();
-    const changed = this.objects.setHiddenWalls(hiddenWalls, Math.abs(dir.y) < 0.55);
-    this.env.update(cam, this.editor.room);
+    const { ceilingVisible } = this.mode.updateCutaway(force);
     this.overlay.setRoomDimsVisible(!ceilingVisible);
-    // cut-away is a viewing aid: walls stay shadow casters (shadow-only layer), so no shadow update here
-    if (changed || force) this.engine.invalidate();
   }
 
   /** The selected object (or the one being dragged / edited) is drawn from its own meshes. */
   get detachedId() { return this.pointer?.state?.id || this.editor.selection || null; }
 
+  // ------------------------------------------------------------------ render modes
+  async _loadShowcase(progress = () => {}) {
+    if (this.modes.showcase) return this.modes.showcase;
+    this._showcaseLoading ||= (async () => {
+      try {
+        const { ShowcaseMode } = await import('./modes/ShowcaseMode.js');
+        const sc = new ShowcaseMode(this);
+        await sc.init(progress);
+        sc.stale = true; // edits made while it was loading are picked up on activation
+        this.modes.showcase = sc;
+        return sc;
+      } catch (e) {
+        console.error('[showcase] failed to load', e);
+        toast(`Showcase renderer unavailable: ${e.message}`, 'error');
+        return null;
+      } finally { this._showcaseLoading = null; }
+    })();
+    return this._showcaseLoading;
+  }
+
+  _activate(m) {
+    if (this.mode === m) return;
+    this.mode?.deactivate();
+    this.mode = m;
+    m.activate();
+    this.overlay.setRoom(this.editor.room);
+    this.root.dataset.renderMode = m.name;
+    this._updateCutaway(true);
+    this.refreshSelection();
+    this.engine.invalidate();
+  }
+
   /**
-   * Compile every program up-front (parallel/async where the browser supports KHR_parallel_shader_compile)
-   * so the first frames and later interactions never stall the main thread on shader compilation.
+   * Switch between PLANNER and SHOWCASE. Pure view change: the RoomDocument, object ids, transforms,
+   * selection, undo history and camera are untouched.
    */
-  async _precompile() {
-    this.batcher.sync(this.objects.views.values(), this.detachedId);
-    const t0 = performance.now();
-    try { await this.renderer.compileAsync(this.scene, this.rig.camera); } catch (e) { console.warn('[renderer] compileAsync failed', e); }
-    this.engine.warmup(); // post-processing chains, shadow & batching variants
-    this.engine.stats.compileMs = Math.round(performance.now() - t0);
+  async setRenderMode(name) {
+    if (!(name in RENDER_MODES)) return false;
+    this.prefs.renderMode = name; Persistence.savePrefs({ renderMode: name });
+    if (this.mode?.name === name) { this.toolbar?.updateMode(); return true; }
+    let m = this.modes[name];
+    if (!m && name === 'showcase') {
+      this.hud?.showLoading('Loading Showcase renderer…', 0);
+      m = await this._loadShowcase((p, msg) => this.hud?.showLoading(msg, p));
+      this.hud?.hideLoading();
+      if (!m) { this.prefs.renderMode = this.mode.name; this.toolbar?.updateMode(); return false; }
+    }
+    if (this.prefs.renderMode !== name) return false; // user switched again while loading
+    this._activate(m);
+    this.toolbar?.updateMode();
+    this.toolbar?.updateLighting();
+    this.hud?.refreshStats();
+    return true;
   }
 
   _loop() {
@@ -198,9 +218,7 @@ export class App {
       this.engine.interacting = !!this._controlsActive || this.rig.animating || drag === 'move' || drag === 'rotate';
       if (!this.engine.needsFrame) { this.hud?.tick(now); return; }
       this._updateCutaway();
-      this.batcher.sync(this.objects.views.values(), this.detachedId);
-      this.materials.update(now / 1000);
-      if (this.engine.frame(now)) {
+      if (this.mode.frame(now)) {
         this.labels.render(this.scene, this.rig.camera);
         frames++;
       }
@@ -265,8 +283,13 @@ export class App {
 
   setView(name) { this.rig.goTo(name); }
 
-  setQuality(q) { this.engine.setQuality(q); this.prefs.quality = q; Persistence.savePrefs({ quality: q }); this.lighting.apply(); }
-  setLighting(key) { this.lighting.setPreset(key); this.prefs.lighting = key; Persistence.savePrefs({ lighting: key }); this.toolbar?.updateLighting(); }
+  setQuality(q) { for (const m of Object.values(this.modes)) m.setQuality(q); this.prefs.quality = q; Persistence.savePrefs({ quality: q }); }
+  setLighting(key) {
+    if (!(key in PRESETS)) return;
+    this.prefs.lighting = key; Persistence.savePrefs({ lighting: key });
+    for (const m of Object.values(this.modes)) m.setLighting(key);
+    this.toolbar?.updateLighting();
+  }
   setPanel(which, open) {
     this.prefs[which] = open; Persistence.savePrefs({ [which]: open });
     this.root.classList.toggle(`no-${which}`, !open);
@@ -281,6 +304,9 @@ export class App {
     else { document.exitFullscreen?.(); this.root.classList.remove('is-fullscreen'); }
     setTimeout(() => this.engine.resize(), 120);
   }
+
+  /** SHOWCASE vs PLANNER for the current camera (diagnostics panel → "Compare"). */
+  openComparison() { return this.comparison.open(); }
 
   setStatus(text) { this.hud?.setStatus(text); }
   setHover(o) { this.hud?.setHover(o); }
