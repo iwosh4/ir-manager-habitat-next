@@ -21,7 +21,7 @@ Open: library → **MY ENCLOSURES → + Create**, a card's edit button, **Custom
 
 | Group | Options |
 |---|---|
-| Dimensions | width / height / depth in cm (exact), integrated base cabinet height |
+| Dimensions | **W × D × H** — width, depth, height in cm, in that order (fields labelled *Width W · Depth D · Height H*, live summary `W × D × H = 30 × 45 × 18 cm`), integrated base cabinet height |
 | Construction | glass terrarium · PVC · wood/board · rack box/tub · mesh · mixed/custom; frame style (profile / box), frame colour, profile thickness (mm), left / right / rear panel (glass · PVC · wood · mesh · open), top (mesh · glass · solid · open) |
 | Front | sliding glass doors · fixed glass · single hinged · double hinged · mesh door · tub/drawer · open; lock/latch |
 | Ventilation | top · front top strip · front bottom strip · left · right · rear, each with coverage of the available length |

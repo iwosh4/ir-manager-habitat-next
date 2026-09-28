@@ -2,8 +2,8 @@ import { CATEGORIES, TYPES, typesByCategory } from '../objects/catalog.js';
 import { icon } from './icons.js';
 import { Thumbnails } from './Thumbnails.js';
 import { TEMPLATE_CATEGORY, assemblyStats } from '../model/Library.js';
+import { formatDims, dimsOrderLabel } from '../model/Dimensions.js';
 
-const cm = (m) => Math.round(m * 100);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /** Collapsible asset browser: search, categories, real-model thumbnails, click-to-place or drag & drop. */
@@ -55,22 +55,21 @@ export class LibraryPanel {
     const lib = ed.lib;
     const asm = ed.assemblies.filter((a) => match(a.name));
     const tpl = ed.templates.filter((t) => match(`${t.name} ${t.type}`));
-    const cmv = (m) => Math.round(m * 100);
     const card = (kind, id, name, dims, sub, badge, actions) => `
       <div class="lib-item mine" draggable="true" data-mine="${kind}" data-id="${id}" title="Click to place in the room, or drag it into the viewport">
         <div class="lib-thumb"><img alt="" data-mthumb="${kind}:${id}" draggable="false">${badge ? `<span class="badge">${badge}</span>` : ''}</div>
-        <div class="lib-meta"><b>${esc(name)}</b><span>${dims}</span><i>${esc(sub)}</i></div>
+        <div class="lib-meta"><b>${esc(name)}</b><span title="${dimsOrderLabel()}">${dims}</span><i>${esc(sub)}</i></div>
         <div class="card-acts">${actions}</div>
       </div>`;
     const a1 = (act, ico, title) => `<button data-mact="${act}" title="${title}">${ico}</button>`;
     this.mine.innerHTML = `
       <section class="lib-cat open mine-sec">
         <div class="mine-head"><span>My assemblies</span><em>${ed.assemblies.length}</em><button class="add-btn" data-mact="new-assembly" title="Create assembly (Assembly Builder)">+ Create</button></div>
-        <div class="lib-grid">${asm.map((a) => { const st = assemblyStats(a, lib); return card('assembly', a.id, a.name, `${cmv(st.width)}×${cmv(st.height)}×${cmv(st.depth)} cm`, `${st.enclosures} enclosures${st.rackBoxes ? ` · ${st.rackBoxes} rack boxes` : ''}${st.modules ? ` · ${st.modules} modules` : ''}`, ed.isPlaced({ assemblyId: a.id }) ? 'in room' : '', a1('edit', icon('grid'), 'Edit in Assembly Builder') + a1('dup', icon('dup'), 'Duplicate (new physical enclosures)') + a1('del', icon('trash'), 'Delete')); }).join('') || '<p class="lib-hint">Build an enclosure wall or rack from your enclosures, then drag it into the room.</p>'}</div>
+        <div class="lib-grid">${asm.map((a) => { const st = assemblyStats(a, lib); return card('assembly', a.id, a.name, formatDims(st, { sep: '×' }), `${st.enclosures} enclosures${st.rackBoxes ? ` · ${st.rackBoxes} rack boxes` : ''}${st.modules ? ` · ${st.modules} modules` : ''}`, ed.isPlaced({ assemblyId: a.id }) ? 'in room' : '', a1('edit', icon('grid'), 'Edit in Assembly Builder') + a1('dup', icon('dup'), 'Duplicate (new physical enclosures)') + a1('del', icon('trash'), 'Delete')); }).join('') || '<p class="lib-hint">Build an enclosure wall or rack from your enclosures, then drag it into the room.</p>'}</div>
       </section>
       <section class="lib-cat open mine-sec">
         <div class="mine-head"><span>My enclosures</span><em>${ed.templates.length}</em><button class="add-btn" data-mact="new-enclosure" title="Create enclosure (Enclosure Designer)">+ Create</button></div>
-        <div class="lib-grid">${tpl.map((t) => { const n = ed.doc.instances.filter((i) => i.templateId === t.id).length; return card('template', t.id, t.name, `${cmv(t.dimensions.width)}×${cmv(t.dimensions.height)}×${cmv(t.dimensions.depth)} cm`, `${TEMPLATE_CATEGORY(t)} · ${t.type}${n ? ` · ${n} built` : ''}`, '', a1('edit', icon('cube'), 'Edit enclosure') + a1('place', '＋', 'Create a physical copy and place it in the room') + a1('dup', icon('dup'), 'Duplicate design') + a1('del', icon('trash'), 'Delete')); }).join('') || '<p class="lib-hint">Design your real enclosures (exact size, construction, doors, vents, interior, devices) — or customise a starting template below.</p>'}</div>
+        <div class="lib-grid">${tpl.map((t) => { const n = ed.doc.instances.filter((i) => i.templateId === t.id).length; return card('template', t.id, t.name, formatDims(t.dimensions, { sep: '×' }), `${TEMPLATE_CATEGORY(t)} · ${t.type}${n ? ` · ${n} built` : ''}`, '', a1('edit', icon('cube'), 'Edit enclosure') + a1('place', '＋', 'Create a physical copy and place it in the room') + a1('dup', icon('dup'), 'Duplicate design') + a1('del', icon('trash'), 'Delete')); }).join('') || '<p class="lib-hint">Design your real enclosures (exact size, construction, doors, vents, interior, devices) — or customise a starting template below.</p>'}</div>
       </section>`;
     for (const img of this.mine.querySelectorAll('img[data-mthumb]')) {
       const [kind, id] = img.dataset.mthumb.split(':');
@@ -128,7 +127,7 @@ export class LibraryPanel {
         <div class="lib-grid">${open ? items.map((t) => `
           <div class="lib-item" draggable="true" data-type="${t.id}" title="${t.label} — ${t.sub}">
             <div class="lib-thumb"><img alt="" data-thumb="${t.id}" src="assets/thumbnails/${t.id}.png" loading="lazy" draggable="false"></div>
-            <div class="lib-meta"><b>${t.label}</b><span>${t.sub}</span><i>${cm(t.size.w)}×${cm(t.size.d)}×${cm(t.size.h)}</i></div>
+            <div class="lib-meta"><b>${t.label}</b><span>${t.sub}</span><i title="${dimsOrderLabel()}">${formatDims(t.size, { sep: '×' })}</i></div>
             ${c.id === 'enclosure' ? `<button class="customize" data-customize="${t.id}" title="Create from template: change dimensions, doors, ventilation, interior — save to My Enclosures">Customize…</button>` : ''}
           </div>`).join('') : ''}</div>
       </section>`;

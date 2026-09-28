@@ -403,7 +403,7 @@ export function frog(b, pos, { yaw = 0 } = {}) {
 
 // ----------------------------------------------------------------------------------------- dioramas
 /** ARID: sandstone background, sand, slate basking stack, cork hide, branch, succulents, python. */
-export function aridInterior(b, I, { seed = 1, occupied = true, rich = true, animal = 'python' } = {}) {
+function aridInterior_(b, I, { seed = 1, occupied = true, rich = true, animal = 'python' } = {}) {
   const w = I.x1 - I.x0, d = I.z1 - I.z0, cx = (I.x0 + I.x1) / 2;
   backgroundPanel(b, I, { tile: 'rock_warm', depth: Math.min(0.06, d * 0.14), seed, color: [1.05, 0.95, 0.85], uvScale: 1.7 });
   if (rich) sideRock(b, I, { tile: 'rock_warm', seed: seed + 3, color: [0.95, 0.88, 0.8] });
@@ -439,7 +439,7 @@ export function aridInterior(b, I, { seed = 1, occupied = true, rich = true, ani
 }
 
 /** TROPICAL: cork background, drainage + soil section, moss, branches, bromeliads, fern, vines, gecko. */
-export function tropicalInterior(b, I, { seed = 1, occupied = true, rich = true } = {}) {
+function tropicalInterior_(b, I, { seed = 1, occupied = true, rich = true } = {}) {
   const w = I.x1 - I.x0, d = I.z1 - I.z0, h = I.top - I.floor, cx = (I.x0 + I.x1) / 2;
   backgroundPanel(b, I, { tile: 'cork', depth: Math.min(0.07, d * 0.16), seed, ledges: false, color: [0.95, 0.9, 0.85], uvScale: 4 });
   { // vertical cork branches against the background (depth & climbing structure)
@@ -474,7 +474,7 @@ export function tropicalInterior(b, I, { seed = 1, occupied = true, rich = true 
 }
 
 /** PALUDARIUM (tank part): dark rock wall, water & land, waterfall, driftwood, planting, frog. */
-export function paludariumInterior(b, I, { seed = 1, occupied = true, lit = true } = {}) {
+function paludariumInterior_(b, I, { seed = 1, occupied = true, lit = true } = {}) {
   const w = I.x1 - I.x0, d = I.z1 - I.z0, h = I.top - I.floor, cx = (I.x0 + I.x1) / 2;
   const k = Math.min(1, w / 1.1, h / 0.55, d / 0.45); // planting scales down in small tanks (never pokes through the glass)
   backgroundPanel(b, I, { tile: 'rock_dark', depth: Math.min(0.08, d * 0.16), seed, color: [0.9, 0.95, 0.95], uvScale: 3 });
@@ -555,3 +555,11 @@ export function terrariumCell(mats, { W, H, D, style = 'sliding', interior = 'ar
   else emptyInterior(c, I);
   return c;
 }
+
+// Interiors are clamped to the inner glass box: planting / leaf cards are pressed against the panes instead
+// of poking through them, so every enclosure's geometry stays within its stated W × D × H.
+const innerBox = (I) => ({ x0: I.x0, x1: I.x1, y0: 0, y1: I.top, z0: I.z0, z1: I.z1 });
+const clamped = (fn) => (b, I, o) => { const n = b.chunks.length; const r = fn(b, I, o); b.clampSince(n, innerBox(I)); return r; };
+export const aridInterior = clamped(aridInterior_);
+export const tropicalInterior = clamped(tropicalInterior_);
+export const paludariumInterior = clamped(paludariumInterior_);

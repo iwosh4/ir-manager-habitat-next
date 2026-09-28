@@ -8,6 +8,7 @@ import { interiorBounds, devicePosition } from './EnclosureGeometry.js';
 import { templateParts, templateSize } from '../preview/parts.js';
 import { icon } from '../ui/icons.js';
 import { toast } from '../ui/Toast.js';
+import { formatDims, dimLabel, dimShort, dimsOrderLabel, DIM_ORDER } from '../model/Dimensions.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const cm = (m) => Math.round(m * 1000) / 10;
@@ -108,7 +109,8 @@ export class EnclosureDesigner {
       const size = templateSize(t);
       if (fit || !this._framed) { this.stage.frame(size, { dir: [0.5, 0.35, 1] }); this._framed = true; }
       this._handles();
-      this.el?.querySelector('[data-role=dims]') && (this.el.querySelector('[data-role=dims]').textContent = `${cm(t.dimensions.width)} × ${cm(t.dimensions.height)} × ${cm(t.dimensions.depth)} cm${t.bottom.base ? ` · on ${cm(t.bottom.base)} cm cabinet` : ''}`);
+      const sum = this.el?.querySelector('[data-role=dim-sum] b'); if (sum) sum.textContent = formatDims(t.dimensions);
+      this.el?.querySelector('[data-role=dims]') && (this.el.querySelector('[data-role=dims]').textContent = `${dimsOrderLabel()}  ${formatDims(t.dimensions)}${t.bottom.base ? ` · on ${cm(t.bottom.base)} cm cabinet` : ''}`);
     }, fit ? 0 : 40);
   }
 
@@ -140,7 +142,7 @@ export class EnclosureDesigner {
       sec('interior', 'Interior', `${chips('interior.preset', INTERIOR_PRESETS, d.interior.preset)}
         ${d.interior.preset === 'custom' ? `${chips('background.type', BACKGROUNDS, d.background.type)}
           <div class="grid2"><label class="fld"><span>Substrate</span>${sel('interior.substrate.type', Object.keys(SUBSTRATES), d.interior.substrate.type)}</label>
-          <label class="fld"><span>Depth</span><div class="num"><input type="number" data-path="interior.substrate.depth" data-scale="0.01" value="${cm(d.interior.substrate.depth)}" step="1" min="0" max="30"><em>cm</em></div></label></div>
+          <label class="fld"><span>Layer thickness</span><div class="num"><input type="number" data-path="interior.substrate.depth" data-scale="0.01" value="${cm(d.interior.substrate.depth)}" step="1" min="0" max="30"><em>cm</em></div></label></div>
           <label class="tgl"><input type="checkbox" data-path="interior.water.enabled" ${d.interior.water.enabled ? 'checked' : ''}><i></i><span>Water section</span></label>
           ${d.interior.water.enabled ? `<label class="fld fld-wide"><span>Water width</span><input type="range" min="0.1" max="0.9" step="0.05" data-path="interior.water.fraction" value="${d.interior.water.fraction}"></label>` : ''}` : ''}
         <h5>Add component</h5><div class="chips add">${Object.entries(INTERIOR_ITEMS).map(([k, v]) => `<button class="chip-btn" data-additem="${k}">+ ${v}</button>`).join('')}</div>
@@ -154,13 +156,14 @@ export class EnclosureDesigner {
     const it = s?.type === 'item' ? t.interior.items.find((i) => i.id === s.id) : null;
     const dv = s?.type === 'device' ? t.technology.find((i) => i.id === s.id) : null;
     const instances = this.app.editor.doc.instances.filter((i) => i.templateId === t.id);
-    const dimRow = (label, key) => `<label class="fld"><span>${label}</span><div class="num big"><input type="number" data-path="dimensions.${key}" data-scale="0.01" value="${cm(t.dimensions[key])}" step="1" min="8" max="300"><em>cm</em></div></label>`;
+    const dimRow = (label, key) => `<label class="fld" data-dim="${key}"><span>${label} <em class="ax">${dimShort(key)}</em></span><div class="num big"><input type="number" data-path="dimensions.${key}" data-scale="0.01" value="${cm(t.dimensions[key])}" step="1" min="8" max="300"><em>cm</em></div></label>`;
     this.right.innerHTML = `
       <section class="grp first"><h4>Enclosure</h4>
         <label class="fld fld-wide"><span>Name</span><input type="text" data-path="name" value="${esc(t.name)}" spellcheck="false"></label>
         <label class="fld fld-wide"><span>Instance code prefix</span><input type="text" data-path="metadata.code" value="${esc(t.metadata.code)}" placeholder="${esc(codePrefix({ ...t, metadata: { code: '' } }))}" maxlength="12" spellcheck="false"></label>
       </section>
-      <section class="grp"><h4>Dimensions <em class="unit">outer, cm</em></h4><div class="grid3">${dimRow('Width', 'width')}${dimRow('Height', 'height')}${dimRow('Depth', 'depth')}</div>
+      <section class="grp"><h4>Dimensions <em class="unit">outer, cm · ${dimsOrderLabel()}</em></h4><div class="grid3">${DIM_ORDER.map((k) => dimRow(dimLabel(k), k)).join('')}</div>
+        <p class="dim-sum" data-role="dim-sum">${dimsOrderLabel()} = <b>${formatDims(t.dimensions)}</b></p>
         <p class="hint">Rebuilt parametrically — profiles, glass, vents and substrate follow; handles, locks and labels keep their size.</p></section>
       ${it ? `<section class="grp sel"><h4>${esc(INTERIOR_ITEMS[it.kind])} <button class="link" data-delitem="${it.id}">remove</button></h4>
         <label class="fld fld-wide"><span>Left ↔ right</span><input type="range" min="0" max="1" step="0.01" data-item="${it.id}.x" value="${it.x}"></label>

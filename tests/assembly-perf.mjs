@@ -58,7 +58,7 @@ for (const mode of MODES) {
     const h = window.habitat, ed = h.editor, L = await import('/src/model/Library.js');
     const t0 = performance.now();
     const t = ed.saveTemplate(L.defaultTemplate({ name: 'TERRA 60', type: 'glass', construction: { type: 'glass' }, dimensions: { width: 0.6, height: 0.6, depth: 0.6 }, interior: { preset: 'tropical' } }));
-    const rb = ed.saveTemplate(L.defaultTemplate({ name: 'RACK 30', type: 'rack', construction: { type: 'rack' }, dimensions: { width: 0.3, height: 0.45, depth: 0.18 } }));
+    const rb = ed.saveTemplate(L.defaultTemplate({ name: 'RACK 30', type: 'rack', construction: { type: 'rack' }, dimensions: { width: 0.3, depth: 0.45, height: 0.18 } }));
     ed.load({ room: { name: 'Assembly perf room', width: 12, depth: 8, height: 3, wallThickness: 0.2 }, objects: [], enclosures: ed.templates, instances: [], assemblies: [] });
     for (let k = 0; k < 5; k++) {
       const a = L.createAssembly({ name: `Wall ${k + 1}`, frame: { mode: 'auto' } }), insts = [];

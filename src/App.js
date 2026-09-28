@@ -223,19 +223,35 @@ export class App {
   }
 
   _loop() {
-    let frames = 0, t0 = performance.now();
+    // FPS is measured only over CONSECUTIVE rendered frames (render-on-demand: when nothing changes no frame
+    // is drawn). While the loop is intentionally idle the HUD shows "IDLE · last N fps" — the last valid
+    // sample is kept; no frames are rendered just to keep a counter alive.
+    let dts = [], lastFrame = 0, prevRendered = false, t0 = performance.now();
+    const IDLE_AFTER = 300;
     const tick = (now) => {
       requestAnimationFrame(tick);
       this.rig.update(now);
       const drag = this.pointer?.state?.mode;
       this.engine.interacting = !!this._controlsActive || this.rig.animating || drag === 'move' || drag === 'rotate';
-      if (!this.engine.needsFrame) { this.hud?.tick(now); return; }
-      this._updateCutaway();
-      if (this.mode.frame(now)) {
-        this.labels.render(this.scene, this.rig.camera);
-        frames++;
+      const st = this.engine.stats;
+      if (!this.engine.needsFrame) {
+        prevRendered = false;
+        if (!st.idle && now - lastFrame > IDLE_AFTER) { st.idle = true; this.hud?.refreshStats(); }
+        this.hud?.tick(now); return;
       }
-      if (now - t0 > 500) { this.engine.stats.fps = Math.round((frames * 1000) / (now - t0)); frames = 0; t0 = now; this.hud?.refreshStats(); }
+      this._updateCutaway();
+      const rendered = this.mode.frame(now);
+      if (rendered) {
+        this.labels.render(this.scene, this.rig.camera);
+        const dt = now - lastFrame; lastFrame = now;
+        if (prevRendered && dt > 0) dts.push(dt); // only back-to-back frames count
+        if (st.idle) { st.idle = false; this.hud?.refreshStats(); }
+      }
+      prevRendered = rendered;
+      if (now - t0 > 500) {
+        if (dts.length >= 2) { const mean = dts.reduce((a, b) => a + b, 0) / dts.length; st.fps = Math.round(1000 / mean); st.fpsMs = +mean.toFixed(1); st.fpsAt = now; }
+        dts = []; t0 = now; this.hud?.refreshStats();
+      }
     };
     requestAnimationFrame(tick);
   }

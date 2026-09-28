@@ -1,11 +1,12 @@
 import { History } from '../editor/History.js';
 import {
-  createAssembly, normalizeAssembly, normalizeOrigin, assemblyBoxes, assemblyStats, assemblyMaxDepth, memberSize, createInstance, normalizeInstance,
+  RESERVED_DEFAULT, createAssembly, normalizeAssembly, normalizeOrigin, assemblyBoxes, assemblyStats, assemblyMaxDepth, memberSize, createInstance, normalizeInstance,
   libraryIndex, cloneData, itemId, MODULE_TYPES, FRAME_COLORS, TEMPLATE_CATEGORY,
 } from '../model/Library.js';
 import { snapPlacement, candidateBox, collisions, freeSlotNear, boxesExtent, outOfLimit } from './Tetris.js';
 import { assemblyParts } from '../preview/parts.js';
 import { icon } from '../ui/icons.js';
+import { formatDims, dimShort, dimsOrderLabel } from '../model/Dimensions.js';
 import { toast } from '../ui/Toast.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -145,12 +146,12 @@ export class AssemblyBuilder {
       <div class="pal-grid">${tpls.map((t) => `
         <div class="pal-card" data-drag="enclosure" data-tpl="${t.id}" title="Drag into the workspace">
           <div class="pal-thumb"><img data-thumb="${t.id}" alt=""></div>
-          <b>${esc(t.name)}</b><span>${cm(t.dimensions.width)}×${cm(t.dimensions.height)}×${cm(t.dimensions.depth)}</span><i>${esc(TEMPLATE_CATEGORY(t))} · ${esc(t.type)}</i>
+          <b>${esc(t.name)}</b><span title="${dimsOrderLabel()}">${formatDims(t.dimensions, { sep: '×' })}</span><i>${esc(TEMPLATE_CATEGORY(t))} · ${esc(t.type)}</i>
         </div>`).join('') || '<p class="hint">No enclosures yet — create one first (or customise a starting template in the main library).</p>'}</div>
       <div class="pal-head"><span>Modules</span></div>
-      <div class="pal-list">${Object.entries(MODULE_TYPES).map(([k, v]) => `<div class="pal-row" data-drag="module" data-module="${k}"><span class="sw sw-${k}"></span><b>${v.label}</b><em>${cm(v.size.w)}×${cm(v.size.h)}×${cm(v.size.d)}</em></div>`).join('')}
-        <div class="pal-row" data-drag="reserved"><span class="sw sw-reserved"></span><b>Reserved space</b><em>60×50×50</em></div></div>
-      <p class="hint">Sizes of modules and reserved spaces can be edited after placing.</p>`;
+      <div class="pal-list">${Object.entries(MODULE_TYPES).map(([k, v]) => `<div class="pal-row" data-drag="module" data-module="${k}"><span class="sw sw-${k}"></span><b>${v.label}</b><em title="${dimsOrderLabel()}">${formatDims(v.size, { sep: '×', unit: '' })}</em></div>`).join('')}
+        <div class="pal-row" data-drag="reserved"><span class="sw sw-reserved"></span><b>Reserved space</b><em title="${dimsOrderLabel()}">${formatDims(RESERVED_DEFAULT, { sep: '×', unit: '' })}</em></div></div>
+      <p class="hint">All sizes: ${dimsOrderLabel()} (width × depth × height). Sizes of modules and reserved spaces can be edited after placing.</p>`;
     for (const img of this.left.querySelectorAll('img[data-thumb]')) {
       const t = ed.lib.templates.get(img.dataset.thumb);
       this.app.libraryImages.template(t).then((u) => { if (u) img.src = u; });
@@ -164,9 +165,10 @@ export class AssemblyBuilder {
     const p = this.sel && this._piece(this.sel);
     let h = `<section class="grp first"><h4>Assembly</h4>
       <div class="totals">
-        <div><b>${cm(st.width)}</b><span>width cm</span></div><div><b>${cm(st.height)}</b><span>height cm</span></div><div><b>${cm(st.depth)}</b><span>max depth cm</span></div>
+        <div data-total="width"><b>${cm(st.width)}</b><span>total width cm</span></div><div data-total="depth"><b>${cm(st.depth)}</b><span>max depth cm</span></div><div data-total="height"><b>${cm(st.height)}</b><span>total height cm</span></div>
         <div><b>${st.enclosures}</b><span>enclosures</span></div><div><b>${st.rackBoxes}</b><span>rack boxes</span></div><div><b>${st.modules}</b><span>modules</span></div><div><b>${st.reserved}</b><span>reserved</span></div>
       </div>
+      <p class="dim-sum" data-role="asm-dims"><span>Outer${a.frame.mode !== 'none' ? ' incl. frame' : ''} · ${dimsOrderLabel()}</span><b>${formatDims(st)}</b>${a.frame.mode !== 'none' ? `<span>Enclosure content</span><em>${formatDims(st.content)}</em>` : ''}</p>
       <div class="grid2">
         <label class="fld"><span>Depth alignment</span><select data-f="alignment"><option value="front" ${a.alignment === 'front' ? 'selected' : ''}>Front aligned</option><option value="back" ${a.alignment === 'back' ? 'selected' : ''}>Back aligned</option></select></label>
         <label class="fld"><span>Structure</span><select data-f="frame.mode"><option value="none" ${a.frame.mode === 'none' ? 'selected' : ''}>None</option><option value="auto" ${a.frame.mode === 'auto' ? 'selected' : ''}>Auto frame</option><option value="custom" ${a.frame.mode === 'custom' ? 'selected' : ''}>Custom frame</option></select></label>
@@ -184,21 +186,21 @@ export class AssemblyBuilder {
       if (p.kind === 'enclosure') {
         const t = lib.templates.get(p.enclosureId), inst = lib.instances.get(p.instanceId);
         h += `<section class="grp sel"><h4>${esc(t?.name || 'Enclosure')} <span class="code">${esc(inst?.code || '')}</span></h4>
-          <p class="meta">${t ? `${cm(t.dimensions.width)} × ${cm(t.dimensions.height)} × ${cm(t.dimensions.depth)} cm · ${esc(t.type)}` : ''}<br>instance <code>${esc(p.instanceId)}</code></p>
+          <p class="meta">${t ? `${formatDims(t.dimensions)} · ${esc(t.type)}` : ''}<br>instance <code>${esc(p.instanceId)}</code></p>
           <label class="fld fld-wide"><span>Enclosure code</span><input type="text" data-inst="code" value="${esc(inst?.code || '')}" spellcheck="false"></label>
           ${this._posFields(p)}
-          <label class="fld fld-wide"><span>Replace with</span><select data-act-sel="replace"><option value="">— choose enclosure —</option>${this.app.editor.templates.filter((x) => x.id !== p.enclosureId).map((x) => `<option value="${x.id}">${esc(x.name)} (${cm(x.dimensions.width)}×${cm(x.dimensions.height)})</option>`).join('')}</select></label>
+          <label class="fld fld-wide"><span>Replace with</span><select data-act-sel="replace"><option value="">— choose enclosure —</option>${this.app.editor.templates.filter((x) => x.id !== p.enclosureId).map((x) => `<option value="${x.id}">${esc(x.name)} (${formatDims(x.dimensions, { sep: '×' })})</option>`).join('')}</select></label>
           <div class="btn-row"><button data-act="open">${icon('cube')} Open enclosure</button><button data-act="dup">${icon('dup')} Duplicate</button><button data-act="del" class="danger">${icon('trash')} Remove</button></div></section>`;
       } else if (p.kind === 'module') {
         h += `<section class="grp sel"><h4>${esc(MODULE_TYPES[p.module.type].label)}</h4>
-          <div class="grid3"><label class="fld"><span>W</span><div class="num"><input type="number" data-mod="w" value="${cm(p.module.w)}" step="1"><em>cm</em></div></label><label class="fld"><span>H</span><div class="num"><input type="number" data-mod="h" value="${cm(p.module.h)}" step="1"><em>cm</em></div></label><label class="fld"><span>D</span><div class="num"><input type="number" data-mod="d" value="${cm(p.module.d)}" step="1"><em>cm</em></div></label></div>
+          <div class="grid3"><label class="fld"><span>${dimShort('width')}</span><div class="num"><input type="number" data-mod="w" value="${cm(p.module.w)}" step="1"><em>cm</em></div></label><label class="fld"><span>${dimShort('depth')}</span><div class="num"><input type="number" data-mod="d" value="${cm(p.module.d)}" step="1"><em>cm</em></div></label><label class="fld"><span>${dimShort('height')}</span><div class="num"><input type="number" data-mod="h" value="${cm(p.module.h)}" step="1"><em>cm</em></div></label></div>
           ${p.module.type === 'cabinet' ? `<label class="fld fld-wide"><span>Doors</span><input type="number" data-mod="doors" value="${p.module.doors}" min="0" max="6" step="1"></label>` : ''}
           ${this._posFields(p)}
           <div class="btn-row"><button data-act="fitw" title="Match the width of the structure">↔ Full width</button><button data-act="dup">${icon('dup')} Duplicate</button><button data-act="del" class="danger">${icon('trash')} Remove</button></div></section>`;
       } else {
         h += `<section class="grp sel"><h4>Reserved space</h4>
           <label class="fld fld-wide"><span>Label</span><input type="text" data-res="label" value="${esc(p.label)}"></label>
-          <div class="grid3"><label class="fld"><span>W</span><div class="num"><input type="number" data-res="w" value="${cm(p.size.w)}" step="1"><em>cm</em></div></label><label class="fld"><span>H</span><div class="num"><input type="number" data-res="h" value="${cm(p.size.h)}" step="1"><em>cm</em></div></label><label class="fld"><span>D</span><div class="num"><input type="number" data-res="d" value="${cm(p.size.d)}" step="1"><em>cm</em></div></label></div>
+          <div class="grid3"><label class="fld"><span>${dimShort('width')}</span><div class="num"><input type="number" data-res="w" value="${cm(p.size.w)}" step="1"><em>cm</em></div></label><label class="fld"><span>${dimShort('depth')}</span><div class="num"><input type="number" data-res="d" value="${cm(p.size.d)}" step="1"><em>cm</em></div></label><label class="fld"><span>${dimShort('height')}</span><div class="num"><input type="number" data-res="h" value="${cm(p.size.h)}" step="1"><em>cm</em></div></label></div>
           ${this._posFields(p)}
           <div class="btn-row"><button data-act="dup">${icon('dup')} Duplicate</button><button data-act="del" class="danger">${icon('trash')} Remove</button></div></section>`;
       }
@@ -277,7 +279,7 @@ export class AssemblyBuilder {
       return { piece: { id: itemId('m'), kind: 'enclosure', instanceId: inst.id, enclosureId: t.id, module: null, position: { x: 0, y: 0, z: 0 }, rotation: 0 }, instance: inst, size: { w: t.dimensions.width, h: t.dimensions.height + t.bottom.base, d: t.dimensions.depth }, label: t.name };
     }
     if (src.kind === 'module') { const m = MODULE_TYPES[src.module]; return { piece: { id: itemId('m'), kind: 'module', instanceId: null, enclosureId: null, module: { type: src.module, ...m.size, doors: src.module === 'cabinet' ? 2 : 0 }, position: { x: 0, y: 0, z: 0 }, rotation: 0 }, size: m.size, label: m.label }; }
-    return { piece: { id: itemId('r'), label: 'Reserved', size: { w: 0.6, h: 0.5, d: 0.5 }, position: { x: 0, y: 0, z: 0 } }, reserved: true, size: { w: 0.6, h: 0.5, d: 0.5 }, label: 'Reserved space' };
+    return { piece: { id: itemId('r'), label: 'Reserved', size: { ...RESERVED_DEFAULT }, position: { x: 0, y: 0, z: 0 } }, reserved: true, size: { ...RESERVED_DEFAULT }, label: 'Reserved space' };
   }
 
   _insert(made, pos) {
@@ -338,7 +340,7 @@ export class AssemblyBuilder {
     const insts = this.newInstances.filter((i) => a.members.some((m) => m.instanceId === i.id)).map((i) => normalizeInstance(i, lib.templates.get(i.templateId)));
     if (this._pendingCodes) for (const [id, code] of Object.entries(this._pendingCodes)) { const i = this.app.editor.doc.instances.find((x) => x.id === id); if (i) i.code = code; }
     const saved = this.onSave ? this.onSave(a, insts) : this.app.editor.saveAssembly(a, insts);
-    toast(`Saved “${a.name}” to My Assemblies — ${cm(this.stats.width)} × ${cm(this.stats.depth)} × ${cm(this.stats.height)} cm`);
+    toast(`Saved “${a.name}” to My Assemblies — ${formatDims(this.stats)} (${dimsOrderLabel()})`);
     this.saved = saved || a;
     this.close();
   }
@@ -420,13 +422,14 @@ export class AssemblyBuilder {
     }
     // dimension lines (overall)
     if (boxes.length) {
-      const ext = boxesExtent(boxes);
-      const [ax, ay] = this.toScreen(ext.x0, 0), [bx] = this.toScreen(ext.x1, 0), [, ty] = this.toScreen(0, ext.y1);
+      // guides measure the OUTER dimensions (incl. frame): horizontal = width, vertical = height; depth is reported below
+      const ext = boxesExtent(boxes), fr = this.draft.frame.mode === 'none' ? 0 : this.draft.frame.profile;
+      const [ax, ay] = this.toScreen(ext.x0 - fr, 0), [bx] = this.toScreen(ext.x1 + fr, 0), [, ty] = this.toScreen(0, ext.y1 + (fr && this.draft.frame.topRail ? fr : 0));
       g.strokeStyle = '#8b877f'; g.fillStyle = '#b9b5ad'; g.lineWidth = 1; g.font = '11px var(--mono), monospace';
       g.beginPath(); g.moveTo(ax, ay + 26); g.lineTo(bx, ay + 26); g.moveTo(ax, ay + 20); g.lineTo(ax, ay + 32); g.moveTo(bx, ay + 20); g.lineTo(bx, ay + 32); g.stroke();
-      const wl = `${cm(st.width)} cm`; g.fillText(wl, (ax + bx) / 2 - g.measureText(wl).width / 2, ay + 44);
+      const wl = `${dimShort('width')} ${cm(st.width)} cm`, dl = `${dimShort('depth')} max ${cm(st.depth)} cm (depth)`; g.fillText(wl, (ax + bx) / 2 - g.measureText(wl).width / 2, ay + 44); g.fillStyle = '#8b877f'; g.fillText(dl, (ax + bx) / 2 - g.measureText(dl).width / 2, ay + 58); g.fillStyle = '#b9b5ad';
       g.beginPath(); g.moveTo(ax - 26, ay); g.lineTo(ax - 26, ty); g.moveTo(ax - 32, ay); g.lineTo(ax - 20, ay); g.moveTo(ax - 32, ty); g.lineTo(ax - 20, ty); g.stroke();
-      g.save(); g.translate(ax - 32, (ay + ty) / 2); g.rotate(-Math.PI / 2); const hl = `${cm(st.height)} cm`; g.fillText(hl, -g.measureText(hl).width / 2, -4); g.restore();
+      g.save(); g.translate(ax - 32, (ay + ty) / 2); g.rotate(-Math.PI / 2); const hl = `${dimShort('height')} ${cm(st.height)} cm`; g.fillText(hl, -g.measureText(hl).width / 2, -4); g.restore();
     }
     // candidate (dragged piece)
     if (drag?.cand) {
@@ -447,7 +450,7 @@ export class AssemblyBuilder {
       g.fillStyle = 'rgba(10,11,12,.85)'; g.fillRect(x, y - 22, tw + 12, 18); g.fillStyle = c.valid ? '#cfe9d6' : '#f3b3a8'; g.fillText(lbl, x + 6, y - 9);
     }
     this.el.querySelector('[data-role=hint]').hidden = boxes.length > 0 || !!drag;
-    this.el.querySelector('[data-role=status]').textContent = `${st.enclosures} enclosures · ${st.rackBoxes} rack boxes · ${st.modules} modules · ${st.reserved} reserved   ${cm(st.width)} × ${cm(st.height)} × ${cm(st.depth)} cm (W × H × max D)`;
+    this.el.querySelector('[data-role=status]').textContent = `${st.enclosures} enclosures · ${st.rackBoxes} rack boxes · ${st.modules} modules · ${st.reserved} reserved   ${formatDims(st)} (${dimsOrderLabel()}${this.draft.frame.mode !== 'none' ? ', incl. frame' : ''})`;
   }
 
   _paintFrame(g, boxes) {
@@ -467,15 +470,15 @@ export class AssemblyBuilder {
       g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); g.strokeStyle = 'rgba(232,145,58,0.18)'; g.lineWidth = 1;
       for (let k = -h; k < w; k += 10) { g.beginPath(); g.moveTo(x + k, y + h); g.lineTo(x + k + h, y); g.stroke(); } g.restore();
       g.setLineDash([6, 4]); g.strokeStyle = '#a8773f'; g.lineWidth = 1.2; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); g.setLineDash([]);
-      this._label(g, x, y, w, h, (b.reserved || b.member)?.label || 'Reserved', `${cm(b.size.w)}×${cm(b.size.h)}`, '#c9a57a');
+      this._label(g, x, y, w, h, (b.reserved || b.member)?.label || 'Reserved', formatDims(b.size, { sep: '×', unit: '' }), '#c9a57a');
     } else {
       const m = b.member;
       let img = null, title = '', sub = '';
-      if (m.kind === 'module') { img = this._img(`mf|${JSON.stringify(m.module)}`, () => this.app.libraryImages.moduleFront(m.module)); title = MODULE_TYPES[m.module.type].label; sub = `${cm(m.module.w)}×${cm(m.module.h)}`; }
+      if (m.kind === 'module') { img = this._img(`mf|${JSON.stringify(m.module)}`, () => this.app.libraryImages.moduleFront(m.module)); title = MODULE_TYPES[m.module.type].label; sub = formatDims(m.module, { sep: '×', unit: '' }); }
       else {
         const t = lib.templates.get(m.enclosureId), inst = lib.instances.get(m.instanceId);
         if (t) img = this._img(`tf|${t.id}|${t.metadata.modified}|${JSON.stringify(t.dimensions)}`, () => this.app.libraryImages.templateFront(t));
-        title = inst?.code || t?.name || ''; sub = t ? `${cm(t.dimensions.width)}×${cm(t.dimensions.height)}` : '';
+        title = inst?.code || t?.name || ''; sub = t ? formatDims(t.dimensions, { sep: '×', unit: '' }) : '';
       }
       if (img) g.drawImage(img, x, y, w, h);
       else { g.fillStyle = '#23252a'; g.fillRect(x, y, w, h); g.strokeStyle = '#3a3d43'; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }

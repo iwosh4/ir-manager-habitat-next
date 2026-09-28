@@ -1,5 +1,8 @@
 # Test report — custom enclosures, Tetris assembly builder, room integration
 
+> Updated for **Phase 4.1** (dimension standardisation): all sizes are **W × D × H** (width × depth × height).
+> RACK 30 is now 30 wide × 45 deep × 18 high. Final results: **PHASE_4_1_FINAL_REPORT.md**.
+
 Environment: this cloud container, Chromium (Playwright) with **SwiftShader** (CPU software rasteriser —
 no GPU), 1280×720 (e2e) / 1600×900 (screenshots). All workflows were executed in the running application
 through its UI with **real pointer drags** (Playwright mouse down / move / up), not by writing JSON.
@@ -12,12 +15,12 @@ Commands: `npm test` (full e2e suite, `tests/run-e2e.mjs`), `node tests/assembly
 |---|---|
 | Designer: **TERRA 60** — 60×60×60 cm, glass, sliding doors, front-top + top ventilation, tropical interior, typed in cm in the UI, saved to MY ENCLOSURES | ✓ |
 | Parametric resize 100 → 150 cm width: geometry width follows, more vent slots / geometry generated, no mesh scale ≠ 1 | ✓ |
-| Designer: **RACK 30** rack box — 30 × 45 × 18 cm (W × H × D, as specified) | ✓ |
+| Designer: **RACK 30** rack box — 30 × 45 × 18 cm = W 30 × D 45 × H 18 (a low box; Phase 4 had read it as 45 cm tall — corrected in 4.1) | ✓ |
 | Builder: 9 × TERRA 60 dragged from the palette with deliberately rough drops (±4 cm) → exact 3 × 3 grid by magnetic snapping | ✓ |
 | Drop onto an occupied spot → red, rejected; undo / redo of placements | ✓ |
-| 6 × RACK 30 dragged above the terrariums → 6 in one row (6 × 30 = 180 cm) | ✓ |
-| Technical cabinet (180 × 40 × 60) dragged **below the floor line** → the structure is re-based and the stack sits on it | ✓ |
-| Saved as **TEST BREEDING WALL**: 16 members, 15 distinct physical enclosure ids, **180 × 265 × 60 cm** without frame (186 × 268 × 60 with the auto frame's 3 cm uprights and top rail), no overlaps | ✓ |
+| 6 × RACK 30 dragged above the terrariums → one row of LOW boxes (6 × 30 = 180 cm wide, 18 cm high) | ✓ |
+| Technical cabinet (180 × 50 × 40, W × D × H) dragged **below the floor line** → the structure is re-based and the stack sits on it | ✓ |
+| Saved as **TEST BREEDING WALL**: 16 members, 15 distinct physical enclosure ids, auto frame: outer **186 × 60 × 241 cm** (W × D × H incl. 3 cm uprights + top rail), enclosure content 180 × 60 × 238 cm, no overlaps | ✓ |
 | Card dragged from MY ASSEMBLIES into the viewport → ONE room object of type `assembly` | ✓ |
 | Moved by dragging the structure, rotated 90° — all members follow, room object count unchanged | ✓ |
 | Double-click → ENTER ASSEMBLY; click one terrarium → the member is selected (code `T60-0x`, instance id, device ids); the assembly itself is not selectable meanwhile; Esc → back to assembly level | ✓ |
@@ -30,7 +33,7 @@ Screenshots: `docs/screenshots/phase4/` — `builder.jpg` (the saved wall in the
 
 ## Test scenario 2 — mixed Tetris layout
 
-Large paludarium (100 × 90 × 50 cm), two small terrariums (50 × 45 × 45) stacked beside it, two normal ones
+Large paludarium (100 × 50 × 90 cm, W × D × H), two small terrariums (50 × 45 × 45) stacked beside it, two normal ones
 (75 × 50 × 50) dropped **below** the structure, two rack boxes above, one reserved space and one technical
 cabinet at the bottom — all by pointer drags, saved as *MIXED WALL*. Verified: no uniform grid
 (distinct x positions / widths), every piece rests on another piece or the floor, no 3D overlaps, reserved
@@ -123,7 +126,7 @@ draw calls, triangles and memory are the meaningful numbers. Raw output: `docs/a
   wall) so the selected member can be highlighted; normal room editing is batched.
 * Showcase draws custom enclosures and assemblies with the painted parametric geometry (there is no GLB for
   user designs); it lights them but they keep the Planner look.
-* RACK 30 was interpreted literally as W 30 × H 45 × D 18 cm.
+* (Phase 4) RACK 30 had been read as W 30 × H 45 × D 18 — fixed in Phase 4.1 (W 30 × D 45 × H 18).
 * The auto frame adds its profiles to the overall dimensions (reported both ways).
 * Pieces may be placed floating (allowed; the frame carries them).
 * All measurements are from a software rasteriser; no real-GPU numbers could be taken in this container.

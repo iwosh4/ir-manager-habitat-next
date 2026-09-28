@@ -6,6 +6,18 @@ JSON Schema: `schema/habitat-room.schema.json`. Code: `src/model/RoomDocument.js
 
 Units: **metres** internally (the UI shows cm). Plan coordinates: x west→east, z north→south, y up.
 
+## Dimension convention (locked)
+
+Every user-facing size is written **WIDTH × DEPTH × HEIGHT** (W × D × H · cs: Š × H × V):
+`60 × 45 × 90 cm` = 60 wide, 45 deep, 90 high. All UI text is produced by `src/model/Dimensions.js`
+(`formatDims`, `parseDims`, `dimLabel`, `dimsOrderLabel`) — no hand-built "a × b × c" strings.
+
+Stored data keeps its **semantic property names**, never positional arrays: templates
+`dimensions: { width, height, depth }`, room objects / modules / reserved spaces `size: { w, h, d }`.
+The JSON key order is irrelevant; the display order is decided only by `Dimensions.js`. Older files are
+therefore never reinterpreted — a Phase 4 template saved as `{ width: 0.3, height: 0.45, depth: 0.18 }` loads
+as exactly that (30 wide, 18 deep, 45 high; shown as `30 × 18 × 45 cm`).
+
 ```
 document (v2)
 ├── room                 dimensions, finishes
@@ -57,7 +69,7 @@ parametric Planner kit (`src/enclosures/EnclosureGeometry.js`), in both renderer
 
 ## EnclosureInstance (physical enclosure)
 
-One real enclosure built from a template. Six "Dendrobates 50×50×70" enclosures are six instances with
+One real enclosure built from a template. Six "Dendrobates 50 × 50 × 70" (W × D × H) enclosures are six instances with
 six ids — never one object.
 
 ```jsonc
@@ -94,14 +106,15 @@ Adding a device to a template adds the slot to all its instances (with new stabl
   z = extra depth offset from the aligned face). The structure is stored re-based: min x = 0, min y = 0.
 * Members are never merged: every enclosure keeps `instanceId` and its own transform. Modules (cabinet,
   shelf, technical compartment) and reserved spaces have their own ids too.
-* Overall size (derived, not stored): width = extent + 2 × frame profile, height = top + top rail, depth =
-  max member depth. `assemblyStats()` computes it; the room object's `size` is kept in sync.
+* Overall size (derived, not stored): `assemblyStats()` returns the OUTER dimensions — width = extent +
+  2 × frame profile, depth = max member depth, height = top + top rail — and `content` (the pieces only,
+  without the frame). The room object's `size` = outer dimensions, kept in sync.
 
 ## Room placements
 
 ```jsonc
 { "id": "obj_…", "type": "assembly", "name": "TEST BREEDING WALL", "ref": { "assemblyId": "asm_…" },
-  "position": { "x": 0.36, "z": 1.95 }, "rotation": 90, "elevation": 0, "size": { "w": 1.8, "d": 0.6, "h": 2.65 } }
+  "position": { "x": 0.36, "z": 1.95 }, "rotation": 90, "elevation": 0, "size": { "w": 1.86, "d": 0.6, "h": 2.41 } }
 { "id": "obj_…", "type": "custom_enclosure", "ref": { "instanceId": "inst_…" }, … }
 ```
 

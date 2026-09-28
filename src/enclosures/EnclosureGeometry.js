@@ -223,7 +223,9 @@ function interior(b, t, I, { occupied, lit, seed }) {
   else if (p === 'paludarium') surf = paludariumInterior(b, I, { seed, occupied, lit });
   else if (p === 'none') { emptyInterior(b, I); surf = () => I.floor + 0.003; }
   else surf = customInterior(b, t, I, { occupied });
+  const n0 = b.chunks.length;
   for (const it of t.interior.items) interiorItem(b, it, I, surf, seed);
+  b.clampSince(n0, { x0: I.x0, x1: I.x1, y0: 0, y1: I.top, z0: I.z0, z1: I.z1 }); // placed items stay inside the glass
 }
 
 function customInterior(b, t, I, { occupied }) {

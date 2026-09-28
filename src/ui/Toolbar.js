@@ -1,5 +1,6 @@
 import { icon } from './icons.js';
 import { QUALITY } from '../renderer/quality.js';
+import { formatDims, dimsOrderLabel } from '../model/Dimensions.js';
 
 const btn = (id, ico, title, extra = '') => `<button class="tb-btn ${extra}" data-act="${id}" title="${title}">${icon(ico)}</button>`;
 
@@ -105,7 +106,7 @@ export class Toolbar {
   updateRoom() {
     const r = this.app.editor.room;
     this.el.querySelector('[data-role=room-name]').textContent = r.name;
-    this.el.querySelector('[data-role=room-size]').textContent = `${r.width.toFixed(2)} × ${r.depth.toFixed(2)} × ${r.height.toFixed(2)} m`;
+    this.el.querySelector('[data-role=room-size]').textContent = formatDims(r, { unit: 'm' }); this.el.querySelector('[data-role=room-size]').title = `Room ${dimsOrderLabel()}`;
     this.updateHistory();
   }
   updateSelection() {}

@@ -359,3 +359,12 @@ textarea.notes { width: 100%; background: var(--bg-2); border: 1px solid var(--l
 .sm-props .keys dt { float: left; clear: left; color: var(--text-3); width: 110px; } .sm-props .keys dd { margin: 0 0 4px 110px; color: var(--text-2); }
 .drag-ghost { position: fixed; left: 0; top: 0; z-index: 60; width: 110px; pointer-events: none; border-radius: 6px; overflow: hidden; border: 1px solid var(--accent-line); background: var(--bg-2); box-shadow: 0 8px 24px rgba(0,0,0,.5); opacity: .92; }
 .drag-ghost b { display: block; padding: 6px 8px; font-size: 11px; }
+
+/* ---- Phase 4.1: dimension convention W × D × H ---- */
+.fld .ax { font-style: normal; font-family: var(--mono); color: var(--accent); opacity: 0.85; margin-left: 3px; }
+.dim-sum { margin: 8px 0 2px; font: 12px var(--mono); color: var(--text-2); display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.dim-sum b { color: var(--text); font-weight: 600; }
+.dim-sum span { color: var(--text-3); font-family: var(--font); font-size: 11px; }
+.dim-sum em { font-style: normal; color: var(--text-2); }
+.builder .dim-sum span { flex-basis: 100%; }
+.meta.dims b { color: var(--text); font-family: var(--mono); font-weight: 600; }

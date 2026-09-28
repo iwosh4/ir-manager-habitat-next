@@ -82,6 +82,12 @@ export class Hud {
   /** Called every animation frame while idle: flip the mode badge back to "final" once settled. */
   tick() { if (this.stats.dataset.mode !== 'final') this.refreshStats(); }
 
+  /** "60 fps · 16.6 ms" while rendering; "IDLE · last 60 fps · 16.6 ms" while render-on-demand is idle. */
+  fpsText(d) {
+    const st = this.app.engine.stats, last = st.fps ? `${st.fps} fps · ${st.fpsMs ? st.fpsMs.toFixed(1) : '–'} ms` : '– fps';
+    return st.idle ? `IDLE · last ${last}` : last;
+  }
+
   refreshStats() {
     const app = this.app, d = app.engine.diagnostics();
     const mode = app.engine.isInteractive ? 'interactive' : 'final';
@@ -89,14 +95,14 @@ export class Hud {
     const q = d.quality === 'Auto' ? `AUTO→${d.finalProfile}` : d.quality;
     const rm = app.renderMode === 'planner' ? 'PLANNER' : 'SHOWCASE';
     this.stats.dataset.renderer = app.renderMode;
-    this.statsLine.textContent = `${rm} · ${mode === 'interactive' ? 'INTERACTIVE' : 'FINAL'} · ${q} · ${d.fps} fps · ${d.frameMs ? d.frameMs.toFixed(1) : '–'} ms · ${d.drawCalls} draws · ${(d.triangles / 1000).toFixed(0)}k tris · scale ${Math.round(d.renderScale * 100)}%`;
+    this.statsLine.textContent = `${rm} · ${mode === 'interactive' ? 'INTERACTIVE' : 'FINAL'} · ${q} · ${this.fpsText(d)} · ${d.drawCalls} draws · ${(d.triangles / 1000).toFixed(0)}k tris · scale ${Math.round(d.renderScale * 100)}%`;
     if (this.diag.hidden) return;
     const r = app.renderer.info, planner = app.renderMode === 'planner';
     const rows = [
       ['Renderer', planner ? 'PLANNER — stylised hand-painted (1 pass + grade)' : 'SHOWCASE — realistic (PBR, shadows, GTAO, bloom)'],
       ['Mode', mode === 'interactive' ? (planner ? 'Interactive (adaptive scale, same pass)' : 'Interactive (reduced resolution, no AO/bloom/MSAA)') : 'Final (full quality)'],
       ['Quality', d.quality === 'Auto' ? `Auto — final profile ${d.finalProfile}` : d.quality],
-      ['FPS / frame', `${d.fps} fps · ${d.frameMs ? d.frameMs.toFixed(1) : '–'} ms (interactive EMA)`],
+      ['FPS / frame', `${this.fpsText(d)}${d.frameMs ? ` · ${d.frameMs.toFixed(1)} ms interactive EMA` : ''}`],
       ['Last final frame', d.finalMs ? `${d.finalMs.toFixed(0)} ms` : '–'],
       ['CPU submit', `${d.cpuMs.toFixed(1)} ms`],
       ['Draw calls', d.drawCalls], ['Triangles', d.triangles.toLocaleString()],

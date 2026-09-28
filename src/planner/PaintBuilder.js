@@ -112,6 +112,24 @@ export class PaintBuilder {
     return this;
   }
 
+  /**
+   * Keep everything added since chunk `from` inside an axis-aligned box of the CURRENT local frame
+   * (e.g. planting inside the glass of an enclosure: leaf cards never poke through the panes). Vertices
+   * outside are pressed onto the box faces; nothing is scaled, parts inside are untouched.
+   */
+  clampSince(from, box) {
+    const M = this.matrix, inv = M.clone().invert();
+    for (let c = from; c < this.chunks.length; c++) {
+      const P = this.chunks[c].P;
+      for (let i = 0; i < P.length; i += 3) {
+        _v.fromArray(P, i).applyMatrix4(inv);
+        const x = Math.min(box.x1, Math.max(box.x0, _v.x)), y = Math.min(box.y1, Math.max(box.y0, _v.y)), z = Math.min(box.z1, Math.max(box.z0, _v.z));
+        if (x !== _v.x || y !== _v.y || z !== _v.z) { _v.set(x, y, z).applyMatrix4(M).toArray(P, i); }
+      }
+    }
+    return this;
+  }
+
   /** Include another builder's parts (e.g. a terrarium cell inside a rack) at the current frame. */
   include(other, pos = [0, 0, 0], rotY = 0) {
     const M = this.matrix.clone().multiply(new THREE.Matrix4().compose(_v.set(...pos), _q.setFromEuler(_e.set(0, rotY, 0)), _s.set(1, 1, 1)));

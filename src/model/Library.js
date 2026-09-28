@@ -58,6 +58,8 @@ export const MODULE_TYPES = {
   shelf: { label: 'Shelf', size: { w: 0.9, h: 0.04, d: 0.5 } },
   technical: { label: 'Technical compartment', size: { w: 0.6, h: 0.6, d: 0.5 } },
 };
+/** Default reserved space (semantic w / h / d, metres). */
+export const RESERVED_DEFAULT = { w: 0.6, h: 0.5, d: 0.5 };
 export const TEMPLATE_CATEGORY = (t) => (t?.construction?.type === 'rack' ? 'rack box' : 'enclosure');
 
 // ------------------------------------------------------------------------------------ templates
@@ -245,13 +247,16 @@ export function assemblyMaxDepth(a, lib) {
 /** Overall dimensions + counts (continuously displayed while building, stored on the room object). */
 export function assemblyStats(a, lib) {
   const b = assemblyBoxes(a, lib);
-  if (!b.length) return { width: 0, height: 0, depth: 0, x0: 0, y0: 0, enclosures: 0, rackBoxes: 0, modules: 0, reserved: 0, members: 0 };
+  if (!b.length) return { width: 0, height: 0, depth: 0, content: { width: 0, height: 0, depth: 0 }, x0: 0, y0: 0, enclosures: 0, rackBoxes: 0, modules: 0, reserved: 0, members: 0 };
   const x0 = Math.min(...b.map((q) => q.x0)), x1 = Math.max(...b.map((q) => q.x1)), y1 = Math.max(...b.map((q) => q.y1));
   const frame = a.frame.mode === 'none' ? 0 : a.frame.profile;
   let enclosures = 0, rackBoxes = 0;
   for (const m of a.members) if (m.kind === 'enclosure') { if (TEMPLATE_CATEGORY(lib.templates.get(m.enclosureId)) === 'rack box') rackBoxes++; else enclosures++; }
+  // outer dimensions include the structural frame (uprights left/right, top rail); `content` = the pieces only
+  const depth = r4(assemblyMaxDepth(a, lib));
   return {
-    width: r4(x1 - x0 + 2 * frame), height: r4(y1 + (frame && a.frame.topRail ? frame : 0)), depth: r4(assemblyMaxDepth(a, lib)), x0,
+    width: r4(x1 - x0 + 2 * frame), height: r4(y1 + (frame && a.frame.topRail ? frame : 0)), depth, x0,
+    content: { width: r4(x1 - x0), height: r4(y1), depth },
     enclosures, rackBoxes, modules: a.members.filter((m) => m.kind === 'module').length, reserved: a.reserved.length, members: a.members.length,
   };
 }

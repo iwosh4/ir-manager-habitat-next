@@ -28,6 +28,15 @@ CREATE ENCLOSURE → MY ENCLOSURES → BUILD ASSEMBLY BY DRAG & DROP → MY ASSE
   the structure re-base it (the view compensates, nothing jumps). The workspace re-frames itself to keep
   free space around the structure. Right-drag pans, wheel zooms.
 
+## Dimensions
+
+All sizes use **W × D × H** (width × depth × height). The canvas is a front elevation: the horizontal
+guide is the **total width**, the vertical guide the **total height**; the **maximum depth** is printed below
+the width guide and in the totals. Totals are shown in the order *total width · max depth · total height*.
+With a frame the builder distinguishes **Outer incl. frame** (what the room uses, e.g. `186 × 60 × 241 cm`)
+from **Enclosure content** (the pieces only, `180 × 60 × 238 cm`). Palette cards, piece labels, module and
+reserved-space fields (W, D, H) follow the same order.
+
 ## Snapping (`src/assembly/Tetris.js`, pure & testable)
 
 For a dragged piece of size w × h, candidates within 14 screen-px:
@@ -66,7 +75,7 @@ The frame is ONE cached geometry per assembly (`buildFrameInto`), not hundreds o
 
 ## Room integration & hierarchy
 
-* **MY ASSEMBLIES** cards (thumbnail, W×H×D, counts, "in room" badge) can be clicked or dragged into the
+* **MY ASSEMBLIES** cards (thumbnail, W × D × H, counts, "in room" badge) can be clicked or dragged into the
   viewport. The assembly becomes ONE room object: moved, rotated, snapped and collision-checked as a whole
   (footprint = assembly size).
 * **Enter assembly**: double-click, *Enter assembly* in the Inspector, or Enter. Only members are selectable

@@ -1,0 +1,45 @@
+# Habitat Studio Next — static runtime rules.
+# Scope: this directory (/habitat-studio-next/) only. Nothing here rewrites URLs or changes the parent
+# IR Manager application. Every block is guarded, so hosts without a module simply ignore it.
+
+DirectoryIndex index.html
+
+<IfModule mod_mime.c>
+  # ES modules (import map + dynamic imports) must be served as JavaScript
+  AddType text/javascript .js .mjs
+  AddType application/json .json
+  AddType model/gltf-binary .glb
+  AddType model/gltf+json .gltf
+  AddType image/webp .webp
+  AddType image/vnd.radiance .hdr
+  AddType application/wasm .wasm
+  AddType image/ktx2 .ktx2
+  AddCharset utf-8 .js .mjs .json .css .html .md
+</IfModule>
+
+# Binary assets must never be re-encoded by a transparent compressor (GLB / HDR / images are already dense);
+# text is compressed when mod_deflate is available.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json model/gltf+json image/svg+xml
+</IfModule>
+
+# Caching: the app is versioned by its ZIP release, so assets may be cached briefly; HTML is always revalidated.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType text/javascript "access plus 1 hour"
+  ExpiresByType text/css "access plus 1 hour"
+  ExpiresByType application/json "access plus 0 seconds"
+  ExpiresByType model/gltf-binary "access plus 7 days"
+  ExpiresByType image/webp "access plus 7 days"
+  ExpiresByType image/png "access plus 7 days"
+  ExpiresByType image/jpeg "access plus 7 days"
+  ExpiresByType image/vnd.radiance "access plus 7 days"
+</IfModule>
+
+# Development-only files are not part of the production ZIP; deny them in case a full checkout is uploaded.
+<FilesMatch "\.(log|bak|old|orig|swp)$|^(package(-lock)?\.json)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</FilesMatch>

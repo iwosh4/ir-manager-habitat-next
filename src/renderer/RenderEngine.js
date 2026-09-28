@@ -305,7 +305,7 @@ export class RenderEngine {
     const s = this.stats;
     return {
       mode: this.isInteractive ? 'interactive' : 'final', quality: QUALITY[this.qualityKey].short || QUALITY[this.qualityKey].label, finalProfile: this.final?.label,
-      fps: s.fps, frameMs: s.frameMs, cpuMs: s.lastMs, finalMs: s.finalMs, drawCalls: s.drawCalls, triangles: s.triangles,
+      fps: s.fps, fpsMs: s.fpsMs, idle: !!s.idle, frameMs: s.frameMs, cpuMs: s.lastMs, finalMs: s.finalMs, drawCalls: s.drawCalls, triangles: s.triangles,
       renderScale: this.renderScale, pixelRatio: this.basePixelRatio, shadowUpdates: s.shadowUpdates,
       programs: this.renderer.info.programs?.length ?? 0, gpu: this.gpuName || '',
     };

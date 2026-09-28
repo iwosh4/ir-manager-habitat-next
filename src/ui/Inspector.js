@@ -2,6 +2,7 @@ import { getType, CATEGORIES } from '../objects/catalog.js';
 import { WALLS } from '../model/RoomDocument.js';
 import { assemblyStats, TECH_KINDS, TEMPLATE_CATEGORY } from '../model/Library.js';
 import { icon } from './icons.js';
+import { formatDims, dimLabel, dimsOrderLabel } from '../model/Dimensions.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -63,15 +64,16 @@ export class Inspector {
       h += num('Rotation', 'rotation', Math.round(o.rotation * 10) / 10, { unit: '°', step: 15 });
     }
     h += `</div></section>`;
-    h += `<section class="grp"><h4>Dimensions <button class="link" data-act="resetsize">reset</button></h4><div class="grid3">`;
-    h += num('Width', 'size.w', cm(o.size.w), { unit: 'cm', step: 5, min: 2, disabled: !t.resizable });
-    h += num(t.placement === 'opening' ? 'Wall' : 'Depth', 'size.d', cm(t.placement === 'opening' ? room.wallThickness : o.size.d), { unit: 'cm', step: 5, min: 1, disabled: !t.resizable || t.placement === 'opening' });
-    h += num('Height', 'size.h', cm(o.size.h), { unit: 'cm', step: 5, min: 2, disabled: !t.resizable });
+    h += `<section class="grp"><h4>Dimensions <em class="unit" data-role="dim-order">${dimsOrderLabel()}</em> <button class="link" data-act="resetsize">reset</button></h4><div class="grid3">`;
+    h += num(dimLabel('width'), 'size.w', cm(o.size.w), { unit: 'cm', step: 5, min: 2, disabled: !t.resizable });
+    h += num(t.placement === 'opening' ? 'Wall' : dimLabel('depth'), 'size.d', cm(t.placement === 'opening' ? room.wallThickness : o.size.d), { unit: 'cm', step: 5, min: 1, disabled: !t.resizable || t.placement === 'opening' });
+    h += num(dimLabel('height'), 'size.h', cm(o.size.h), { unit: 'cm', step: 5, min: 2, disabled: !t.resizable });
     h += `</div></section>`;
     const lib = ed.lib;
     if (o.type === 'assembly') {
       const a = lib.assemblies.get(o.ref?.assemblyId), st = a ? assemblyStats(a, lib) : null;
       if (a) h += `<section class="grp"><h4>Assembly</h4>
+        <p class="meta dims" data-role="asm-dims">Outer (incl. frame) <b>${formatDims(st)}</b>${a.frame.mode !== 'none' ? `<br>Enclosure content ${formatDims(st.content)}` : ''} <em class="unit">${dimsOrderLabel()}</em></p>
         <div class="stats"><div><b>${st.enclosures}</b><span>enclosures</span></div><div><b>${st.rackBoxes}</b><span>rack boxes</span></div><div><b>${st.modules}</b><span>modules</span></div><div><b>${st.reserved}</b><span>reserved</span></div></div>
         <div class="codes">${a.members.filter((mm) => mm.instanceId).map((mm) => `<span class="code">${esc(lib.instances.get(mm.instanceId)?.code)}</span>`).join('')}</div>
         <div class="btn-col"><button class="primary" data-act="enter">${icon('focus')} Enter assembly</button><button data-act="builder">${icon('grid')} Edit in Assembly Builder</button></div>
@@ -103,7 +105,7 @@ export class Inspector {
   instanceHTML(inst, tpl) {
     const occ = inst.props.occupied;
     return `<section class="grp"><h4>Physical enclosure <span class="code">${esc(inst.code)}</span></h4>
-      <p class="meta">${esc(tpl.name)} · ${cm(tpl.dimensions.width)} × ${cm(tpl.dimensions.height)} × ${cm(tpl.dimensions.depth)} cm · ${esc(TEMPLATE_CATEGORY(tpl))}<br><code>${esc(inst.id)}</code></p>
+      <p class="meta">${esc(tpl.name)} · ${formatDims(tpl.dimensions)} · ${esc(TEMPLATE_CATEGORY(tpl))}<br><code>${esc(inst.id)}</code></p>
       ${text('Enclosure code', 'inst.code', inst.code)}
       ${toggle('Occupied', 'inst.props.occupied', occ, occ ? 'animal present' : 'empty · dimmed')}
       ${toggle('Lighting', 'inst.props.lighting', inst.props.lighting, 'LED / UV fixtures')}
@@ -121,7 +123,7 @@ export class Inspector {
     h += `<div class="btn-col">`;
     if (tpl) h += `<button data-act="design">${icon('cube')} Open enclosure</button>`;
     h += `<button data-act="member-del" class="danger">${icon('trash')} Remove from assembly</button><button data-act="exit">${icon('rotl')} Back to assembly</button></div>`;
-    if (tpl) h += `<label class="fld fld-wide"><span>Replace with</span><select data-replace="1"><option value="">— choose enclosure —</option>${this.app.editor.templates.filter((x) => x.id !== tpl.id).map((x) => `<option value="${x.id}">${esc(x.name)} (${cm(x.dimensions.width)}×${cm(x.dimensions.height)})</option>`).join('')}</select></label>`;
+    if (tpl) h += `<label class="fld fld-wide"><span>Replace with</span><select data-replace="1"><option value="">— choose enclosure —</option>${this.app.editor.templates.filter((x) => x.id !== tpl.id).map((x) => `<option value="${x.id}">${esc(x.name)} (${formatDims(x.dimensions, { sep: '×' })})</option>`).join('')}</select></label>`;
     if (inst && tpl) h += this.instanceHTML(inst, tpl);
     return h;
   }
