@@ -24,6 +24,7 @@ export class Hud {
       <div class="hud-status"><span class="st-main"></span><span class="st-hover"></span></div>
       <div class="hud-stats" title="Renderer diagnostics — click (or press I) for details"><span class="mode-dot"></span><span class="stats-line"></span></div>
       <div class="hud-diag" hidden></div>
+      <div class="hud-context" hidden><span class="ctx-path"></span><button data-act="exit-asm" title="Exit assembly (Esc)">Exit assembly</button></div>
       <div class="hud-loading" hidden><div class="hl-text"></div><div class="hl-bar"><i></i></div></div>`;
     viewport.appendChild(el);
     this.el = el;
@@ -33,6 +34,7 @@ export class Hud {
       if (a.dataset.act === 'focus') app.focusSelected();
       if (a.dataset.act === 'full') app.toggleFullscreen();
       if (a.dataset.act === 'compare') app.openComparison();
+      if (a.dataset.act === 'exit-asm') app.exitAssembly();
     });
     this.needle = el.querySelector('.needle');
     this.main = el.querySelector('.st-main'); this.hover = el.querySelector('.st-hover');
@@ -59,6 +61,15 @@ export class Hud {
     const sel = this.app.editor.selected;
     this.main.textContent = this.statusText || (sel ? `${sel.name} selected — drag to move, ring to rotate, Del to delete` : 'Click an object to select · drag empty space to orbit · right-drag to pan · wheel to zoom');
   }
+  /** Selection context banner: ROOM › ASSEMBLY › ENCLOSURE. */
+  setContext(assemblyObj, member) {
+    const el = this.el.querySelector('.hud-context');
+    el.hidden = !assemblyObj;
+    if (!assemblyObj) return;
+    const m = member ? ` <i>›</i> <b>${member.instance?.code || member.template?.name || member.reserved?.label || 'Module'}</b>` : ' <i>›</i> <em>click an enclosure</em>';
+    el.querySelector('.ctx-path').innerHTML = `ROOM <i>›</i> ASSEMBLY <b>${assemblyObj.name.replace(/</g, '&lt;')}</b>${m}`;
+  }
+
   showLoading(text, p = 0) {
     this.loading.hidden = false;
     this.loading.querySelector('.hl-text').textContent = text;

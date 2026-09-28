@@ -1,5 +1,6 @@
 import { getType, CATEGORIES } from '../objects/catalog.js';
 import { WALLS } from '../model/RoomDocument.js';
+import { assemblyStats, TECH_KINDS, TEMPLATE_CATEGORY } from '../model/Library.js';
 import { icon } from './icons.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -30,14 +31,15 @@ export class Inspector {
     }
     this._lastSel = this.app.editor.selection;
     const o = this.app.editor.selected;
-    this.body.innerHTML = o ? this.objectHTML(o) : this.roomHTML();
+    const m = this.app.selectedMember;
+    this.body.innerHTML = m ? this.memberHTML(m) : o ? this.objectHTML(o) : this.roomHTML();
   }
 
   objectHTML(o) {
     const t = getType(o.type), ed = this.app.editor, room = ed.room;
     const view = this.app.objects.get(o.id);
     const coll = ed.snapper.collisions(o);
-    const cat = CATEGORIES.find((c) => c.id === t.category)?.label;
+    const c = CATEGORIES.find((c) => c.id === t.category), cat = t.category === 'assembly' || o.type === 'assembly' ? 'Assembly' : c?.chip || c?.label;
     const wallBound = t.placement === 'opening' || t.placement === 'mounted';
     let h = `<div class="insp-title"><span class="chip">${esc(cat)}</span><input class="name" type="text" data-key="name" value="${esc(o.name)}" spellcheck="false"><span class="insp-sub">${esc(t.label)} · ${esc(t.sub)}</span></div>`;
     if (view?.missing) h += `<div class="alert warn">${icon('warn')} 3D model unavailable — showing placeholder. Logical data is unaffected.</div>`;
@@ -66,6 +68,23 @@ export class Inspector {
     h += num(t.placement === 'opening' ? 'Wall' : 'Depth', 'size.d', cm(t.placement === 'opening' ? room.wallThickness : o.size.d), { unit: 'cm', step: 5, min: 1, disabled: !t.resizable || t.placement === 'opening' });
     h += num('Height', 'size.h', cm(o.size.h), { unit: 'cm', step: 5, min: 2, disabled: !t.resizable });
     h += `</div></section>`;
+    const lib = ed.lib;
+    if (o.type === 'assembly') {
+      const a = lib.assemblies.get(o.ref?.assemblyId), st = a ? assemblyStats(a, lib) : null;
+      if (a) h += `<section class="grp"><h4>Assembly</h4>
+        <div class="stats"><div><b>${st.enclosures}</b><span>enclosures</span></div><div><b>${st.rackBoxes}</b><span>rack boxes</span></div><div><b>${st.modules}</b><span>modules</span></div><div><b>${st.reserved}</b><span>reserved</span></div></div>
+        <div class="codes">${a.members.filter((mm) => mm.instanceId).map((mm) => `<span class="code">${esc(lib.instances.get(mm.instanceId)?.code)}</span>`).join('')}</div>
+        <div class="btn-col"><button class="primary" data-act="enter">${icon('focus')} Enter assembly</button><button data-act="builder">${icon('grid')} Edit in Assembly Builder</button></div>
+        <p class="hint">In the room the assembly moves, rotates and collides as ONE structure. Enter it (double-click / Enter) to select individual enclosures.</p></section>`;
+      h += `<details class="grp raw"><summary>Logical record (exported JSON)</summary><pre>${esc(JSON.stringify({ placement: o, assembly: a }, null, 2))}</pre></details>`;
+      return h;
+    }
+    if (o.type === 'custom_enclosure') {
+      const inst = lib.instances.get(o.ref?.instanceId), tpl = inst && lib.templates.get(inst.templateId);
+      if (inst && tpl) h += this.instanceHTML(inst, tpl) + `<div class="btn-col"><button data-act="design">${icon('cube')} Open enclosure design</button></div>`;
+      h += `<details class="grp raw"><summary>Logical record (exported JSON)</summary><pre>${esc(JSON.stringify({ placement: o, instance: inst }, null, 2))}</pre></details>`;
+      return h;
+    }
     if (t.enclosure) {
       const occ = o.props.occupied !== false;
       h += `<section class="grp"><h4>Enclosure</h4>
@@ -80,10 +99,42 @@ export class Inspector {
     return h;
   }
 
+  /** Physical enclosure fields (instance): code, occupancy, lighting, animal, devices with stable ids. */
+  instanceHTML(inst, tpl) {
+    const occ = inst.props.occupied;
+    return `<section class="grp"><h4>Physical enclosure <span class="code">${esc(inst.code)}</span></h4>
+      <p class="meta">${esc(tpl.name)} · ${cm(tpl.dimensions.width)} × ${cm(tpl.dimensions.height)} × ${cm(tpl.dimensions.depth)} cm · ${esc(TEMPLATE_CATEGORY(tpl))}<br><code>${esc(inst.id)}</code></p>
+      ${text('Enclosure code', 'inst.code', inst.code)}
+      ${toggle('Occupied', 'inst.props.occupied', occ, occ ? 'animal present' : 'empty · dimmed')}
+      ${toggle('Lighting', 'inst.props.lighting', inst.props.lighting, 'LED / UV fixtures')}
+      ${text('Species', 'inst.props.animal.species', inst.props.animal.species, 'e.g. Dendrobates tinctorius')}
+      ${text('Animal / ID', 'inst.props.animal.code', inst.props.animal.code, 'e.g. DT-02')}
+      <label class="fld fld-wide"><span>Notes</span><textarea data-key="inst.props.notes" rows="2" placeholder="Husbandry notes…">${esc(inst.props.notes || '')}</textarea></label>
+    </section>
+    <section class="grp"><h4>Devices <em class="unit">stable ids</em></h4>${tpl.technology.length ? `<div class="devices">${tpl.technology.map((d) => `<div class="dev"><span>${esc(d.label || TECH_KINDS[d.kind].label)}</span><code>${esc(inst.devices[d.id]?.deviceId || '')}</code></div>`).join('')}</div>` : '<p class="hint">No technology in this design.</p>'}</section>`;
+  }
+
+  /** ENTERED assembly → one member selected. */
+  memberHTML(m) {
+    const inst = m.instance, tpl = m.template, a = m.assembly;
+    let h = `<div class="insp-title"><span class="chip">${esc(a.name)} › ${m.reserved ? 'reserved' : m.member.kind === 'module' ? 'module' : 'enclosure'}</span><div class="name ro">${esc(inst?.code || tpl?.name || m.reserved?.label || m.member.module?.type)}</div><span class="insp-sub">Member of an assembly — ids are independent of the structure</span></div>`;
+    h += `<div class="btn-col">`;
+    if (tpl) h += `<button data-act="design">${icon('cube')} Open enclosure</button>`;
+    h += `<button data-act="member-del" class="danger">${icon('trash')} Remove from assembly</button><button data-act="exit">${icon('rotl')} Back to assembly</button></div>`;
+    if (tpl) h += `<label class="fld fld-wide"><span>Replace with</span><select data-replace="1"><option value="">— choose enclosure —</option>${this.app.editor.templates.filter((x) => x.id !== tpl.id).map((x) => `<option value="${x.id}">${esc(x.name)} (${cm(x.dimensions.width)}×${cm(x.dimensions.height)})</option>`).join('')}</select></label>`;
+    if (inst && tpl) h += this.instanceHTML(inst, tpl);
+    return h;
+  }
+
   roomHTML() {
     const ed = this.app.editor, r = ed.room;
-    const enc = ed.objects.filter((o) => getType(o.type)?.enclosure);
-    const occ = enc.filter((o) => o.props.occupied !== false);
+    // count physical enclosures: catalogue enclosures, placed custom enclosures and assembly members
+    const lib = ed.lib, enc = [], occ = [];
+    for (const o of ed.objects) {
+      if (o.type === 'assembly') { const a = lib.assemblies.get(o.ref?.assemblyId); for (const m of a?.members || []) if (m.instanceId) { const i = lib.instances.get(m.instanceId); enc.push(i); if (i?.props.occupied) occ.push(i); } }
+      else if (o.type === 'custom_enclosure') { const i = lib.instances.get(o.ref?.instanceId); enc.push(i); if (i?.props.occupied) occ.push(i); }
+      else if (getType(o.type)?.enclosure) { enc.push(o); if (o.props.occupied !== false) occ.push(o); }
+    }
     const walls = ['none', ...WALLS];
     return `<div class="insp-title"><span class="chip">Room</span><input class="name" type="text" data-room="name" value="${esc(r.name)}" spellcheck="false"><span class="insp-sub">Nothing selected — room properties</span></div>
       <section class="grp"><h4>Room dimensions</h4><div class="grid2">
@@ -115,9 +166,25 @@ export class Inspector {
       this._pending = false; this.refresh();
       return;
     }
+    if (el.dataset.replace && el.value) {
+      const m = this.app.selectedMember;
+      if (m && !ed.replaceMember(m.assembly.id, m.member.id, el.value)) this.app.toast('That enclosure does not fit in this position', 'warn');
+      this.refresh(); return;
+    }
     const o = ed.selected; if (!o || !el.dataset.key) return;
     const k = el.dataset.key;
     let v = el.type === 'checkbox' ? el.checked : el.type === 'number' ? Number(el.value) : el.value;
+    if (k.startsWith('inst.')) {
+      const inst = this.app.selectedMember?.instance || (o.type === 'custom_enclosure' ? ed.lib.instances.get(o.ref?.instanceId) : null);
+      if (!inst) return;
+      const path = k.slice(5).split('.');
+      const patch = path.length === 1 ? { [path[0]]: v } : path.length === 2 ? { props: { [path[1]]: v } } : { props: { animal: { [path[2]]: v } } };
+      ed.updateInstance(inst.id, patch);
+      if (o.type === 'custom_enclosure' && path[0] === 'code') { const t = ed.lib.templates.get(inst.templateId); ed.update(o.id, { name: `${t.name} · ${v}` }); }
+      this._pending = false;
+      if (el.type === 'checkbox') this.refresh();
+      return;
+    }
     if (el.type === 'number' && !Number.isFinite(v)) { this.refresh(); return; }
     const patch = {};
     if (k === 'name') patch.name = v;
@@ -137,6 +204,18 @@ export class Inspector {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const app = this.app, o = app.editor.selected; if (!o) return;
     const a = b.dataset.act;
+    const lib = app.editor.lib;
+    if (a === 'enter') { app.enterAssembly(o.id); return; }
+    if (a === 'builder') { app.openBuilder(lib.assemblies.get(o.ref?.assemblyId)); return; }
+    if (a === 'exit') { app.selectMember(null); return; }
+    if (a === 'member-del') { app.deleteSelected(); return; }
+    if (a === 'design') {
+      const m = app.selectedMember;
+      const inst = m?.instance || lib.instances.get(o.ref?.instanceId);
+      const t = m?.template || (inst && lib.templates.get(inst.templateId));
+      if (t) app.openDesigner(t, { instanceId: inst?.id });
+      return;
+    }
     if (a === 'focus') app.focusSelected();
     else if (a === 'rotl') app.rotateSelected(-90);
     else if (a === 'rotr') app.rotateSelected(90);

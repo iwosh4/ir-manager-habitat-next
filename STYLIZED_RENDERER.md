@@ -157,6 +157,14 @@ scene pass → HalfFloat MSAA×4 target (no tone mapping)  →  blit: soft shoul
 * **Adaptive**: stationary frames render at the device pixel ratio (Auto caps at 1.5, 1.0 on software
   GPUs); while interacting the same pass renders at an adaptive scale that only drops if the measured
   frame exceeds the 60 fps budget (floor 50 %). Render-on-demand like the Showcase.
+* **Auto quality (sharpness fix)**: the interactive scale is chosen from an EMA of the time *between
+  consecutive interactive frames* (idle gaps and the first frame after a pause are ignored — counting them
+  was what made AUTO drop to 50 % and look pixelated). Levels with hysteresis: ≤ 20 ms → 100 %,
+  20–25 → 90 %, 25–33 → 80 %, 33–45 → 70 %, > 45 → 60 %; a level drops only after two confirmations above
+  its bound × 1.08 and recovers when below the next bound × 0.85; > 80 ms single frames trigger the 50 %
+  emergency floor. At 100 % the interactive frame keeps the MSAA target (no sharpness change when you
+  start orbiting). The painted atlas uses mipmaps + anisotropy `min(8, max)`; the canvas backing store
+  equals CSS size × DPR (no CSS up-scaling).
 * **Nothing expensive is merely disabled**: there is no composer, no G-buffer, no AO, no bloom, no
   shadow map, no light loop, no environment map in the Planner's code path.
 

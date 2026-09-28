@@ -1,0 +1,89 @@
+{
+  "environment": "Chromium + SwiftShader (CPU rasteriser), 1280×720",
+  "modes": {
+    "planner": {
+      "demo": {
+        "label": "demo room (28 objects)",
+        "drawCalls": 18,
+        "triangles": 63514,
+        "finalMs": 723,
+        "interactiveMs": 718.2,
+        "geometries": 46,
+        "textures": 13,
+        "batches": 5,
+        "batchInstances": 73,
+        "heapMB": 24.2,
+        "orbit": {
+          "medianMs": 139.8,
+          "p95Ms": 709.5,
+          "fps": 7.2,
+          "scale": 0.5
+        }
+      },
+      "walls": {
+        "buildMs": 150,
+        "assemblies": 5,
+        "members": 75,
+        "instanceIds": 75,
+        "label": "5 assemblies / 75 enclosures",
+        "drawCalls": 25,
+        "triangles": 311773,
+        "finalMs": 1135.6,
+        "interactiveMs": 193.8,
+        "geometries": 39,
+        "textures": 15,
+        "batches": 5,
+        "batchInstances": 265,
+        "heapMB": 28.4,
+        "orbit": {
+          "medianMs": 183.2,
+          "p95Ms": 369.5,
+          "fps": 5.5,
+          "scale": 0.5
+        }
+      }
+    },
+    "showcase": {
+      "demo": {
+        "label": "demo room (28 objects)",
+        "drawCalls": 384,
+        "triangles": 868431,
+        "finalMs": 7179.6,
+        "interactiveMs": 2352.8,
+        "geometries": 153,
+        "textures": 221,
+        "batches": 65,
+        "batchInstances": 230,
+        "heapMB": 40.2,
+        "orbit": {
+          "medianMs": 1414,
+          "p95Ms": 4224.7,
+          "fps": 0.7,
+          "scale": 0.35
+        }
+      },
+      "walls": {
+        "buildMs": 132,
+        "assemblies": 5,
+        "members": 75,
+        "instanceIds": 75,
+        "label": "5 assemblies / 75 enclosures",
+        "drawCalls": 89,
+        "triangles": 929455,
+        "finalMs": 2670,
+        "interactiveMs": 323.8,
+        "geometries": 86,
+        "textures": 103,
+        "batches": 5,
+        "batchInstances": 265,
+        "heapMB": 44.4,
+        "orbit": {
+          "medianMs": 340.2,
+          "p95Ms": 437.4,
+          "fps": 2.9,
+          "scale": 0.35
+        }
+      }
+    }
+  }
+}

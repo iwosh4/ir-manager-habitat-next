@@ -3,3 +3,4 @@ tests/last-run.json
 *.log
 .DS_Store
 dist/
+tests/last-assembly-perf.json

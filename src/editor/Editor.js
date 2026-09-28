@@ -1,6 +1,7 @@
 import { Emitter } from '../core/Emitter.js';
 import { History } from './History.js';
-import { createDocument, createObject, normalizeDocument, normalizeObject, newId, resolveMount, wallFrame } from '../model/RoomDocument.js';
+import { createDocument, createObject, normalizeDocument, normalizeObject, newId, resolveMount, wallFrame, syncReferencedSizes } from '../model/RoomDocument.js';
+import { libraryIndex, normalizeTemplate, normalizeAssembly, normalizeInstance, createInstance, normalizeOrigin, cloneData, assemblyBoxes, boxesOverlap, assemblyStats } from '../model/Library.js';
 import { getType } from '../objects/catalog.js';
 import { Snapper } from './Snapping.js';
 
@@ -112,6 +113,9 @@ export class Editor extends Emitter {
     const o = this.get(id); if (!o) return null;
     const copy = normalizeObject(JSON.parse(JSON.stringify(o)));
     copy.id = newId();
+    // a copy of a physical structure is a NEW physical structure: new assembly / instance ids
+    if (o.type === 'assembly') { const a = this._cloneAssemblyData(o.ref.assemblyId); if (!a) return null; copy.ref = { assemblyId: a.id }; copy.name = a.name; }
+    if (o.type === 'custom_enclosure') { const inst = this.lib.instances.get(o.ref.instanceId); const t = inst && this.lib.templates.get(inst.templateId); if (!t) return null; const ni = createInstance(t, this.doc, { props: cloneData(inst.props) }); this.doc.instances.push(ni); copy.ref = { instanceId: ni.id }; copy.name = `${t.name} · ${ni.code}`; }
     copy.name = o.name.replace(/( copy( \d+)?)?$/, '') + ' copy';
     if (copy.mount) copy.mount.offset += o.size.w + 0.05;
     else {
@@ -127,6 +131,169 @@ export class Editor extends Emitter {
     this._record(`Duplicate ${o.name}`);
     this.select(copy.id);
     return copy;
+  }
+
+  // ---------- project library (enclosure templates, instances, assemblies) ----------
+  get lib() { return libraryIndex(this.doc); }
+  get templates() { return this.doc.enclosures; }
+  get assemblies() { return this.doc.assemblies; }
+
+  /** Room objects that visually depend on a template / assembly / instance. */
+  dependents({ templateId, assemblyId, instanceId } = {}) {
+    const lib = this.lib;
+    return this.doc.objects.filter((o) => {
+      if (o.type === 'assembly') {
+        const a = lib.assemblies.get(o.ref?.assemblyId); if (!a) return false;
+        if (assemblyId && a.id === assemblyId) return true;
+        return a.members.some((m) => (templateId && m.enclosureId === templateId) || (instanceId && m.instanceId === instanceId));
+      }
+      if (o.type === 'custom_enclosure') { const i = lib.instances.get(o.ref?.instanceId); return !!i && ((templateId && i.templateId === templateId) || (instanceId && i.id === instanceId)); }
+      return false;
+    }).map((o) => o.id);
+  }
+
+  _libraryChanged(ids, label) {
+    const resized = syncReferencedSizes(this.doc);
+    for (const id of resized) { const o = this.get(id); if (o) this._clampObject(o); }
+    this.emit('change', { kind: 'library', ids: [...new Set([...ids, ...resized])] });
+    this._record(label);
+  }
+
+  saveTemplate(t) {
+    const n = normalizeTemplate({ ...t, metadata: { ...(t.metadata || {}), modified: new Date().toISOString() } });
+    const i = this.doc.enclosures.findIndex((x) => x.id === n.id);
+    if (i >= 0) this.doc.enclosures[i] = n; else this.doc.enclosures.push(n);
+    // every physical instance gets a stable device id for new technology slots
+    for (const inst of this.doc.instances) if (inst.templateId === n.id) Object.assign(inst, normalizeInstance(inst, n));
+    this._libraryChanged(this.dependents({ templateId: n.id }), i >= 0 ? `Edit enclosure ${n.name}` : `Create enclosure ${n.name}`);
+    return n;
+  }
+
+  deleteTemplate(id) {
+    if (this.doc.instances.some((i) => i.templateId === id)) return false; // physical enclosures still use it
+    this.doc.enclosures = this.doc.enclosures.filter((t) => t.id !== id);
+    this._libraryChanged([], 'Delete enclosure');
+    return true;
+  }
+
+  duplicateTemplate(id) {
+    const t = this.lib.templates.get(id); if (!t) return null;
+    const c = cloneData(t); c.id = newId('enc'); c.name = t.name.replace(/( copy( \d+)?)?$/, '') + ' copy'; c.metadata.code = ''; c.metadata.created = new Date().toISOString();
+    return this.saveTemplate(c);
+  }
+
+  /** New physical enclosure of a template (not placed yet). Does not record by itself. */
+  newInstance(templateId, patch = {}) {
+    const t = this.lib.templates.get(templateId); if (!t) return null;
+    const inst = createInstance(t, this.doc, patch);
+    this.doc.instances.push(inst);
+    return inst;
+  }
+
+  updateInstance(id, patch) {
+    const inst = this.doc.instances.find((i) => i.id === id); if (!inst) return null;
+    const t = this.lib.templates.get(inst.templateId);
+    Object.assign(inst, normalizeInstance({ ...inst, ...patch, props: { ...inst.props, ...(patch.props || {}), animal: { ...inst.props.animal, ...(patch.props?.animal || {}) } } }, t));
+    this._libraryChanged(this.dependents({ instanceId: id }), 'Edit enclosure instance');
+    return inst;
+  }
+
+  /**
+   * Save an assembly definition coming from the Assembly Builder. `newInstances` are the physical
+   * enclosures created while building (committed together with the assembly as one undo step).
+   * Instances no longer referenced by the assembly are removed with it.
+   */
+  saveAssembly(a, newInstances = []) {
+    const lib0 = this.lib;
+    const prev = lib0.assemblies.get(a.id);
+    for (const inst of newInstances) if (!lib0.instances.has(inst.id)) this.doc.instances.push(normalizeInstance(inst, lib0.templates.get(inst.templateId)));
+    const lib = this.lib;
+    const n = normalizeOrigin(normalizeAssembly({ ...a, metadata: { ...(a.metadata || {}), modified: new Date().toISOString() } }), lib);
+    const i = this.doc.assemblies.findIndex((x) => x.id === n.id);
+    if (i >= 0) this.doc.assemblies[i] = n; else this.doc.assemblies.push(n);
+    if (prev) {
+      const keep = new Set(n.members.map((m) => m.instanceId));
+      const dropped = prev.members.filter((m) => m.instanceId && !keep.has(m.instanceId)).map((m) => m.instanceId);
+      this.doc.instances = this.doc.instances.filter((x) => !dropped.includes(x.id) || this.doc.objects.some((o) => o.ref?.instanceId === x.id));
+    }
+    this._libraryChanged(this.dependents({ assemblyId: n.id }), i >= 0 ? `Edit assembly ${n.name}` : `Create assembly ${n.name}`);
+    return n;
+  }
+
+  deleteAssembly(id) {
+    const a = this.lib.assemblies.get(id); if (!a) return;
+    const placed = this.doc.objects.filter((o) => o.ref?.assemblyId === id).map((o) => o.id);
+    this.doc.objects = this.doc.objects.filter((o) => o.ref?.assemblyId !== id);
+    const inst = new Set(a.members.map((m) => m.instanceId).filter(Boolean));
+    this.doc.instances = this.doc.instances.filter((i) => !inst.has(i.id));
+    this.doc.assemblies = this.doc.assemblies.filter((x) => x.id !== id);
+    if (placed.includes(this.selection)) { this.selection = null; this.emit('selection', null); }
+    if (placed.length) this.emit('change', { kind: 'remove', ids: placed });
+    this._libraryChanged([], `Delete assembly ${a.name}`);
+  }
+
+  _cloneAssemblyData(id) {
+    const a = this.lib.assemblies.get(id); if (!a) return null;
+    const c = cloneData(a); c.id = newId('asm');
+    c.name = a.name.replace(/( copy( \d+)?)?$/, '') + ' copy';
+    const lib = this.lib;
+    for (const m of c.members) {
+      if (m.kind !== 'enclosure') continue;
+      const old = lib.instances.get(m.instanceId), t = lib.templates.get(m.enclosureId);
+      const ni = createInstance(t, this.doc, { props: cloneData(old?.props || {}) });
+      this.doc.instances.push(ni); m.instanceId = ni.id;
+    }
+    this.doc.assemblies.push(normalizeAssembly(c));
+    return this.doc.assemblies[this.doc.assemblies.length - 1];
+  }
+
+  /** Library duplicate (new physical instances). */
+  duplicateAssembly(id) { const c = this._cloneAssemblyData(id); if (c) this._libraryChanged([], `Duplicate assembly ${c.name}`); return c; }
+
+  /** In-room member edits (ENTER ASSEMBLY): remove / replace keep all other ids untouched. */
+  removeMember(assemblyId, memberId) {
+    const a = cloneData(this.lib.assemblies.get(assemblyId)); if (!a) return;
+    a.members = a.members.filter((m) => m.id !== memberId);
+    a.reserved = a.reserved.filter((r) => r.id !== memberId);
+    this.saveAssembly(a);
+  }
+
+  /** Library → room: a template placement creates a NEW physical enclosure (one undo step). */
+  placeTemplate(templateId, placement) {
+    const t = this.lib.templates.get(templateId); if (!t) return null;
+    const inst = createInstance(t, this.doc);
+    this.doc.instances.push(inst);
+    return this.add('custom_enclosure', { ...placement, name: `${t.name} · ${inst.code}`, ref: { instanceId: inst.id }, size: { w: t.dimensions.width, h: t.dimensions.height + t.bottom.base, d: t.dimensions.depth } });
+  }
+
+  /** Library → room: an assembly is one physical structure; placing it again places a physical COPY. */
+  placeAssembly(assemblyId, placement) {
+    let a = this.lib.assemblies.get(assemblyId); if (!a) return null;
+    if (this.isPlaced({ assemblyId })) a = this._cloneAssemblyData(assemblyId);
+    const o = { type: 'assembly', ref: { assemblyId: a.id }, size: { w: 1, h: 1, d: 1 }, position: { x: 0, z: 0 }, rotation: 0 };
+    const tmp = { ...this.doc, objects: [o] }; syncReferencedSizes(tmp);
+    return this.add('assembly', { ...placement, name: a.name, ref: { assemblyId: a.id }, size: o.size });
+  }
+
+  /** In-room REPLACE: swap one member for another enclosure design (new physical id), if it fits. */
+  replaceMember(assemblyId, memberId, templateId) {
+    const lib = this.lib, a = cloneData(lib.assemblies.get(assemblyId)), t = lib.templates.get(templateId);
+    const m = a?.members.find((x) => x.id === memberId); if (!m || !t) return false;
+    const old = { ...m };
+    const inst = createInstance(t, this.doc);
+    m.enclosureId = t.id; m.instanceId = inst.id;
+    const tmp = libraryIndex({ ...this.doc, instances: [...this.doc.instances, inst], assemblies: [a] });
+    const boxes = assemblyBoxes(a, tmp), me = boxes.find((b) => b.id === memberId);
+    if (boxes.some((b) => b.id !== memberId && boxesOverlap(b, me))) { Object.assign(m, old); return false; }
+    this.saveAssembly(a, [inst]);
+    return true;
+  }
+
+  /** Is an assembly / instance already placed in the room? */
+  isPlaced({ assemblyId, instanceId }) {
+    if (assemblyId) return this.doc.objects.some((o) => o.ref?.assemblyId === assemblyId);
+    if (instanceId) return this.doc.objects.some((o) => o.ref?.instanceId === instanceId) || this.doc.assemblies.some((a) => a.members.some((m) => m.instanceId === instanceId));
+    return false;
   }
 
   rotateBy(id, deg) {

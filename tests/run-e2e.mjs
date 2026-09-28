@@ -288,7 +288,7 @@ await test('JSON export (download)', async () => {
   await dl.saveAs(file);
   exported = JSON.parse(fs.readFileSync(file, 'utf8'));
   exported.__file = file;
-  assert(exported.schema === 'ir-manager/habitat-room' && exported.version === 1, 'schema/version');
+  assert(exported.schema === 'ir-manager/habitat-room' && exported.version === 2 && Array.isArray(exported.assemblies) && Array.isArray(exported.enclosures) && Array.isArray(exported.instances), 'schema/version 2 + library arrays');
   assert(Array.isArray(exported.objects) && exported.objects.length > 20, 'objects exported');
   const o = exported.objects[0];
   assert(o.id && o.type && o.position && o.size && 'rotation' in o, 'logical fields present');
@@ -523,6 +523,240 @@ await test('Planner starts without loading the realistic pipeline (lazy Showcase
   assert(s.glb === 0, `no GLB / HDR downloaded in Planner (${s.glb})`);
   assert(s.post === 0, `no realistic-pipeline modules loaded (${s.post})`);
   assert(errs.length === 0, errs.join(' | '));
+});
+
+// ============================================================== CUSTOM ENCLOSURES + TETRIS ASSEMBLY BUILDER + ROOM
+async function designerSet(path, value) { const l = page.locator(`.designer [data-path="${path}"]`); await l.fill(String(value)); await l.press('Tab'); await settle(120); }
+async function openSection(id) { const open = await page.locator(`.designer .dsec.open [data-section="${id}"]`).count(); if (!open) await page.click(`.designer [data-section="${id}"]`); }
+/** Real pointer drag from a builder palette card to a world position of the front elevation (centre of the piece). */
+async function builderDrag(cardSel, wx, wy, { alt = false } = {}) {
+  const from = await page.locator(cardSel).first().boundingBox();
+  const to = await ev(([x, y]) => { const b = window.habitat.builder; const [sx, sy] = b.toScreen(x, y); const r = b.canvas.getBoundingClientRect(); return { x: r.left + sx, y: r.top + sy }; }, [wx, wy]);
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2); await page.mouse.down();
+  if (alt) await page.keyboard.down('Alt');
+  for (let i = 1; i <= 8; i++) await page.mouse.move(from.x + (to.x - from.x) * i / 8, from.y + (to.y - from.y) * i / 8);
+  await page.mouse.move(to.x, to.y); await settle(60); await page.mouse.up();
+  if (alt) await page.keyboard.up('Alt');
+  await settle(120);
+}
+const tpl = (name) => ev((n) => window.habitat.editor.templates.find((t) => t.name === n), name);
+const builderState = () => ev(() => { const b = window.habitat.builder; return { st: b.stats, members: b.draft.members.map((m) => ({ id: m.id, kind: m.kind, inst: m.instanceId, x: m.position.x, y: m.position.y })), reserved: b.draft.reserved.length, overlaps: (() => { const bx = b.boxes; let n = 0; for (let i = 0; i < bx.length; i++) for (let j = i + 1; j < bx.length; j++) if (bx[i].x0 < bx[j].x1 - 5e-4 && bx[i].x1 > bx[j].x0 + 5e-4 && bx[i].y0 < bx[j].y1 - 5e-4 && bx[i].y1 > bx[j].y0 + 5e-4 && bx[i].z0 < bx[j].z1 - 5e-4 && bx[i].z1 > bx[j].z0 + 5e-4) n++; return n; })() }; });
+
+await test('Enclosure Designer: create "TERRA 60" (60×60×60, glass, sliding doors, ventilation, tropical) via the UI', async () => {
+  await switchMode('planner');
+  await ev(() => window.habitat.loadDemo({ silent: true })); await settle(600);
+  await page.click('.lib-mine [data-mact="new-enclosure"]'); await settle(1500);
+  assert(await page.isVisible('.designer'), 'designer open');
+  await designerSet('name', 'TERRA 60');
+  await designerSet('dimensions.width', 60); await designerSet('dimensions.height', 60); await designerSet('dimensions.depth', 60);
+  await page.click('.designer [data-set="construction.type"][data-value="glass"]');
+  await openSection('front'); await page.click('.designer [data-set="front.type"][data-value="sliding"]');
+  await openSection('vent'); if (!(await page.isChecked('.designer input[data-vent="top"]'))) await page.click('.designer .vent-row:has(input[data-vent="top"]) label');
+  await openSection('interior'); await page.click('.designer [data-set="interior.preset"][data-value="tropical"]');
+  await settle(600);
+  const d = await ev(() => { const x = window.habitat.designer.draft; return { d: x.dimensions, f: x.front.type, v: x.ventilation.map((v) => v.side), p: x.interior.preset, t: x.type }; });
+  assert(d.d.width === 0.6 && d.d.height === 0.6 && d.d.depth === 0.6, 'dimensions 60×60×60: ' + JSON.stringify(d.d));
+  assert(d.f === 'sliding' && d.t === 'glass' && d.p === 'tropical' && d.v.includes('top'), JSON.stringify(d));
+  await page.click('.designer [data-act="save"]'); await settle(500);
+  const t = await tpl('TERRA 60');
+  assert(t && t.dimensions.width === 0.6 && !(await page.isVisible('.designer')), 'saved to My Enclosures');
+  assert(await page.locator('.lib-mine [data-mine="template"]', { hasText: 'TERRA 60' }).count() === 1, 'card in MY ENCLOSURES');
+});
+
+await test('Designer rebuilds parametrically — resizing never scales the model', async () => {
+  const r = await ev(async () => {
+    const h = window.habitat, L = await import('/src/model/Library.js'), G = await import('/src/enclosures/EnclosureGeometry.js'), T = await import('three');
+    const base = h.editor.templates.find((t) => t.name === 'TERRA 60');
+    const bb = (w) => { const t = L.normalizeTemplate({ ...JSON.parse(JSON.stringify(base)), dimensions: { ...base.dimensions, width: w } }); const g = G.buildEnclosure(h.modes.planner.mats, t, { shadow: false }).geometries(); const box = new T.Box3(); for (const x of Object.values(g)) { x.computeBoundingBox(); box.union(x.boundingBox); } return { w: box.max.x - box.min.x, tris: Object.values(g).reduce((a, x) => a + x.index.count / 3, 0) }; };
+    const a = bb(1.0), b = bb(1.5);
+    let scaled = 0; h.previewStage().content.traverse((o) => { if (o.isMesh && (o.scale.x !== 1 || o.scale.y !== 1 || o.scale.z !== 1)) scaled++; });
+    return { a, b, scaled };
+  });
+  assert(Math.abs(r.a.w - 1.0) < 0.05 && Math.abs(r.b.w - 1.5) < 0.05, 'geometry width follows the physical width: ' + JSON.stringify(r));
+  assert(r.b.tris > r.a.tris, 'wider enclosure gets more geometry (vent slots, substrate), not a stretched copy');
+  assert(r.scaled === 0, 'no scaled meshes');
+});
+
+await test('Enclosure Designer: create "RACK 30" rack box (30×45×18)', async () => {
+  await page.click('.lib-mine [data-mact="new-enclosure"]'); await settle(1200);
+  await designerSet('name', 'RACK 30');
+  await page.click('.designer [data-set="construction.type"][data-value="rack"]');
+  await designerSet('dimensions.width', 30); await designerSet('dimensions.height', 45); await designerSet('dimensions.depth', 18);
+  await page.click('.designer [data-act="save"]'); await settle(400);
+  const t = await tpl('RACK 30');
+  assert(t && t.type === 'rack' && t.front.type === 'tub' && t.dimensions.height === 0.45 && t.dimensions.depth === 0.18, JSON.stringify(t?.dimensions));
+});
+
+await test('Assembly Builder: drag TERRA 60 ×9 (3×3) and RACK 30 ×6 above — magnetic snapping, no overlaps', async () => {
+  await page.click('.lib-mine [data-mact="new-assembly"]'); await settle(1500);
+  assert(await page.isVisible('.builder .tetris canvas'), 'builder open');
+  const T = '.builder .pal-card:has-text("TERRA 60")', R = '.builder .pal-card:has-text("RACK 30")';
+  await builderDrag(T, 0.3, 0.3);
+  // following drops land roughly beside / above (±2 cm): snapping connects them
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) if (row || col) await builderDrag(T, 0.3 + col * 0.6 + 0.02, 0.3 + row * 0.6 + 0.015);
+  let s = await builderState();
+  assert(s.st.enclosures === 9 && s.overlaps === 0, `9 terrariums placed without overlaps (${s.st.enclosures}, overlaps ${s.overlaps})`);
+  const grid = s.members.map((m) => `${m.x.toFixed(2)},${m.y.toFixed(2)}`).sort();
+  assert(JSON.stringify(grid) === JSON.stringify(['0.00,0.00', '0.00,0.60', '0.00,1.20', '0.60,0.00', '0.60,0.60', '0.60,1.20', '1.20,0.00', '1.20,0.60', '1.20,1.20']), 'exact 3×3 layout: ' + grid.join(' '));
+  for (let i = 0; i < 6; i++) await builderDrag(R, 0.15 + i * 0.3 + 0.01, 1.8 + 0.225 + 0.02);
+  s = await builderState();
+  assert(s.st.rackBoxes === 6 && s.overlaps === 0, `6 rack boxes above (${s.st.rackBoxes})`);
+  assert(s.members.filter((m) => m.y > 1.79).every((m) => Math.abs(m.y - 1.8) < 1e-6), 'rack boxes sit on the top row');
+  // collision: dropping onto an occupied spot with snapping bypassed (Alt) is refused
+  await builderDrag(T, 0.9, 0.9, { alt: true });
+  s = await builderState();
+  assert(s.st.enclosures === 9 && s.overlaps === 0, 'overlapping drop rejected');
+  // undo / redo of the last placement
+  await page.keyboard.press('Control+z'); await settle(150);
+  assert((await builderState()).st.rackBoxes === 5, 'undo removes the last rack box');
+  await page.keyboard.press('Control+y'); await settle(150);
+  assert((await builderState()).st.rackBoxes === 6, 'redo restores it');
+});
+
+await test('Assembly Builder: technical cabinet below, save as "TEST BREEDING WALL" (dimensions verified)', async () => {
+  // drop a cabinet under the bottom row: the structure re-bases on the floor
+  await builderDrag('.builder .pal-row[data-module="cabinet"]', 0.45, -0.4);
+  let s = await builderState();
+  const cab = s.members.find((m) => m.kind === 'module');
+  assert(cab && Math.abs(cab.y) < 1e-6, 'cabinet placed at floor level, structure lifted: ' + JSON.stringify(cab));
+  assert(s.members.filter((m) => m.kind === 'enclosure').every((m) => m.y >= 0.8 - 1e-6), 'terrariums now stand on the cabinet');
+  // exact numeric editing is secondary but available: full width + 40 cm height
+  await page.click('.builder [data-act="fitw"]'); await settle(150);
+  const h = page.locator('.builder input[data-mod="h"]'); await h.fill('40'); await h.press('Tab'); await settle(200);
+  s = await builderState();
+  assert(s.overlaps === 0, 'no overlaps after resize');
+  await page.fill('.builder [data-role="name"]', 'TEST BREEDING WALL'); await page.press('.builder [data-role="name"]', 'Tab');
+  await page.click('.builder [data-act="save"]'); await settle(600);
+  const a = await ev(() => { const ed = window.habitat.editor; const a = ed.assemblies.find((x) => x.name === 'TEST BREEDING WALL'); const L = ed.lib; return a && { id: a.id, n: a.members.length, inst: a.members.filter((m) => m.instanceId).map((m) => m.instanceId), allInDoc: a.members.filter((m) => m.instanceId).every((m) => L.instances.has(m.instanceId)) }; });
+  assert(a && a.n === 16 && a.allInDoc, 'assembly saved with 16 members, all instances in the document');
+  assert(new Set(a.inst).size === 15, '15 distinct physical enclosure ids');
+  const st = await ev(async (id) => { const L = await import('/src/model/Library.js'); const ed = window.habitat.editor; return L.assemblyStats(ed.lib.assemblies.get(id), ed.lib); }, a.id);
+  assert(Math.abs(st.width - 1.8) < 1e-6 && Math.abs(st.height - 2.65) < 1e-6 && Math.abs(st.depth - 0.6) < 1e-6, 'dimensions 180 × 265 × 60 cm: ' + JSON.stringify(st));
+  assert(st.enclosures === 9 && st.rackBoxes === 6 && st.modules === 1, 'counts 9 / 6 / 1');
+  assert(await page.locator('.lib-mine [data-mine="assembly"]', { hasText: 'TEST BREEDING WALL' }).count() === 1, 'card in MY ASSEMBLIES');
+});
+
+let wall = null;
+await test('Drag TEST BREEDING WALL from MY ASSEMBLIES into the room; move & rotate it as ONE structure', async () => {
+  await ev(() => { const ed = window.habitat.editor; for (const id of ['quar_1', 'tubs_1', 'incu_1']) ed.remove(id); }); // free the west wall
+  await setView('top'); await waitIdle();
+  const target = await ev(async () => { const T = await import('three'); const h = window.habitat, r = h.editor.room; const v = new T.Vector3(1.2 - r.width / 2, 0, 2.2 - r.depth / 2).project(h.rig.camera); const c = h.renderer.domElement.getBoundingClientRect(); return { x: (v.x + 1) / 2 * c.width, y: (1 - v.y) / 2 * c.height }; });
+  const n0 = await ev(() => window.habitat.editor.objects.length);
+  await page.dragAndDrop('.lib-mine [data-mine="assembly"]', '#viewport canvas.viewport-canvas', { targetPosition: target });
+  await settle(800);
+  wall = await ev(() => { const ed = window.habitat.editor; const o = ed.objects.find((x) => x.type === 'assembly'); return o && JSON.parse(JSON.stringify(o)); });
+  assert(wall && (await ev(() => window.habitat.editor.objects.length)) === n0 + 1, 'ONE room object for the whole assembly');
+  assert(Math.abs(wall.size.w - 1.8) < 1e-6 && Math.abs(wall.size.h - 2.65) < 1e-6 && Math.abs(wall.size.d - 0.6) < 1e-6, 'room footprint = assembly dimensions');
+  const members0 = await ev((id) => window.habitat.objects.get(id).members.size, wall.id);
+  assert(members0 === 16, 'view has 16 member nodes');
+  // move by dragging the structure
+  const p0 = await screenOf(wall.id, 0.5);
+  await page.mouse.move(p0.x, p0.y); await page.mouse.down(); await page.mouse.move(p0.x + 40, p0.y + 10, { steps: 6 }); await page.mouse.move(p0.x + 70, p0.y + 20, { steps: 6 }); await page.mouse.up(); await settle(400);
+  const moved = await ev((id) => window.habitat.editor.get(id).position, wall.id);
+  assert(Math.hypot(moved.x - wall.position.x, moved.z - wall.position.z) > 0.1, 'whole assembly moved: ' + JSON.stringify(moved));
+  await ev((id) => window.habitat.editor.select(id), wall.id); await page.keyboard.press('r'); await settle(300);
+  const rot = await ev((id) => window.habitat.editor.get(id).rotation, wall.id);
+  assert(rot % 90 === 0 && rot !== wall.rotation, 'rotated as one structure: ' + rot);
+  const colls = await ev((id) => { const ed = window.habitat.editor; return ed.snapper.collisions(ed.get(id)).length; }, wall.id);
+  assert(typeof colls === 'number', 'room collision uses the assembly footprint');
+  wall = await ev((id) => JSON.parse(JSON.stringify(window.habitat.editor.get(id))), wall.id);
+});
+
+await test('ENTER ASSEMBLY → select one terrarium → exit (hierarchical selection)', async () => {
+  await setView('hero'); await ev((id) => { const h = window.habitat; h.editor.select(id); h.focusSelected(); h.rig.update(performance.now() + 5000); }, wall.id); await settle(1200);
+  const c = await screenOf(wall.id, 0.5);
+  await page.mouse.dblclick(c.x, c.y); await settle(500);
+  assert(await ev(() => !!window.habitat.assemblyContext), 'assembly entered (double-click)');
+  assert(await page.isVisible('.hud-context'), 'context banner visible');
+  // click the member at the centre of the terrarium block
+  const mp = await ev(async (id) => { const T = await import('three'); const h = window.habitat, v = h.objects.get(id); const m = [...v.members.values()].find((x) => x.part.member?.enclosureId && x.part.size.h > 0.5 && x.part.y0 > 1.3); const p = new T.Vector3(); m.proxy.updateMatrixWorld(); p.setFromMatrixPosition(m.proxy.matrixWorld); p.y += m.part.size.h / 2; p.project(h.rig.camera); const r = h.renderer.domElement.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height, id: m.part.id }; }, wall.id);
+  await page.mouse.click(mp.x, mp.y); await settle(400);
+  const sel = await ev(() => { const m = window.habitat.selectedMember; return m && { code: m.instance?.code, inst: m.instance?.id, tpl: m.template?.name }; });
+  assert(sel && sel.tpl === 'TERRA 60' && sel.inst, 'one terrarium selected: ' + JSON.stringify(sel));
+  assert((await page.textContent('#inspector')).includes(sel.code), 'inspector shows the physical enclosure');
+  assert(await ev(() => window.habitat.editor.selection) === wall.id, 'room selection remains the assembly');
+  await page.keyboard.press('Escape'); await settle(150);
+  assert(await ev(() => !window.habitat.selectedMember && !!window.habitat.assemblyContext), 'Esc → back to assembly level');
+  await page.keyboard.press('Escape'); await settle(150);
+  assert(await ev(() => !window.habitat.assemblyContext), 'Esc → exit assembly');
+});
+
+await test('Save project, reload: assembly placement, all ids, relative positions and dimensions preserved; Planner/Showcase switching safe', async () => {
+  const snap = () => ev(() => { const d = window.habitat.editor.toJSON(); const a = d.assemblies.find((x) => x.name === 'TEST BREEDING WALL'); return JSON.stringify({ room: d.room, objects: d.objects, assembly: a, instances: d.instances.filter((i) => a.members.some((m) => m.instanceId === i.id)) }); });
+  const before = await snap();
+  // explicit project save (export) + autosave
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-act="export"]')]);
+  const file = path.join(os.tmpdir(), 'habitat-assembly-project.json'); await dl.saveAs(file);
+  await ev(() => window.habitat.persistence.autosave());
+  await page.reload();
+  await page.waitForFunction(() => window.habitat && window.habitat.engine?.stats.frames > 0, null, { timeout: 180000 });
+  await settle(800);
+  assert(await snap() === before, 'identical after reload (placement, ids, relative transforms, dimensions, room)');
+  const v = await ev((id) => { const view = window.habitat.objects.get(id); return view && view.members.size; }, wall.id);
+  assert(v === 16, 'assembly view rebuilt with all members');
+  await switchMode('showcase');
+  assert(await ev((id) => window.habitat.objects.get(id)?.members?.size, wall.id) === 16, 'Showcase shows the assembly (parametric members)');
+  await switchMode('planner');
+  assert(await snap() === before, 'switching renderers did not change anything');
+  await ev(() => window.habitat.newRoom()); await settle(300);
+  await page.setInputFiles('#toolbar input[type=file]', file); await settle(1200);
+  assert(await snap() === before, 'export → import round trip identical');
+});
+
+await test('Mixed Tetris: large + stacked smalls, normals below, rack boxes above, reserved space, tech cabinet — no uniform grid', async () => {
+  const ids = await ev(async () => {
+    const h = window.habitat, L = await import('/src/model/Library.js');
+    const mk = (name, w, hh, d, type = 'glass', preset = 'arid') => h.editor.saveTemplate(L.defaultTemplate({ name, type, construction: { type }, dimensions: { width: w, height: hh, depth: d }, interior: { preset } })).id;
+    return { large: mk('LARGE 100', 1.0, 0.9, 0.5, 'glass', 'paludarium'), small: mk('SMALL 50', 0.5, 0.45, 0.45, 'glass', 'tropical'), normal: mk('NORMAL 75', 0.75, 0.5, 0.5, 'glass', 'arid') };
+  });
+  await ev(() => window.habitat.openBuilder()); await settle(1500);
+  const C = (n) => `.builder .pal-card:has-text("${n}")`;
+  await builderDrag(C('LARGE 100'), 0.5, 0.45);              // large
+  await builderDrag(C('SMALL 50'), 1.25 + 0.02, 0.225 + 0.01); // small beside
+  await builderDrag(C('SMALL 50'), 1.25 + 0.01, 0.675 + 0.02); // small stacked
+  await builderDrag(C('NORMAL 75'), 0.375, -0.25);             // normals below (structure re-bases)
+  await builderDrag(C('NORMAL 75'), 1.125 + 0.02, 0.25);
+  await builderDrag(C('RACK 30'), 0.15, 1.4 + 0.225 + 0.02);   // rack boxes above
+  await builderDrag(C('RACK 30'), 0.45, 1.4 + 0.225 + 0.02);
+  await builderDrag('.builder .pal-row[data-drag="reserved"]', 1.2, 1.4 + 0.25 + 0.02); // reserved position
+  await builderDrag('.builder .pal-row[data-module="technical"]', 0.3, -0.3); // tech cabinet at the bottom
+  const s = await builderState();
+  assert(s.overlaps === 0, 'no overlaps');
+  assert(s.st.enclosures === 5 && s.st.rackBoxes === 2 && s.st.modules === 1 && s.reserved === 1, 'mixed content: ' + JSON.stringify(s.st));
+  const widths = new Set(s.members.filter((m) => m.kind === 'enclosure').map((m) => m.inst && m.x.toFixed(2)));
+  assert(widths.size >= 4, 'irregular (non-grid) layout');
+  await page.fill('.builder [data-role="name"]', 'MIXED WALL'); await page.press('.builder [data-role="name"]', 'Tab');
+  await page.click('.builder [data-act="save"]'); await settle(500);
+  assert(await ev(() => window.habitat.editor.assemblies.some((a) => a.name === 'MIXED WALL' && a.reserved.length === 1)), 'saved with reserved space');
+});
+
+await test('Performance: 5 assemblies / 50+ enclosure members in the room stay batched', async () => {
+  await switchMode('planner');
+  const r = await ev(async () => {
+    const h = window.habitat, ed = h.editor, L = await import('/src/model/Library.js');
+    const t = ed.templates.find((x) => x.name === 'TERRA 60'), rb = ed.templates.find((x) => x.name === 'RACK 30');
+    ed.load({ room: { name: 'Perf room', width: 12, depth: 8, height: 3, wallThickness: 0.2 }, objects: [], enclosures: ed.templates, instances: [], assemblies: [] });
+    let members = 0;
+    for (let k = 0; k < 5; k++) {
+      const a = L.createAssembly({ name: `Wall ${k + 1}`, frame: { mode: 'auto' } }), insts = [];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const i = L.createInstance(t, { instances: [...ed.doc.instances, ...insts] }); insts.push(i); a.members.push({ id: L.itemId('m'), kind: 'enclosure', instanceId: i.id, enclosureId: t.id, position: { x: c * 0.6, y: r * 0.6, z: 0 } }); }
+      for (let c = 0; c < 6; c++) { const i = L.createInstance(rb, { instances: [...ed.doc.instances, ...insts] }); insts.push(i); a.members.push({ id: L.itemId('m'), kind: 'enclosure', instanceId: i.id, enclosureId: rb.id, position: { x: c * 0.3, y: 1.8, z: 0 } }); }
+      const saved = ed.saveAssembly(a, insts); members += saved.members.length;
+      ed.placeAssembly(saved.id, { position: { x: 1.3 + (k % 3) * 3.4, z: k < 3 ? 0.5 : 5.5 }, rotation: k < 3 ? 0 : 180, elevation: 0, mount: null });
+    }
+    h.rig.goTo('iso', { instant: true }); h.rig.update(performance.now());
+    h.mode.batcher.sync(h.objects.views.values(), null);
+    const gl = h.renderer.getContext(), px = new Uint8Array(4), sync = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    h.engine.render(); sync();
+    const t0 = performance.now(); for (let i = 0; i < 3; i++) { h.engine.render(); sync(); } const finalMs = (performance.now() - t0) / 3;
+    const d = h.engine.diagnostics();
+    return { members, assemblies: ed.objects.length, draws: d.drawCalls, tris: d.triangles, finalMs: Math.round(finalMs), batches: h.batcher.stats.batches, instances: h.batcher.stats.instances, ids: new Set(ed.doc.instances.map((i) => i.id)).size };
+  });
+  console.log('      perf:', JSON.stringify(r));
+  fs.writeFileSync(path.join(ROOT, 'tests/last-assembly-perf.json'), JSON.stringify(r, null, 2));
+  assert(r.assemblies === 5 && r.members >= 50, '5 assemblies, ≥50 members');
+  assert(r.ids === 75, 'every physical enclosure keeps its own id (75)');
+  assert(r.draws < 40, 'draw calls stay low (batched): ' + r.draws);
 });
 
 await test('no fatal console errors', async () => {

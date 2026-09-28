@@ -12,7 +12,7 @@
  *   opening  - cuts an opening in a wall (door, window); position is wall + offset
  */
 export const CATEGORIES = [
-  { id: 'enclosure', label: 'Enclosures' },
+  { id: 'enclosure', label: 'Starting templates', chip: 'Enclosure' },
   { id: 'furniture', label: 'Furniture & work' },
   { id: 'opening', label: 'Doors & windows' },
   { id: 'technical', label: 'Technical' },
@@ -138,5 +138,15 @@ export const TYPES = {
   }),
 };
 
+// ---- library-backed types (not listed as starting templates; size comes from the definition)
+TYPES.custom_enclosure = T({
+  label: 'Enclosure', sub: 'From MY ENCLOSURES', category: 'enclosure', model: null, parametric: true, hidden: true,
+  size: { w: 0.6, d: 0.45, h: 0.6 }, stackable: true, resizable: false, enclosure: 'custom',
+});
+TYPES.assembly = T({
+  label: 'Assembly', sub: 'From MY ASSEMBLIES', category: 'enclosure', model: null, parametric: true, hidden: true,
+  size: { w: 1.2, d: 0.5, h: 1.8 }, placement: 'wall', resizable: false, enclosure: 'assembly',
+});
+
 export function getType(id) { return TYPES[id] || null; }
-export function typesByCategory(cat) { return Object.entries(TYPES).filter(([, t]) => t.category === cat).map(([id, t]) => ({ id, ...t })); }
+export function typesByCategory(cat) { return Object.entries(TYPES).filter(([, t]) => t.category === cat && !t.hidden).map(([id, t]) => ({ id, ...t })); }

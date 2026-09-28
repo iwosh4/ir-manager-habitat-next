@@ -1,4 +1,5 @@
 import { TYPES, getType } from '../objects/catalog.js';
+import { normalizeTemplate, normalizeInstance, normalizeAssembly, libraryIndex, assemblyStats } from './Library.js';
 
 /**
  * Logical room document — the single source of truth, serialised 1:1 to JSON.
@@ -7,9 +8,13 @@ import { TYPES, getType } from '../objects/catalog.js';
  *   x: 0 … room.width  (west → east)      z: 0 … room.depth (north → south)      y: up
  * rotation is in degrees around the vertical axis; 0 means the object's front faces south (+z).
  * size {w,d,h} is the logical collision / footprint box in metres (independent of the 3D model).
+ *
+ * Version 2 adds the project library (see Library.js / DATA_MODEL.md): enclosures (templates),
+ * instances (physical enclosures) and assemblies. Room objects of type 'custom_enclosure' / 'assembly'
+ * reference them through `ref`. Version 1 files load unchanged (empty library).
  */
 export const SCHEMA = 'ir-manager/habitat-room';
-export const VERSION = 1;
+export const VERSION = 2;
 export const WALLS = ['north', 'east', 'south', 'west'];
 
 let seq = 0;
@@ -26,7 +31,7 @@ export function defaultRoom() {
 }
 
 export function createDocument(room = defaultRoom(), objects = []) {
-  return { schema: SCHEMA, version: VERSION, room, objects, meta: { created: new Date().toISOString(), modified: new Date().toISOString(), generator: 'Habitat Studio Next' } };
+  return { schema: SCHEMA, version: VERSION, room, objects, enclosures: [], instances: [], assemblies: [], meta: { created: new Date().toISOString(), modified: new Date().toISOString(), generator: 'Habitat Studio Next' } };
 }
 
 const num = (v, d, lo = -Infinity, hi = Infinity) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
@@ -57,6 +62,13 @@ export function normalizeObject(o) {
     props: o.props && typeof o.props === 'object' ? deepClone(o.props) : {},
   };
   if (o.locked) out.locked = true;
+  if (o.ref && typeof o.ref === 'object') {
+    const ref = {};
+    if (typeof o.ref.assemblyId === 'string') ref.assemblyId = o.ref.assemblyId;
+    if (typeof o.ref.instanceId === 'string') ref.instanceId = o.ref.instanceId;
+    if (typeof o.ref.templateId === 'string' && !ref.instanceId) ref.templateId = o.ref.templateId; // placement preview only
+    if (Object.keys(ref).length) out.ref = ref;
+  }
   return out;
 }
 
@@ -81,10 +93,47 @@ export function normalizeDocument(json) {
   }).map(normalizeObject);
   const ids = new Set();
   for (const o of objects) { if (ids.has(o.id)) o.id = newId(); ids.add(o.id); }
-  const doc = createDocument(room, objects);
+  // ---- project library (v2)
+  const uniq = (arr) => { const seen = new Set(); return arr.filter((x) => { if (seen.has(x.id)) return false; seen.add(x.id); return true; }); };
+  const enclosures = uniq((Array.isArray(json.enclosures) ? json.enclosures : []).map(normalizeTemplate));
+  const tIndex = new Map(enclosures.map((t) => [t.id, t]));
+  const instances = uniq((Array.isArray(json.instances) ? json.instances : []).map((i) => normalizeInstance(i, tIndex.get(i.templateId))).filter((i) => tIndex.has(i.templateId)));
+  const iIndex = new Map(instances.map((i) => [i.id, i]));
+  const assemblies = uniq((Array.isArray(json.assemblies) ? json.assemblies : []).map(normalizeAssembly));
+  for (const a of assemblies) {
+    // members must reference an existing instance of an existing template (ids are never rewritten)
+    a.members = a.members.filter((m) => m.kind === 'module' || (iIndex.has(m.instanceId) && tIndex.has(m.enclosureId)));
+  }
+  const aIndex = new Map(assemblies.map((a) => [a.id, a]));
+  const dangling = [];
+  const placed = objects.filter((o) => {
+    if (o.type === 'assembly') { if (!aIndex.has(o.ref?.assemblyId)) { dangling.push(o.id); return false; } }
+    if (o.type === 'custom_enclosure') { if (!iIndex.has(o.ref?.instanceId)) { dangling.push(o.id); return false; } }
+    return true;
+  });
+  const doc = createDocument(room, placed);
+  doc.enclosures = enclosures; doc.instances = instances; doc.assemblies = assemblies;
+  syncReferencedSizes(doc);
   doc.meta = { ...doc.meta, ...(json.meta || {}), modified: new Date().toISOString() };
   if (unknown.length) doc.meta.skippedTypes = unknown;
+  if (dangling.length) doc.meta.droppedReferences = dangling;
   return doc;
+}
+
+/**
+ * Room objects that reference library definitions take their logical size from them (an assembly's
+ * footprint is its overall width × max depth × height). Called after every library change.
+ * Returns the ids of objects whose size changed.
+ */
+export function syncReferencedSizes(doc) {
+  const lib = libraryIndex(doc), changed = [];
+  for (const o of doc.objects) {
+    let size = null;
+    if (o.type === 'assembly') { const a = lib.assemblies.get(o.ref?.assemblyId); if (a) { const st = assemblyStats(a, lib); size = { w: Math.max(0.1, st.width), h: Math.max(0.05, st.height), d: Math.max(0.1, st.depth) }; } }
+    if (o.type === 'custom_enclosure') { const i = lib.instances.get(o.ref?.instanceId), t = i && lib.templates.get(i.templateId); if (t) size = { w: t.dimensions.width, h: t.dimensions.height + t.bottom.base, d: t.dimensions.depth }; }
+    if (size && (Math.abs(size.w - o.size.w) > 1e-5 || Math.abs(size.h - o.size.h) > 1e-5 || Math.abs(size.d - o.size.d) > 1e-5)) { o.size = size; changed.push(o.id); }
+  }
+  return changed;
 }
 
 /** Wall geometry helpers in plan space. Each wall runs along its interior face. */

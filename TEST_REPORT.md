@@ -1,0 +1,75 @@
+# Test report — custom enclosures, Tetris assembly builder, room integration
+
+Environment: this cloud container, Chromium (Playwright) with **SwiftShader** (CPU software rasteriser —
+no GPU), 1280×720 (e2e) / 1600×900 (screenshots). All workflows were executed in the running application
+through its UI with **real pointer drags** (Playwright mouse down / move / up), not by writing JSON.
+
+Commands: `npm test` (full e2e suite, `tests/run-e2e.mjs`), `node tests/assembly-perf.mjs`.
+
+## Test scenario 1 — TEST BREEDING WALL (full workflow)
+
+| Step | Result |
+|---|---|
+| Designer: **TERRA 60** — 60×60×60 cm, glass, sliding doors, front-top + top ventilation, tropical interior, typed in cm in the UI, saved to MY ENCLOSURES | ✓ |
+| Parametric resize 100 → 150 cm width: geometry width follows, more vent slots / geometry generated, no mesh scale ≠ 1 | ✓ |
+| Designer: **RACK 30** rack box — 30 × 45 × 18 cm (W × H × D, as specified) | ✓ |
+| Builder: 9 × TERRA 60 dragged from the palette with deliberately rough drops (±4 cm) → exact 3 × 3 grid by magnetic snapping | ✓ |
+| Drop onto an occupied spot → red, rejected; undo / redo of placements | ✓ |
+| 6 × RACK 30 dragged above the terrariums → 6 in one row (6 × 30 = 180 cm) | ✓ |
+| Technical cabinet (180 × 40 × 60) dragged **below the floor line** → the structure is re-based and the stack sits on it | ✓ |
+| Saved as **TEST BREEDING WALL**: 16 members, 15 distinct physical enclosure ids, **180 × 265 × 60 cm** without frame (186 × 268 × 60 with the auto frame's 3 cm uprights and top rail), no overlaps | ✓ |
+| Card dragged from MY ASSEMBLIES into the viewport → ONE room object of type `assembly` | ✓ |
+| Moved by dragging the structure, rotated 90° — all members follow, room object count unchanged | ✓ |
+| Double-click → ENTER ASSEMBLY; click one terrarium → the member is selected (code `T60-0x`, instance id, device ids); the assembly itself is not selectable meanwhile; Esc → back to assembly level | ✓ |
+| Save (autosave) → **reload** → assembly placement, rotation, all ids, relative member positions, dimensions identical; export → import identical; Planner ↔ Showcase switching leaves the document identical | ✓ |
+| Room unchanged (walls, other objects, room dimensions) | ✓ |
+
+Screenshots: `docs/screenshots/phase4/` — `builder.jpg` (the saved wall in the builder), `room.jpg` /
+`iso.jpg` (placed in the room), `enter.jpg` (entered assembly, one terrarium selected with its device ids),
+`designer.jpg` (enclosure designer).
+
+## Test scenario 2 — mixed Tetris layout
+
+Large paludarium (100 × 90 × 50 cm), two small terrariums (50 × 45 × 45) stacked beside it, two normal ones
+(75 × 50 × 50) dropped **below** the structure, two rack boxes above, one reserved space and one technical
+cabinet at the bottom — all by pointer drags, saved as *MIXED WALL*. Verified: no uniform grid
+(distinct x positions / widths), every piece rests on another piece or the floor, no 3D overlaps, reserved
+space kept as its own entry, the saved assembly re-opens identically. ✓
+
+## Full e2e suite
+
+RESULTS_PLACEHOLDER
+
+## Performance (5 assemblies / 75 enclosures)
+
+`node tests/assembly-perf.mjs` — room with 5 auto-framed walls (each 9 × TERRA 60 + 6 × RACK 30), compared
+with the reference demo room. SwiftShader: absolute times are 50–200× slower than a real integrated GPU;
+draw calls, triangles and memory are the meaningful numbers. Raw output: `docs/assembly-perf-results.json`.
+
+| | Planner demo room (28 objects) | Planner 5 assemblies / 75 enclosures | Showcase demo room | Showcase 5 assemblies |
+|---|---|---|---|---|
+| draw calls | 18 | **25** | 384 | 89 |
+| triangles | 64 k | 312 k | 868 k | 929 k |
+| batches / batched instances | 5 / 73 | 5 / 265 | 65 / 230 | 5 / 265 |
+| geometries / textures | 46 / 13 | 39 / 15 | 153 / 221 | 86 / 103 |
+| JS heap | 24 MB | 28 MB | 40 MB | 44 MB |
+| build (save 5 assemblies + place) | — | 150 ms | — | — |
+| orbit (real rAF loop, median) | 7.2 fps | 5.5 fps | 0.7 fps | 2.9 fps |
+
+* 75 physical enclosures with independent ids add **7 draw calls** to the Planner — members share the
+  cached template geometry and are folded into the same ≤ 5 BatchedMeshes. Frame time scales with
+  triangles only.
+* The in-suite performance test (5 assemblies, 50+ members) recorded 28 draw calls / 305 k triangles.
+* Auto quality: with the sampling fix the stationary frame is always 100 %; the interactive scale on
+  SwiftShader drops to its floor (it is ~150 ms/frame) — on a real GPU the 20 ms bound keeps 100 %.
+
+## Known limitations
+
+* While an assembly is **entered** it is drawn detached from the batches (≈ 81 draw calls for the 16-piece
+  wall) so the selected member can be highlighted; normal room editing is batched.
+* Showcase draws custom enclosures and assemblies with the painted parametric geometry (there is no GLB for
+  user designs); it lights them but they keep the Planner look.
+* RACK 30 was interpreted literally as W 30 × H 45 × D 18 cm.
+* The auto frame adds its profiles to the overall dimensions (reported both ways).
+* Pieces may be placed floating (allowed; the frame carries them).
+* All measurements are from a software rasteriser; no real-GPU numbers could be taken in this container.

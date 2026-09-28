@@ -7,8 +7,9 @@ import { RoomShell } from '../scene/RoomShell.js';
 import { Lighting } from '../scene/Lighting.js';
 import { ObjectLayer } from '../objects/ObjectLayer.js';
 import { ObjectView } from '../objects/ObjectView.js';
+import { PlannerView } from '../planner/PlannerView.js';
 import { StaticBatcher } from '../renderer/StaticBatcher.js';
-import { TYPES } from '../objects/catalog.js';
+import { TYPES, getType } from '../objects/catalog.js';
 
 /**
  * SHOWCASE mode — the approved realistic renderer (GLB + PBR + HDRI + shadows + GTAO/bloom/outline),
@@ -40,6 +41,8 @@ export class ShowcaseMode {
     this.shell.onPanelsReady = () => { this._registerPanelMaterial(); this.engine.markShadowsDirty(); };
     this.scene.add(this.shell.group);
     this.objects = new ObjectLayer(app.editor, {
+      // user-designed enclosures / assemblies have no GLB: they are drawn from the parametric kit
+      viewFor: (obj) => (getType(obj.type)?.parametric ? PlannerView : ObjectView), mats: app.modes.planner.mats, lib: () => app.editor.lib,
       View: ObjectView, assets: this.assets, materials: this.materials, lighting: this.lighting,
       room: () => app.editor.room,
       onReady: () => { if (app.mode === this) app.refreshSelection(); this.engine.markShadowsDirty(); },
@@ -50,7 +53,7 @@ export class ShowcaseMode {
     progress(0.15, 'Loading materials & environment');
     await Promise.all([this.env.loadHDR('assets/environment/spruit_sunrise_1k.hdr'), this.materials.whenReady()]);
     progress(0.45, 'Loading 3D models');
-    let loaded = 0; const urls = [...new Set(Object.values(TYPES).map((t) => t.model))].concat(['assets/models/ceiling_panel.glb', 'assets/models/animal_python.glb', 'assets/models/animal_gecko.glb', 'assets/models/animal_frog.glb', 'assets/models/ceiling_diffuser.glb']);
+    let loaded = 0; const urls = [...new Set(Object.values(TYPES).map((t) => t.model).filter(Boolean))].concat(['assets/models/ceiling_panel.glb', 'assets/models/animal_python.glb', 'assets/models/animal_gecko.glb', 'assets/models/animal_frog.glb', 'assets/models/ceiling_diffuser.glb']);
     await Promise.all(urls.map((u) => this.assets.load(u).then(() => progress(0.45 + 0.4 * (++loaded / urls.length), 'Loading 3D models'))));
     const frosted = this.materials.get('glass_frosted');
     this.lighting.register({ material: frosted, kind: 'window', baseEmissive: frosted.emissiveIntensity });
@@ -89,9 +92,11 @@ export class ShowcaseMode {
     return rebuilt;
   }
 
-  setSelected(id) {
+  setSelected(id, memberId = null) {
     const v = id && this.objects.get(id);
-    this.engine.setSelection(v ? v.outlineTargets() : []);
+    const mem = memberId && v?.members?.get(memberId);
+    this.engine.setSelection(mem ? [mem.node] : v ? v.outlineTargets() : []);
+    if (v?.setSelected && getType(v.type)?.parametric) v.setSelected(false);
   }
 
   updateCutaway(force = false) {

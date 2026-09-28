@@ -6,6 +6,7 @@ export class Keyboard {
   }
 
   onKey(e) {
+    if (this.app.modal) return; // designer / builder own the keyboard while open
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) {
       if (e.key === 'Escape') e.target.blur();
@@ -20,7 +21,13 @@ export class Keyboard {
     else if (ctrl && k === 's') app.exportJSON();
     else if (ctrl && k === 'o') app.toolbar.openFile();
     else if (k === 'delete' || k === 'backspace') app.deleteSelected();
-    else if (k === 'escape') { if (app.pointer.placing) app.pointer.cancelPlacement(); else ed.select(null); }
+    else if (k === 'escape') {
+      if (app.pointer.placing) app.pointer.cancelPlacement();
+      else if (app.assemblyContext?.memberId) app.selectMember(null);
+      else if (app.assemblyContext) app.exitAssembly();
+      else ed.select(null);
+    }
+    else if (k === 'enter' && !e.altKey && ed.selected?.type === 'assembly' && !app.assemblyContext) app.enterAssembly(ed.selection);
     else if (k === 'r') { if (app.pointer.placing) app.pointer.rotatePlacement(e.shiftKey ? -90 : 90); else app.rotateSelected(e.altKey ? (e.shiftKey ? -ed.snap.angle : ed.snap.angle) : e.shiftKey ? -90 : 90); }
     else if (k === 'f') app.focusSelected();
     else if (k === 'g') { ed.snap.enabled = !ed.snap.enabled; app.toolbar.updateSnap(); app.toast(`Snapping ${ed.snap.enabled ? 'on' : 'off'}`); }

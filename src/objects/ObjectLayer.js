@@ -26,7 +26,7 @@ export class ObjectLayer {
     let v = this.views.get(obj.id);
     if (v && v.type !== obj.type) { v.dispose(); this.views.delete(obj.id); v = null; }
     if (!v) {
-      v = new this.ctx.View(obj, this.ctx);
+      v = this._create(obj);
       this.views.set(obj.id, v);
       this.group.add(v.root);
     }
@@ -34,6 +34,9 @@ export class ObjectLayer {
     this._applyWallVisibility(v, obj);
     return v;
   }
+
+  /** View class per object: `ctx.viewFor(obj)` (mixed renderers) or `ctx.View`. */
+  _create(obj) { const V = this.ctx.viewFor ? this.ctx.viewFor(obj) : this.ctx.View; return new V(obj, this.ctx); }
 
   remove(id) { const v = this.views.get(id); if (v) { v.dispose(); this.views.delete(id); } }
 
@@ -65,7 +68,7 @@ export class ObjectLayer {
   /** Placement preview: a real (non-document) view following the cursor. */
   createGhost(obj) {
     this.removeGhost();
-    const v = new this.ctx.View(obj, this.ctx);
+    const v = this._create(obj);
     v.root.userData.ghost = true;
     this.ghost = v; this.group.add(v.root);
     v.update(obj);

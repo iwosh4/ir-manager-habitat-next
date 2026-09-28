@@ -26,7 +26,7 @@ Defined in `src/model/RoomDocument.js`, formally described by `schema/habitat-ro
 ```json
 {
   "schema": "ir-manager/habitat-room",
-  "version": 1,
+  "version": 2,
   "room": { "id": "room_demo_a", "name": "Reptile room A", "width": 5, "depth": 4, "height": 2.7,
             "wallThickness": 0.14, "finishes": { "floor": "concrete_polished", "walls": "warm_grey", "accentWall": "north" } },
   "objects": [
@@ -56,6 +56,13 @@ Conventions
 
 `normalizeDocument()` validates, clamps and migrates any input (import, autosave, API): unknown types are
 skipped and reported in `meta.skippedTypes`, duplicate ids are re-issued, numbers are range-checked.
+
+### Library (v2): enclosure templates, physical instances, assemblies
+
+Version 2 adds `enclosures[]` (parametric enclosure designs), `instances[]` (physical enclosures, one id
+each, with stable device ids) and `assemblies[]` (structures of members with relative transforms). Room
+objects of type `custom_enclosure` / `assembly` reference them via `ref`. v1 documents load unchanged.
+Full description: **DATA_MODEL.md**; UI: **ENCLOSURE_BUILDER.md**, **ASSEMBLY_BUILDER.md**.
 
 ## 2. Object catalogue (behaviour, not geometry)
 

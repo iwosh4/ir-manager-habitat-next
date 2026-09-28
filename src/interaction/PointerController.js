@@ -50,6 +50,15 @@ export class PointerController {
     return close[0].object.userData.objectId;
   }
 
+  /** Member of the ENTERED assembly under the pointer (member-level selection). */
+  pickMember(e) {
+    const c = this.app.assemblyContext; if (!c) return null;
+    const v = this.app.objects.get(c.objectId); if (!v?.memberProxies) return null;
+    this._setRay(e);
+    const hits = this.raycaster.intersectObjects(v.memberProxies(), false);
+    return hits.length ? hits[0].object.userData.memberId : null;
+  }
+
   pickGizmo(e) {
     this._setRay(e);
     const hits = this.raycaster.intersectObjects(this.app.overlay.pickables(), false);
@@ -70,6 +79,14 @@ export class PointerController {
     if (e.button !== 0) return;
     this.app.rig.cancelAnimation();
     if (this.placing) { e.stopPropagation(); this.app.rig.controls.enabled = false; this.state = { mode: 'place-click', x: e.clientX, y: e.clientY }; return; }
+    if (this.app.assemblyContext) {
+      // inside an assembly only its members are selectable; clicking another object leaves the assembly
+      const mid = this.pickMember(e);
+      if (mid) { this.app.selectMember(mid); this.state = { mode: 'none' }; e.stopPropagation(); return; }
+      const other = this.pickObject(e);
+      if (other && other !== this.app.assemblyContext.objectId) this.app.exitAssembly();
+      else { this.state = { mode: 'orbit-member', x: e.clientX, y: e.clientY }; return; }
+    }
     const g = this.pickGizmo(e);
     const sel = this.editor.selected;
     if (g && sel && !sel.mount && !sel.locked) {
@@ -147,17 +164,32 @@ export class PointerController {
     if (s.mode === 'orbit' && Math.hypot(e.clientX - s.x, e.clientY - s.y) < DRAG_THRESHOLD && e.button === 0) {
       this.editor.select(null);
     }
+    if (s.mode === 'orbit-member' && Math.hypot(e.clientX - s.x, e.clientY - s.y) < DRAG_THRESHOLD && e.button === 0) this.app.selectMember(null);
   }
 
   onDouble(e) {
+    if (this.app.assemblyContext) { // member → open enclosure detail (template designer)
+      const m = this.app.selectedMember;
+      if (m?.template && this.pickMember(e) === m.member.id) this.app.openDesigner(m.template, { instanceId: m.instance?.id });
+      return;
+    }
     const id = this.pickObject(e);
-    if (id) { this.editor.select(id); this.app.focusSelected(); }
+    if (!id) return;
+    if (this.editor.get(id)?.type === 'assembly') { this.app.enterAssembly(id); return; } // ROOM → ASSEMBLY
+    this.editor.select(id); this.app.focusSelected();
   }
 
   _hover(e) {
     if (e.target !== this.app.renderer.domElement && !this.el.contains(e.target)) return;
     if (this._hoverT && performance.now() - this._hoverT < 40) return;
     this._hoverT = performance.now();
+    if (this.app.assemblyContext) {
+      const mid = this.pickMember(e);
+      this.el.style.cursor = mid ? 'pointer' : '';
+      const v = mid && this.app.objects.get(this.app.assemblyContext.objectId)?.members.get(mid);
+      this.app.setHover(v ? { name: v.node.children[0]?.name?.split(':')[0] || 'Member', type: 'custom_enclosure' } : null);
+      return;
+    }
     const g = this.pickGizmo(e);
     const id = g ? null : this.pickObject(e);
     this.el.style.cursor = g ? 'grab' : id ? 'pointer' : '';
@@ -185,15 +217,20 @@ export class PointerController {
   }
 
   // ---------------------------------------------------------------- placement from the library
-  startPlacement(type) {
+  /**
+   * @param type  catalogue type
+   * @param opts  { patch (e.g. ref + size of a library item), commit(placement) → object, label }
+   */
+  startPlacement(type, opts = {}) {
     this.cancelPlacement();
-    const obj = createObject(type, { id: '__ghost__' });
+    this.app.exitAssembly?.();
+    const obj = createObject(type, { ...(opts.patch || {}), id: '__ghost__' });
     const t = getType(type);
     if (t.placement === 'opening' || t.placement === 'mounted') obj.mount = { wall: 'north', offset: this.editor.room.width / 2 };
     const view = this.app.objects.createGhost(obj);
-    this.placing = { type, obj, view };
+    this.placing = { type, obj, view, commit: opts.commit, label: opts.label || t.label, key: opts.key || type };
     this.el.classList.add('is-placing');
-    this.app.setStatus(`Placing ${t.label} — click to place, R to rotate, Esc to cancel`);
+    this.app.setStatus(`Placing ${this.placing.label} — click to place, R to rotate, Esc to cancel`);
     this._ghostVisible(false);
   }
 
@@ -237,16 +274,19 @@ export class PointerController {
     const { position, rotation, elevation, mount } = pl.obj;
     const type = pl.type;
     this.cancelPlacement();
-    const o = this.editor.add(type, { position, rotation, elevation, mount });
-    this.app.toast(`${getType(type).label} added`);
+    const o = pl.commit ? pl.commit({ position, rotation, elevation, mount }) : this.editor.add(type, { position, rotation, elevation, mount });
+    this.app.toast(`${pl.label} added`);
     return o;
   }
 
   onDragOver(e) {
-    const type = this.app.draggingType;
-    if (!type) return;
+    const payload = this.app.dragPayload, type = this.app.draggingType;
+    if (!type && !payload) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-    if (!this.placing || this.placing.type !== type) this.startPlacement(type);
+    const key = payload ? `${payload.kind}:${payload.templateId || payload.assemblyId}` : type;
+    if (!this.placing || this.placing.key !== key) {
+      if (payload) { this.app.placeFromLibrary(payload); if (this.placing) this.placing.key = key; } else this.startPlacement(type);
+    }
     this._updateGhost(e);
   }
 
@@ -255,7 +295,7 @@ export class PointerController {
     if (!this.placing) return;
     this._updateGhost(e);
     this._commitPlacement();
-    this.app.draggingType = null;
+    this.app.draggingType = null; this.app.dragPayload = null;
   }
 }
 

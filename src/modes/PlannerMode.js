@@ -26,10 +26,10 @@ class SelectionBrackets {
     this.object = new THREE.LineSegments(this.geo, new THREE.LineBasicMaterial({ color: 0xf0a04b, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false }));
     this.object.renderOrder = 20; this.object.visible = false; this.object.frustumCulled = false;
   }
-  show(view) {
-    if (!view) { this.object.visible = false; return; }
+  show(view, proxy = view?.proxy) {
+    if (!view || !proxy) { this.object.visible = false; return; }
     view.root.updateMatrixWorld(true);
-    const m = view.proxy.matrixWorld, s = view.proxy.scale;
+    const m = proxy.matrixWorld, s = proxy.scale;
     // bracket arms: 18 % of each edge, capped at 18 cm (so large racks keep slim corners)
     const k = [Math.min(1, 0.18 / Math.max(0.01, s.x * 0.18)), Math.min(1, 0.18 / Math.max(0.01, s.y * 0.18)), Math.min(1, 0.18 / Math.max(0.01, s.z * 0.18))];
     const p = this.geo.attributes.position, v = new THREE.Vector3();
@@ -54,13 +54,16 @@ export class PlannerMode {
     const app = this.app;
     progress(0.1, 'Loading painted atlas');
     this.mats = await new PaintedMaterials().load('assets/planner/');
+    // crisp atlas at grazing angles during camera movement (audit: anisotropy was fixed at 4)
+    const atlas = this.mats.uniforms.uAtlas.value;
+    atlas.anisotropy = Math.min(8, app.renderer.capabilities.getMaxAnisotropy()); atlas.needsUpdate = true;
     this.engine = new PlannerEngine(app.renderer, app.viewportEl, { quality: app.prefs.quality });
     this.scene = new THREE.Scene();
     this.engine.attach(this.scene, app.rig.camera);
     this.engine.onResize = (w, h) => app.labels.setSize(w, h);
     this.shell = new PlannerShell(this.mats);
     this.scene.add(this.shell.group);
-    this.objects = new ObjectLayer(app.editor, { View: PlannerView, mats: this.mats, room: () => app.editor.room });
+    this.objects = new ObjectLayer(app.editor, { View: PlannerView, mats: this.mats, room: () => app.editor.room, lib: () => app.editor.lib });
     this.scene.add(this.objects.group);
     this.batcher = new StaticBatcher(this.scene);
     this.mats.setPreset(app.prefs.lighting);
@@ -92,9 +95,15 @@ export class PlannerMode {
     return rebuilt;
   }
 
-  setSelected(id) { this.selectedId = id || null; this._applySelection(); this.engine.invalidate(); }
+  /** Hierarchical: whole object, or one member of an entered assembly (memberId). */
+  setSelected(id, memberId = null) { this.selectedId = id || null; this.selectedMember = memberId; this._applySelection(); this.engine.invalidate(); }
   _applySelection() {
-    for (const v of this.objects.views.values()) { const on = v.id === this.selectedId; if (v.selected !== on) v.setSelected(on); }
+    for (const v of this.objects.views.values()) {
+      const on = v.id === this.selectedId, mem = on ? this.selectedMember || null : null;
+      if (v.selected !== on || (v.selectedMember || null) !== mem) v.setSelected(on, mem);
+    }
+    const sv = this.selectedId && this.objects.get(this.selectedId), mp = sv && this.selectedMember && sv.members?.get(this.selectedMember);
+    if (mp) { this.brackets.show(sv.root.visible ? sv : null, mp.proxy); return; }
     const v = this.selectedId && this.objects.get(this.selectedId);
     this.brackets.show(v && v.root.visible ? v : null);
   }

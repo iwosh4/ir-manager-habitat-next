@@ -14,7 +14,13 @@ import { LAYER_SPECIAL } from '../renderer/layers.js';
  * budget. The MSAA frame is drawn once when the interaction settles.
  * Same public contract as RenderEngine (interact / invalidate / frame / diagnostics …).
  */
-const AUTO = { targetMs: 16.7, minScale: 0.5, maxScale: 1, evalEveryMs: 300 };
+/**
+ * AUTO is quality-first: interaction starts at 100 % (with MSAA) and resolution only drops after
+ * *measured* slow interactive frames — EMA of consecutive interactive frame intervals, stepped levels
+ * with hysteresis, and recovery when performance improves. Idle gaps are never sampled.
+ */
+const LEVELS = [[20, 1.0], [25, 0.9], [33, 0.8], [45, 0.7], [Infinity, 0.6]]; // EMA ms upper bound → scale
+const AUTO = { evalEveryMs: 250, downMargin: 1.08, upMargin: 0.85, confirm: 2, emergencyMs: 80, floor: 0.5 };
 const SETTLE_MS = 160;
 
 const BLIT_VERT = /* glsl */`varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
@@ -52,7 +58,7 @@ export class PlannerEngine {
     this.mode = 'final'; this.renderScale = 1; this.active = false;
     this.stats = { frames: 0, lastMs: 0, fps: 0, frameMs: 0, drawCalls: 0, triangles: 0, finalMs: 0, finalProfile: '' };
     this.qualityKey = quality in QUALITY ? quality : 'auto';
-    this._ema = 0; this._lastEval = 0; this._probe = null; this._probeInteractive = false;
+    this._ema = 0; this._lastEval = 0; this._probe = null; this._probeInteractive = false; this._downVotes = 0;
     this.target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthBuffer: true });
     this.target.depthTexture = new THREE.DepthTexture(1, 1); // resolved from MSAA; drives the ink edge
     // interactive frames: same pass, no MSAA, adaptive resolution (bandwidth is what weak iGPUs lack)
@@ -129,8 +135,13 @@ export class PlannerEngine {
   get needsFrame() { return this.dirty || this.pendingFinal || this.isInteractive; }
 
   frame(now = performance.now()) {
-    if (this._probe !== null) { this._onCost(now - this._probe, now, this._probeInteractive); this._probe = null; }
-    if (!this.needsFrame) { this._ema = 0; return false; }
+    if (this._probe !== null) {
+      // only intervals between two *consecutive* interactive frames measure the interaction cost
+      if (this._probeInteractive && this.isInteractive) this._onCost(now - this._probe, now);
+      else if (!this._probeInteractive) this.stats.finalMs = now - this._probe;
+      this._probe = null;
+    }
+    if (!this.needsFrame) return false;
     const interactive = this.isInteractive;
     // stationary frames are the same pass at full scale (nothing expensive is switched on)
     this._render(interactive ? this.renderScale : 1, interactive);
@@ -144,7 +155,8 @@ export class PlannerEngine {
   _render(scale, interactive = false) {
     const r = this.renderer;
     const t0 = performance.now();
-    const rt = interactive && this.msaa ? this.fastTarget : this.target;
+    // MSAA stays on while interacting as long as the frame budget allows full resolution
+    const rt = interactive && this.msaa && scale < 0.999 ? this.fastTarget : this.target;
     this._sizeTarget(scale, rt);
     r.info.reset();
     const prevTM = r.toneMapping; r.toneMapping = THREE.NoToneMapping;
@@ -162,18 +174,23 @@ export class PlannerEngine {
     this.stats.renderScale = scale;
   }
 
-  _onCost(dt, now, interactive) {
-    if (dt > 5000) return;
+  _onCost(dt, now) {
+    if (dt > 2000) return;
     this._ema = this._ema ? this._ema * 0.8 + dt * 0.2 : dt;
     this.stats.frameMs = this._ema;
-    if (!interactive) this.stats.finalMs = dt;
-    if (!interactive || !this.isAuto || now - this._lastEval < AUTO.evalEveryMs) return;
+    if (!this.isAuto || now - this._lastEval < AUTO.evalEveryMs) return;
     this._lastEval = now;
-    let s = this.renderScale;
-    if (this._ema > AUTO.targetMs * 1.25) s *= Math.max(0.7, AUTO.targetMs / this._ema);
-    else if (this._ema < AUTO.targetMs * 0.8) s *= 1.1;
-    this.renderScale = Math.min(AUTO.maxScale, Math.max(AUTO.minScale, Math.round(s * 20) / 20));
+    const ema = this._ema;
+    if (ema > AUTO.emergencyMs) { this._setLevelScale(AUTO.floor); return; }
+    let li = LEVELS.findIndex(([, sc]) => Math.abs(sc - this.renderScale) < 1e-3); if (li < 0) li = 0;
+    const want = LEVELS.findIndex(([ms]) => ema <= ms);
+    if (want > li && ema > LEVELS[li][0] * AUTO.downMargin) {
+      if (++this._downVotes >= AUTO.confirm) { this._setLevelScale(LEVELS[li + 1][1]); this._downVotes = 0; }
+    } else this._downVotes = 0;
+    if (want < li && li > 0 && ema < LEVELS[li - 1][0] * AUTO.upMargin) this._setLevelScale(LEVELS[li - 1][1]);
   }
+
+  _setLevelScale(s) { if (s !== this.renderScale) { this.renderScale = s; this.stats.levelChanges = (this.stats.levelChanges || 0) + 1; } }
 
   warmup() { this._render(1); this._render(this.renderScale, true); this.stats.frames = 0; this.dirty = true; }
   render() { this._render(1); this.dirty = false; this.pendingFinal = false; this.mode = 'final'; }

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createRenderer } from './renderer/quality.js';
+import { syncReferencedSizes } from './model/RoomDocument.js';
 import { CameraRig } from './camera/CameraRig.js';
 import { Editor } from './editor/Editor.js';
 import { SelectionOverlay } from './interaction/SelectionOverlay.js';
@@ -15,6 +16,11 @@ import { Hud } from './ui/Hud.js';
 import { toast } from './ui/Toast.js';
 import { PlannerMode } from './modes/PlannerMode.js';
 import { ComparisonPanel } from './ui/ComparisonPanel.js';
+import { PreviewStage } from './preview/PreviewStage.js';
+import { LibraryImages } from './ui/LibraryImages.js';
+import { EnclosureDesigner } from './enclosures/EnclosureDesigner.js';
+import { AssemblyBuilder } from './assembly/AssemblyBuilder.js';
+import { templateFromCatalogue, rackAssemblyFromCatalogue, createAssembly, createInstance, itemId } from './model/Library.js';
 
 export const DEMO_URL = 'data/demo-room.json';
 export const RENDER_MODES = { planner: 'Planner', showcase: 'Showcase' };
@@ -45,6 +51,8 @@ export class App {
     this.errors = [];
     this.modes = {};
     this.mode = null;
+    this.modal = null;              // open designer / builder (owns keyboard)
+    this.assemblyContext = null;    // { objectId, memberId } while an assembly is ENTERED
   }
 
   // active-mode accessors (UI, picking and tests go through these)
@@ -126,6 +134,8 @@ export class App {
     if (c.kind === 'document' || c.kind === 'room') { this.rig.setRoom(room); this.overlay.setRoom(room); }
     for (const m of Object.values(this.modes)) if (m !== this.mode) m.stale = true; // re-synced on activation
     if (!this.mode) return; // still starting: the first activation performs a full sync
+    if (c.kind === 'library' || c.kind === 'document') this.library?.refreshMine();
+    if (this.assemblyContext && !this.editor.get(this.assemblyContext.objectId)) this.exitAssembly();
     if (this.mode.onChange(c)) this._updateCutaway(true);
     this.refreshSelection();
     this.inspector?.refresh();
@@ -135,8 +145,11 @@ export class App {
 
   refreshSelection() {
     const o = this.editor.selected;
-    this.mode?.setSelected(o?.id || null);
-    if (o && !this.pointer?.state) this.overlay.show(o, { colliding: this.editor.snapper.collisions(o).length > 0 });
+    if (this.assemblyContext && o?.id !== this.assemblyContext.objectId) this.assemblyContext = null;
+    this.mode?.setSelected(o?.id || null, this.assemblyContext?.memberId || null);
+    this.hud?.setContext(this.assemblyContext ? this.editor.get(this.assemblyContext.objectId) : null, this.selectedMember);
+    if (this.assemblyContext) this.overlay.hide(); // member level: brackets on the member instead of the room footprint
+    else if (o && !this.pointer?.state) this.overlay.show(o, { colliding: this.editor.snapper.collisions(o).length > 0 });
     else if (!o && !this.pointer?.placing) this.overlay.hide();
     this.inspector?.refresh();
     this.toolbar?.updateSelection();
@@ -260,8 +273,15 @@ export class App {
     }
   }
 
-  deleteSelected() { const o = this.editor.selected; if (o) { this.editor.remove(o.id); toast(`Deleted ${o.name}`); } }
-  duplicateSelected() { const o = this.editor.selected; if (o) this.editor.duplicate(o.id); }
+  deleteSelected() {
+    const m = this.selectedMember;
+    if (m) { // inside an entered assembly: remove only that member (all other ids untouched)
+      if (!confirm(`Remove ${m.instance?.code || m.template?.name || 'this piece'} from ${m.assembly.name}?`)) return;
+      this.editor.removeMember(m.assembly.id, (m.member || m.reserved).id); this.assemblyContext.memberId = null; this.refreshSelection(); toast('Removed from assembly'); return;
+    }
+    const o = this.editor.selected; if (o) { this.exitAssembly(); this.editor.remove(o.id); toast(`Deleted ${o.name}`); }
+  }
+  duplicateSelected() { if (this.assemblyContext) return; const o = this.editor.selected; if (o) this.editor.duplicate(o.id); }
   rotateSelected(deg) { const o = this.editor.selected; if (o && !o.mount) this.editor.rotateBy(o.id, deg); }
   nudgeSelected(dx, dz) {
     const o = this.editor.selected; if (!o) return;
@@ -303,6 +323,92 @@ export class App {
     if (!document.fullscreenElement) { (el.requestFullscreen?.() || Promise.reject()).catch(() => this.root.classList.toggle('pseudo-fullscreen')); this.root.classList.add('is-fullscreen'); }
     else { document.exitFullscreen?.(); this.root.classList.remove('is-fullscreen'); }
     setTimeout(() => this.engine.resize(), 120);
+  }
+
+  // ------------------------------------------------------------------ library: designer, builder, placement
+  previewStage() { return (this._stage ||= new PreviewStage(this.modes.planner.mats)); }
+  get libraryImages() { return (this._images ||= new LibraryImages(this)); }
+
+  openDesigner(template = null, opts = {}) {
+    this.pointer?.cancelPlacement();
+    return (this._designer ||= new EnclosureDesigner(this)).open(template, opts);
+  }
+  openBuilder(assembly = null, opts = {}) {
+    this.pointer?.cancelPlacement();
+    this.exitAssembly();
+    return (this._builder ||= new AssemblyBuilder(this)).open(assembly, opts);
+  }
+  get designer() { return this._designer || null; }
+  get builder() { return this._builder || null; }
+
+  /** STARTING TEMPLATES → CREATE FROM TEMPLATE (never locked to the predefined model). */
+  customizeCatalogue(type) {
+    if (type === 'rack_glass') {
+      // the six-tank rack becomes an assembly of a saved enclosure template + auto frame
+      const { template, layout } = rackAssemblyFromCatalogue();
+      const t = this.editor.saveTemplate(template);
+      const a = createAssembly({ name: 'Enclosure rack', frame: { mode: 'auto' } });
+      const insts = [];
+      for (const _ of layout) insts.push(createInstance(t, { instances: [...this.editor.doc.instances, ...insts] }));
+      a.members = layout.map((p, i) => ({ id: itemId('m'), kind: 'enclosure', instanceId: insts[i].id, enclosureId: t.id, position: { x: p.x, y: p.y, z: 0 } }));
+      return this.openBuilder(a, { newInstances: insts });
+    }
+    const t = templateFromCatalogue(type);
+    if (t) this.openDesigner(t, { title: `From template: ${t.name}` });
+  }
+
+  /** Library → room: click-to-place or drag. Physical ids are created when the placement is committed. */
+  placeFromLibrary(src) {
+    const ed = this.editor, lib = ed.lib;
+    if (src.kind === 'template') {
+      const t = lib.templates.get(src.templateId); if (!t) return;
+      this.pointer.startPlacement('custom_enclosure', {
+        label: t.name,
+        patch: { name: t.name, ref: { templateId: t.id }, size: { w: t.dimensions.width, h: t.dimensions.height + t.bottom.base, d: t.dimensions.depth } },
+        commit: (pl) => ed.placeTemplate(t.id, pl),
+      });
+    } else if (src.kind === 'assembly') {
+      const a = lib.assemblies.get(src.assemblyId); if (!a) return;
+      const o0 = { type: 'assembly', ref: { assemblyId: a.id }, size: { w: 1, h: 1, d: 1 }, position: { x: 0, z: 0 }, rotation: 0 };
+      const size = this._refSize(o0);
+      this.pointer.startPlacement('assembly', {
+        label: a.name,
+        patch: { name: a.name, ref: { assemblyId: a.id }, size },
+        commit: (pl) => ed.placeAssembly(a.id, pl),
+      });
+    }
+  }
+
+  _refSize(o) { const doc = { ...this.editor.doc, objects: [JSON.parse(JSON.stringify(o))] }; syncReferencedSizes(doc); return doc.objects[0].size; }
+
+  // ------------------------------------------------------------------ hierarchical selection: ROOM → ASSEMBLY → ENCLOSURE
+  enterAssembly(objectId) {
+    const o = this.editor.get(objectId); if (o?.type !== 'assembly') return;
+    this.assemblyContext = { objectId, memberId: null };
+    this.editor.select(objectId);
+    this.overlay.hide();
+    this.refreshSelection();
+    this.toast(`Entered ${o.name} — click an enclosure · Esc to exit`);
+  }
+  exitAssembly() {
+    if (!this.assemblyContext) return;
+    this.assemblyContext = null;
+    this.refreshSelection();
+  }
+  selectMember(memberId) {
+    if (!this.assemblyContext) return;
+    this.assemblyContext.memberId = memberId;
+    this.refreshSelection();
+    this.inspector?.refresh();
+  }
+  /** The selected member record: { assembly, member, instance, template } or null. */
+  get selectedMember() {
+    const c = this.assemblyContext; if (!c?.memberId) return null;
+    const o = this.editor.get(c.objectId), lib = this.editor.lib, a = lib.assemblies.get(o?.ref?.assemblyId);
+    const m = a?.members.find((x) => x.id === c.memberId) || null;
+    const r = !m && a ? a.reserved.find((x) => x.id === c.memberId) : null;
+    if (!m && !r) return null;
+    return { assembly: a, member: m, reserved: r, instance: m?.instanceId ? lib.instances.get(m.instanceId) : null, template: m?.enclosureId ? lib.templates.get(m.enclosureId) : null };
   }
 
   /** SHOWCASE vs PLANNER for the current camera (diagnostics panel → "Compare"). */

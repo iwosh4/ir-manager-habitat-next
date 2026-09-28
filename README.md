@@ -6,6 +6,11 @@ GPU (default) — and **SHOWCASE** — the approved physically based realistic r
 A detailed reference breeding room and a real editor: select, move, rotate, duplicate, delete, snap,
 resize, place from a library, export/import JSON.
 
+**Custom enclosures & assemblies**: design your real enclosures parametrically (**MY ENCLOSURES**), build
+breeding walls / racks by dragging them together in a Tetris-like front elevation (**Assembly Builder** →
+**MY ASSEMBLIES**) and drag a finished assembly into the room as one structure — every enclosure inside
+keeps its own id. See **ENCLOSURE_BUILDER.md**, **ASSEMBLY_BUILDER.md**, **DATA_MODEL.md**, **TEST_REPORT.md**.
+
 This is a greenfield prototype meant to be integrated into IR Manager (PHP/MySQL) **after** visual
 review. It has no server-side dependencies: it runs from any static web server.
 
@@ -66,6 +71,16 @@ GPU-synchronised timings, draw calls, triangles, materials and textures. Details
 | Diagnostics | click the stats line (bottom-right) or press **I**: renderer, FPS, frame time, draw calls, triangles, render scale, interactive/final mode, batches, materials/textures, light pool (Showcase), GPU · **Compare Showcase ↔ Planner** for the current camera |
 | Render mode | **PLANNER** / **SHOWCASE** selector at the left of the toolbar |
 | Panels / fullscreen | **[** library · **]** inspector · **F11** fullscreen (viewport becomes the whole screen) |
+
+### Custom enclosures & assemblies
+
+| Action | How |
+|---|---|
+| Design an enclosure | library **MY ENCLOSURES → + Create** (or **Customize…** on a starting template): construction, front, ventilation, interior, technology, exact size in cm, live 3D preview; **Save to My Enclosures** |
+| Place one enclosure | click or drag a MY ENCLOSURES card into the room — each placement is a new physical enclosure (own id / code / device ids) |
+| Build an assembly | **MY ASSEMBLIES → + Create**: drag enclosures, cabinets, shelves, technical compartments and reserved spaces into the front elevation; they snap magnetically (green = fits, red = collision); Delete · Ctrl+D · arrows (Shift ×10) · Ctrl+Z/Y; **Save to My Assemblies** |
+| Place an assembly | click or drag a MY ASSEMBLIES card into the room; it moves / rotates / collides as one structure |
+| Enter an assembly | double-click it (or **Enter** / Inspector **Enter assembly**): now single enclosures can be selected, inspected, replaced, removed or opened in the designer; **Esc** goes back up |
 
 Enclosures have **Occupied** and **Lighting** switches: occupied enclosures are lit and show their animal,
 empty ones go dark and quiet. Species and animal ID are printed on the enclosure's label.
@@ -141,7 +156,12 @@ run against the Showcase with `?mode=showcase`). Planner tests: Planner ↔ Show
 RoomDocument, object ids, transforms, selection and undo history untouched; the Planner renders batched
 without lights/shadow maps and shows its diagnostics; click selection in the Planner; Planner edits appear
 in the Showcase; export/import in Planner mode; presets and the mode selector; a Planner session loads no
-GLB/HDR/post-processing (7 tests). Results are written to `tests/last-run.json`.
+GLB/HDR/post-processing (7 tests). Phase-4 tests (real pointer drags in the UI): create TERRA 60 and
+RACK 30 in the designer, parametric resize (rebuilt, never scaled), 3×3 terrariums + 6 rack boxes + cabinet
+by drag & drop with collision rejection and undo/redo, save *TEST BREEDING WALL*, drag it into the room,
+move + rotate, enter / select member / exit, save → reload → export/import → mode switch round-trip, a mixed
+Tetris layout, and a 5-assembly performance check. `node tests/assembly-perf.mjs` measures 5 assemblies /
+75 enclosures in detail. Results are written to `tests/last-run.json`.
 
 ```bash
 node tools/compare-renderers.mjs      # identical-camera screenshots + metrics → docs/comparison/

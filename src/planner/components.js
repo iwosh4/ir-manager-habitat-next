@@ -476,6 +476,7 @@ export function tropicalInterior(b, I, { seed = 1, occupied = true, rich = true 
 /** PALUDARIUM (tank part): dark rock wall, water & land, waterfall, driftwood, planting, frog. */
 export function paludariumInterior(b, I, { seed = 1, occupied = true, lit = true } = {}) {
   const w = I.x1 - I.x0, d = I.z1 - I.z0, h = I.top - I.floor, cx = (I.x0 + I.x1) / 2;
+  const k = Math.min(1, w / 1.1, h / 0.55, d / 0.45); // planting scales down in small tanks (never pokes through the glass)
   backgroundPanel(b, I, { tile: 'rock_dark', depth: Math.min(0.08, d * 0.16), seed, color: [0.9, 0.95, 0.95], uvScale: 3 });
   const waterY = I.floor + h * 0.34;
   const landX = cx + w * 0.05;
@@ -509,22 +510,22 @@ export function paludariumInterior(b, I, { seed = 1, occupied = true, lit = true
   branch(b, [[cx - w * 0.3, I.floor + 0.04, I.z0 + d * 0.62], [cx - w * 0.12, waterY + 0.04, I.z0 + d * 0.5], [cx + w * 0.13, waterY + 0.17, I.z0 + d * 0.38], [cx + w * 0.34, waterY + 0.29, I.z0 + d * 0.25]], { r0: 0.028, r1: 0.012, seed: seed + 21, twigs: 3, tile: 'driftwood', color: [1.05, 1.0, 0.95] });
   // planting
   const at = (fx2, fz) => { const x = cx + fx2 * w, z = I.z0 + fz * d; return [x, surf(x, z), z]; };
-  bromeliad(b, [cx + w * 0.15, waterY + 0.13, I.z0 + d * 0.4], { size: 0.15, seed: seed + 31, leaves: 12 });
-  bromeliad(b, at(0.38, 0.35), { size: 0.2, seed: seed + 32, leaves: 13, tile: 'leaf_red', heart: 'leaf_strap' });
-  fernClump(b, at(0.25, 0.25), { size: 0.26, seed: seed + 33, fronds: 10 });
-  fernClump(b, [cx - w * 0.38, waterY + 0.16, I.z0 + 0.05], { size: 0.18, seed: seed + 34, fronds: 7 });
+  bromeliad(b, [cx + w * 0.15, waterY + 0.13, I.z0 + d * 0.4], { size: 0.15 * k, seed: seed + 31, leaves: 12 });
+  bromeliad(b, at(0.38, 0.35), { size: 0.2 * k, seed: seed + 32, leaves: 13, tile: 'leaf_red', heart: 'leaf_strap' });
+  fernClump(b, at(0.25, 0.25), { size: 0.26 * k, seed: seed + 33, fronds: 10 });
+  fernClump(b, [cx - w * 0.38, waterY + 0.16, I.z0 + 0.05], { size: 0.18 * k, seed: seed + 34, fronds: 7 });
   groundCover(b, at(0.25, 0.7), { radius: 0.09, count: 18, seed: seed + 35, surf });
   groundCover(b, at(0.42, 0.78), { radius: 0.05, count: 9, seed: seed + 36, surf });
   vine(b, [at(0.44, 0.15), [cx + w * 0.42, I.floor + h * 0.55, I.z0 + 0.06], [cx + w * 0.25, I.floor + h * 0.78, I.z0 + 0.07], [cx, I.floor + h * 0.84, I.z0 + 0.07]], { leaf: 0.06, seed: seed + 37 });
   vine(b, [[cx - w * 0.05, I.floor + h * 0.95, I.z0 + 0.06], [cx - w * 0.12, I.floor + h * 0.7, I.z0 + 0.08], [cx - w * 0.1, I.floor + h * 0.52, I.z0 + 0.07]], { leaf: 0.055, seed: seed + 38 });
   for (const [fx2, fz, s] of [[0.18, 0.55, 1], [0.36, 0.6, 0.8]]) { const p = at(fx2, fz); mossMound(b, [p[0], p[1] - 0.003, p[2]], 0.05 * s, {}); }
-  for (let i = 0; i < 4; i++) { const p = at(-0.42 + i * 0.08, 0.3); strapPlant(b, [p[0], p[1], p[2]], { size: 0.14, leaves: 4, seed: seed + 40 + i, color: [0.6, 0.95, 0.6], spread: 0.1 }); }
+  for (let i = 0; i < 4; i++) { const p = at(-0.42 + i * 0.08, 0.3); strapPlant(b, [p[0], p[1], p[2]], { size: 0.14 * k, leaves: 4, seed: seed + 40 + i, color: [0.6, 0.95, 0.6], spread: 0.1 }); }
   // epiphytes & moss on the rock wall, moss carpet on the land
   for (const [fx2, fy, sz, sd] of [[-0.05, 0.62, 0.09, 1], [0.3, 0.72, 0.1, 2], [-0.3, 0.8, 0.07, 3], [0.1, 0.9, 0.08, 4]]) {
     const x = cx + fx2 * w, y = I.floor + fy * h;
     mossMound(b, [x, y - 0.02, I.z0 + 0.05], 0.035, { sy: 0.5, seed: seed + 50 + sd });
-    if (sd % 2) bromeliad(b, [x, y, I.z0 + 0.06], { size: sz, seed: seed + 60 + sd, leaves: 8, heart: sd === 3 ? 'leaf_red' : null });
-    else fernClump(b, [x, y, I.z0 + 0.06], { size: sz * 1.3, seed: seed + 70 + sd, fronds: 6 });
+    if (sd % 2) bromeliad(b, [x, y, I.z0 + 0.06], { size: sz * k, seed: seed + 60 + sd, leaves: 8, heart: sd === 3 ? 'leaf_red' : null });
+    else fernClump(b, [x, y, I.z0 + 0.06], { size: sz * 1.3 * k, seed: seed + 70 + sd, fronds: 6 });
   }
   for (const [fx2, fz, s2] of [[0.12, 0.72, 1.1], [0.3, 0.82, 0.9], [0.44, 0.5, 0.8], [0.2, 0.35, 0.7]]) { const p = at(fx2, fz); mossMound(b, [p[0], p[1] - 0.004, p[2]], 0.045 * s2, { seed: seed + 80 + fz * 10 }); }
   leafLitter(b, { x0: landX + 0.05, x1: I.x1, z0: I.z0, z1: I.z1 }, surf, { count: 14, seed: seed + 90 });
