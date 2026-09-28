@@ -27,9 +27,9 @@ Commands: `npm test` (full e2e suite, `tests/run-e2e.mjs`), `node tests/assembly
 | Save (autosave) → **reload** → assembly placement, rotation, all ids, relative member positions, dimensions identical; export → import identical; Planner ↔ Showcase switching leaves the document identical | ✓ |
 | Room unchanged (walls, other objects, room dimensions) | ✓ |
 
-Screenshots: `docs/screenshots/phase4/` — `builder.jpg` (the saved wall in the builder), `room.jpg` /
-`iso.jpg` (placed in the room), `enter.jpg` (entered assembly, one terrarium selected with its device ids),
-`designer.jpg` (enclosure designer).
+Screenshots (Phase 4.1, captured by the e2e run itself with `SHOTS=<dir>`): `docs/screenshots/phase4_1/` —
+`1-designer-rack30-WxDxH`, `2-builder-test-breeding-wall`, `3-rack30-low-row`, `4-room-assembly`,
+`4b-room-assembly-iso`, `5-enter-assembly-member-selected`, `6-showcase-assembly`.
 
 ## Test scenario 2 — mixed Tetris layout
 
