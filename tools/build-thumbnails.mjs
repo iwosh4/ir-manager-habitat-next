@@ -1,4 +1,6 @@
-// Pre-renders the library thumbnails from the real GLB assets into assets/thumbnails/<type>.png.
+// Pre-renders the library thumbnails into assets/thumbnails/<type>.png: GLB types from the real models,
+// procedural (parametric) types from the same painted builder the room uses (Habitat Studio 4.2).
+//   ONLY=parametric node tools/build-thumbnails.mjs   renders just the procedural types
 //   node tools/build-thumbnails.mjs      (needs Playwright; uses the app's own Thumbnails renderer)
 import http from 'node:http';
 import fs from 'node:fs';
@@ -20,14 +22,18 @@ const page = await browser.newPage();
 page.setDefaultTimeout(600000);
 await page.goto(`http://localhost:${srv.address().port}/index.html?thumbs=0`);
 await page.waitForFunction(() => window.habitat, null, { timeout: 600000 });
-const shots = await page.evaluate(async () => {
+const shots = await page.evaluate(async (only) => {
   const { TYPES } = await import('./src/objects/catalog.js');
   const { Thumbnails } = await import('./src/ui/Thumbnails.js');
   const t = new Thumbnails(window.habitat.assets, [352, 264]);
   const out = {};
-  for (const [id, def] of Object.entries(TYPES)) out[id] = await t._render(def.model);
+  for (const [id, def] of Object.entries(TYPES)) {
+    if (def.hidden) continue;
+    if (def.parametric) out[id] = await window.habitat.libraryImages.catalogue(id, { w: 352, h: 264 });
+    else if (only !== 'parametric') out[id] = await t._render(def.model);
+  }
   return out;
-});
+}, process.env.ONLY || '');
 const dir = path.join(ROOT, 'assets/thumbnails');
 fs.mkdirSync(dir, { recursive: true });
 for (const [id, url] of Object.entries(shots)) if (url) fs.writeFileSync(path.join(dir, `${id}.png`), Buffer.from(url.split(',')[1], 'base64'));

@@ -206,6 +206,12 @@ export function autoRoute(room, a, b, { kind = 'water', mode = 'visible', height
   if (!a || !b) return [];
   const H = height ?? (kind === 'drain' ? 0.12 : kind === 'mist' ? Math.min(room.height - 0.15, 2.25) : kind === 'power' || kind === 'signal' ? Math.min(room.height - 0.2, 2.1) : 0.3);
   const inset = mode === 'in_wall' ? -room.wallThickness / 2 : 0.04;
+  // short visible hop between neighbouring devices (e.g. pump → filter on the floor): direct orthogonal run
+  if (mode !== 'in_wall' && Math.hypot(a.x - b.x, a.z - b.z) < 1.6 && Math.abs(a.y - b.y) < 0.8) {
+    const h = r3(Math.max(a.y, b.y) + 0.06);
+    const pts = [{ x: a.x, y: h, z: a.z }, { x: b.x, y: h, z: a.z }, { x: b.x, y: h, z: b.z }];
+    return pts.filter((p, i) => !i || Math.hypot(p.x - pts[i - 1].x, p.z - pts[i - 1].z) > 0.005).map((p) => ({ x: r3(p.x), y: p.y, z: r3(p.z) }));
+  }
   const wa = nearestWall(room, a), wb = nearestWall(room, b);
   const P = 2 * (room.width + room.depth);
   let s0 = perim(room, wa.wall, a), s1 = perim(room, wb.wall, b);

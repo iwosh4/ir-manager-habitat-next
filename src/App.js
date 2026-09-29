@@ -3,6 +3,8 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createRenderer } from './renderer/quality.js';
 import { syncReferencedSizes } from './model/RoomDocument.js';
 import { CameraRig } from './camera/CameraRig.js';
+import { TechController } from './tech/TechController.js';
+import { TechPanel } from './ui/TechPanel.js';
 import { WallVisibility } from './scene/WallVisibility.js';
 import { Editor } from './editor/Editor.js';
 import { SelectionOverlay } from './interaction/SelectionOverlay.js';
@@ -24,7 +26,7 @@ import { AssemblyBuilder } from './assembly/AssemblyBuilder.js';
 import { templateFromCatalogue, rackAssemblyFromCatalogue, createAssembly, createInstance, itemId } from './model/Library.js';
 
 export const DEMO_URL = 'data/demo-room.json';
-export const RENDER_MODES = { planner: 'Planner', showcase: 'Showcase' };
+export const RENDER_MODES = { planner: 'Planner', showcase: 'Showcase', techplan: 'Tech plan' };
 export const PRESETS = { day: { label: 'Day' }, evening: { label: 'Evening' }, night: { label: 'Night' } };
 
 /**
@@ -62,7 +64,7 @@ export class App {
   get objects() { return this.mode?.objects; }
   get batcher() { return this.mode?.batcher; }
   get shell() { return this.mode?.shell; }
-  get renderMode() { return this.mode?.name; }
+  get renderMode() { return this.tech?.active ? 'techplan' : this.mode?.name; }
   get lighting() { return this.modes.showcase?.lighting || null; }
   get materials() { return this.modes.showcase?.materials || null; }
   get assets() { return this.modes.showcase?.assets || null; }
@@ -78,6 +80,7 @@ export class App {
     this.labels.setSize(this.viewportEl.clientWidth, this.viewportEl.clientHeight);
     this.editor = new Editor();
     this.walls = new WallVisibility();
+    this.tech = new TechController(this);
     this.walls.setMode(this.prefs.wallMode || 'auto');
     // camera gestures drive the interactive render profile
     this.rig.controls.addEventListener('start', () => { this._controlsActive = true; });
@@ -109,6 +112,8 @@ export class App {
     this.inspector = new Inspector(this, this.root.querySelector('#inspector'));
     this.hud = new Hud(this, this.viewportEl);
     this.comparison = new ComparisonPanel(this, this.viewportEl);
+    this.techPanel = new TechPanel(this, this.viewportEl);
+    if (this.prefs.renderMode === 'techplan') this.tech.setActive(true);
     this.setPanel('library', this.prefs.library); this.setPanel('inspector', this.prefs.inspector);
     this.setDimensions(this.prefs.dims);
 
@@ -171,7 +176,7 @@ export class App {
   /** Camera-aware walls: auto | all | cutaway | footprint | hide. */
   setWallMode(m) {
     this.walls.setMode(m); this.prefs.wallMode = m; Persistence.savePrefs({ wallMode: m });
-    this._updateCutaway(true); this.hud?.updateWallMode?.(); this.engine.invalidate();
+    this._updateCutaway(true); this.hud?.updateWallMode?.(); if (!this.editor.selected) this.inspector?.refresh(); this.engine.invalidate();
   }
 
   /** The selected object (or the one being dragged / edited) is drawn from its own meshes. */
@@ -204,6 +209,7 @@ export class App {
     m.activate();
     this.overlay.setRoom(this.editor.room);
     this.root.dataset.renderMode = m.name;
+    this.tech?.attach(m.scene);
     this._updateCutaway(true);
     this.refreshSelection();
     this.engine.invalidate();
@@ -216,7 +222,12 @@ export class App {
   async setRenderMode(name) {
     if (!(name in RENDER_MODES)) return false;
     this.prefs.renderMode = name; Persistence.savePrefs({ renderMode: name });
-    if (this.mode?.name === name) { this.toolbar?.updateMode(); return true; }
+    if (name !== 'techplan') { this.prefs.lastVisualMode = name; Persistence.savePrefs({ lastVisualMode: name }); }
+    // TECH PLAN = the Planner renderer (subdued) + the technical network layer; same document & camera
+    const wantTech = name === 'techplan';
+    if (wantTech) name = 'planner';
+    if (this.tech.active !== wantTech) { this.tech.setActive(wantTech); this.root.dataset.renderMode = wantTech ? 'techplan' : (this.mode?.name || name); }
+    if (this.mode?.name === name) { this.toolbar?.updateMode(); this.hud?.refreshStats(); if (wantTech) this.root.dataset.renderMode = 'techplan'; return true; }
     let m = this.modes[name];
     if (!m && name === 'showcase') {
       this.hud?.showLoading('Loading Showcase renderer…', 0);
@@ -224,8 +235,9 @@ export class App {
       this.hud?.hideLoading();
       if (!m) { this.prefs.renderMode = this.mode.name; this.toolbar?.updateMode(); return false; }
     }
-    if (this.prefs.renderMode !== name) return false; // user switched again while loading
+    if (this.prefs.renderMode !== name && !(wantTech && this.prefs.renderMode === 'techplan')) return false; // user switched again while loading
     this._activate(m);
+    if (wantTech) this.root.dataset.renderMode = 'techplan';
     this.toolbar?.updateMode();
     this.toolbar?.updateLighting();
     this.hud?.refreshStats();
@@ -244,6 +256,7 @@ export class App {
       const drag = this.pointer?.state?.mode;
       this.engine.interacting = !!this._controlsActive || this.rig.animating || drag === 'move' || drag === 'rotate';
       const st = this.engine.stats;
+      this.tech?.update();
       if (!this.engine.needsFrame) {
         prevRendered = false;
         if (!st.idle && now - lastFrame > IDLE_AFTER) { st.idle = true; this.hud?.refreshStats(); }

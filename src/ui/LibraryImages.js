@@ -1,5 +1,8 @@
 import { templateParts, templateSize, assemblyParts, moduleParts } from '../preview/parts.js';
 import { templateHash, assemblyHash } from '../model/Library.js';
+import { TYPES } from '../objects/catalog.js';
+import { createObject } from '../model/RoomDocument.js';
+import { buildModel, modelKey } from '../planner/stylizedModels.js';
 
 /**
  * Library imagery rendered with the preview stage (same painted pipeline as the Planner):
@@ -28,6 +31,19 @@ export class LibraryImages {
   }
 
   moduleFront(mod) { return this._job(`mf|${JSON.stringify(mod)}`, () => this.stage.frontImage(moduleParts(this.mats, mod), { w: mod.w, h: mod.h, d: mod.d })); }
+
+  /** Procedural catalogue type (4.2): same builder as the room, rendered at its default size. */
+  catalogue(id, { w = 176, h = 132 } = {}) {
+    const t = TYPES[id]; if (!t) return Promise.resolve(null);
+    return this._job(`cat|${id}|${w}`, () => {
+      const room = { width: 4, depth: 4, height: 2.7, wallThickness: 0.14 };
+      const obj = createObject(id, { elevation: 0 });
+      const size = { w: obj.size.w, h: obj.size.h, d: t.placement === 'opening' ? room.wallThickness : obj.size.d };
+      const parts = [{ key: `thumb|${modelKey(obj, t, room)}`, name: id, make: () => buildModel(this.mats, obj, t, room) }];
+      const wallish = t.placement === 'opening' || t.placement === 'mounted';
+      return this.stage.thumbnail(parts, size, { w, h, dir: wallish ? [0.35, 0.18, 1] : [0.62, 0.38, 1] });
+    });
+  }
 
   assembly(a) {
     const lib = this.app.editor.lib;

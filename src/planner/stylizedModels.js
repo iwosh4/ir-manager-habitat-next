@@ -6,6 +6,8 @@ import {
   TINT, box, contactShadow, wallShadow, frameProfile, highlight, glassPanel, doorPanel, ventStrip, lightStrip, labelCard,
   rackRail, cabinetModule, terrariumCell, strapPlant, coiledPython,
 } from './components.js';
+import { EXTENDED_MODELS } from './extendedModels.js';
+import { propsOf } from '../objects/catalog.js';
 
 /**
  * PLANNER representation of every catalogue type, generated at the object's LOGICAL size.
@@ -18,7 +20,11 @@ export function modelKey(obj, t, room) {
   const p = obj.props || {};
   const s = obj.size;
   const d = t.placement === 'opening' ? room.wallThickness : s.d;
-  return [obj.type, s.w.toFixed(3), s.h.toFixed(3), d.toFixed(3), p.occupied !== false ? 1 : 0, p.lighting !== false ? 1 : 0, p.animal?.species || ''].join('|');
+  const base = [obj.type, s.w.toFixed(3), s.h.toFixed(3), d.toFixed(3), p.occupied !== false ? 1 : 0, p.lighting !== false ? 1 : 0, p.animal?.species || ''];
+  // 4.2: procedural props (blinds, decor, door style, pot…) are part of the geometry
+  if (t.options || t.builder) { const { animal, notes, occupied, lighting, ...rest } = p; base.push(JSON.stringify(rest)); }
+  if (t.placement === 'opening' || t.builder === 'window') base.push(obj.elevation.toFixed(3));
+  return base.join('|');
 }
 
 export function buildModel(mats, obj, t, room) {
@@ -26,8 +32,8 @@ export function buildModel(mats, obj, t, room) {
   const W = obj.size.w, H = obj.size.h, D = t.placement === 'opening' ? room.wallThickness : obj.size.d;
   const occupied = obj.props?.occupied !== false;
   const lit = t.enclosure ? occupied && obj.props?.lighting !== false : true;
-  const fn = MODELS[obj.type] || generic;
-  fn(b, { W, H, D, occupied, lit, obj, t, mats, seed: hashStr(obj.type) });
+  const fn = EXTENDED_MODELS[obj.type] || (t.builder && EXTENDED_MODELS[t.builder]) || MODELS[obj.type] || generic;
+  fn(b, { W, H, D, occupied, lit, obj, t, mats, p: propsOf(obj), seed: hashStr(obj.type) });
   return b;
 }
 
@@ -379,4 +385,4 @@ function generic(b, { W, H, D }) {
   box(b, W, H, D, 'metal_dark', [0, H / 2, 0], { color: TINT.graphite, r: 0.01 });
 }
 
-export const PLANNER_TYPES = Object.keys(MODELS);
+export const PLANNER_TYPES = [...new Set([...Object.keys(MODELS), ...Object.keys(EXTENDED_MODELS)])];

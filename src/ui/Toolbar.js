@@ -16,6 +16,7 @@ export class Toolbar {
       <div class="tb-sec seg seg-mode" data-role="render-mode" title="Render mode — same room, two renderers">
         <button class="seg-btn" data-mode="planner" title="Planner — stylised hand-painted renderer, fast on any GPU">${icon('brush')}<span>Planner</span></button>
         <button class="seg-btn" data-mode="showcase" title="Showcase — realistic renderer (loads on first use)">${icon('camera')}<span>Showcase</span></button>
+        <button class="seg-btn" data-mode="techplan" title="Tech plan — water, misting, drainage, electrical and sensor networks (T)">${icon('pipe')}<span>Tech plan</span></button>
       </div>
       <div class="tb-sec">
         ${btn('new', 'file', 'New empty room')}

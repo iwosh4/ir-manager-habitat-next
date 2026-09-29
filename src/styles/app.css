@@ -41,6 +41,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .seg-btn:last-child { border-right: 0; }
 .seg-btn:hover { color: var(--text); }
 .seg-btn.on { color: var(--accent); background: var(--accent-bg); }
+.seg-btn span { white-space: nowrap; }
+@media (max-width: 1520px) { .seg-btn:not(.on) span { display: none; } }
 .ico { flex: none; display: block; }
 
 /* ---------------- layout ---------------- */
@@ -380,3 +382,79 @@ textarea.notes { width: 100%; background: var(--bg-2); border: 1px solid var(--l
 .hud-stats .stats-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud-status { right: 60px; overflow: hidden; }
 .hud-status span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Habitat Studio 4.2: library filters, properties options, ports, wall surfaces ---- */
+.lib-filters { display: flex; gap: 4px; padding: 0 10px 8px; align-items: center; }
+.lib-filters select { flex: 1; min-width: 0; height: 24px; background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2); border-radius: 5px; font-size: 11px; }
+.lib-filters button { height: 24px; padding: 0 7px; font-size: 10.5px; background: var(--bg-3); color: var(--text-3); border: 1px solid var(--line-2); border-radius: 5px; cursor: pointer; }
+.lib-filters button.on { color: var(--accent-2); border-color: rgba(232,145,58,.5); background: rgba(232,145,58,.1); }
+.lib-item { position: relative; }
+.lib-ports { position: absolute; top: 6px; right: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: rgba(52,214,201,.18); color: #7fe9df; font: 600 9.5px/16px var(--mono, monospace); text-align: center; }
+.opts { align-items: end; }
+.opts .tgl { grid-column: 1 / -1; margin: 2px 0 4px; }
+.fld.rng { grid-column: 1 / -1; }
+.fld.rng span b { color: var(--accent-2); font-weight: 600; margin-left: 4px; }
+.fld.rng input[type=range] { width: 100%; accent-color: var(--accent); }
+.fld input[type=color] { width: 100%; height: 26px; padding: 0 2px; background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 5px; }
+.port-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+.port { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); padding: 3px 6px; background: var(--bg-3); border-radius: 5px; }
+.port i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.port b { font: 600 10.5px var(--mono, monospace); color: var(--text-1, #eee); }
+.port span { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.port.used b::after { content: " ●"; color: var(--accent); }
+.port .link { margin-left: auto; }
+.port-add { display: grid; grid-template-columns: 1fr 58px 1fr auto; gap: 4px; }
+.port-add select, .port-add input { min-width: 0; height: 24px; background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2); border-radius: 5px; font-size: 11px; padding: 0 4px; }
+.port-add button, .btn-row button { height: 24px; padding: 0 8px; font-size: 11px; background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2); border-radius: 5px; cursor: pointer; }
+.btn-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.btn-row button:hover, .port-add button:hover { color: var(--accent-2); }
+.wall-tabs { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 0 8px; height: auto; }
+.wall-tabs button { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 5px 0; font-size: 11px; background: var(--bg-3); color: var(--text-3); border: 0; border-right: 1px solid var(--line-2); cursor: pointer; }
+.wall-tabs button:last-child { border-right: 0; }
+.wall-tabs button.on { color: var(--accent-2); background: rgba(232,145,58,.1); }
+.wall-tabs button i { width: 9px; height: 9px; border-radius: 2px; border: 1px solid rgba(255,255,255,.2); }
+
+/* ---- TECH PLAN ---- */
+.tech-panel { position: absolute; top: 10px; left: 10px; width: 300px; max-height: calc(100% - 70px); overflow: auto; padding: 10px 12px; background: rgba(13,14,16,.92); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; backdrop-filter: blur(8px); font-size: 11.5px; color: var(--text-2); z-index: 6; }
+.tech-panel[hidden] { display: none; }
+.tech-panel section { margin-top: 10px; }
+.tech-panel h5 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 6px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); font-weight: 600; }
+.tech-panel h6 { margin: 8px 0 4px; font-size: 10.5px; color: var(--text-3); font-weight: 600; display: flex; justify-content: space-between; }
+.tech-panel h6 em { font-style: normal; font-weight: 400; }
+.tp-head { display: flex; align-items: center; gap: 7px; color: var(--accent-2); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+.tp-head svg { width: 15px; height: 15px; }
+.tp-head em { margin-left: auto; font-style: normal; color: var(--text-3); font-weight: 400; letter-spacing: 0; text-transform: none; }
+.tp-layers { display: flex; flex-wrap: wrap; gap: 4px; }
+.tp-layers .layer { display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; font-size: 10.5px; background: var(--bg-3); color: var(--text-3); border: 1px solid var(--line-2); border-radius: 11px; cursor: pointer; opacity: .55; }
+.tp-layers .layer.on { opacity: 1; color: var(--text-1, #eee); }
+.tp-layers .layer i { width: 7px; height: 7px; border-radius: 50%; }
+.tp-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 4px; }
+.tech-panel select, .tech-panel input[type=text], .tech-panel input[type=number], .tech-panel textarea { min-width: 0; width: 100%; height: 24px; background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2); border-radius: 5px; font-size: 11px; padding: 0 5px; box-sizing: border-box; }
+.tech-panel textarea { height: auto; padding: 4px 5px; resize: vertical; }
+.tech-panel button { height: 24px; padding: 0 8px; font-size: 11px; background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2); border-radius: 5px; cursor: pointer; }
+.tech-panel button.primary { background: rgba(232,145,58,.18); color: var(--accent-2); border-color: rgba(232,145,58,.45); }
+.tech-panel button.danger { color: #ff8a7a; }
+.tech-panel button.link { background: none; border: 0; height: auto; padding: 0 2px; color: var(--accent-2); }
+.tp-pick { padding: 8px; border: 1px dashed rgba(232,145,58,.5); border-radius: 7px; display: grid; gap: 5px; }
+.tp-pick b { color: var(--accent-2); } .tp-pick span { color: var(--text-3); }
+.tp-route, .tp-circuit { display: grid; grid-template-columns: 8px 1fr; column-gap: 7px; padding: 5px 6px; border-radius: 6px; cursor: pointer; align-items: center; }
+.tp-route:hover, .tp-circuit:hover { background: rgba(255,255,255,.04); }
+.tp-route.sel, .tp-circuit.sel { background: rgba(232,145,58,.1); }
+.tp-route.off, .tp-circuit.off { opacity: .5; }
+.tp-route i { width: 8px; height: 8px; border-radius: 50%; grid-row: span 2; }
+.tp-route b, .tp-circuit b { color: var(--text-1, #eee); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-route em, .tp-circuit em { grid-column: 2; font-style: normal; color: var(--text-3); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-circuit .code { grid-row: span 2; font: 600 9.5px var(--mono, monospace); color: var(--accent-2); width: auto; }
+.tp-circuit { grid-template-columns: auto 1fr; }
+.tp-edit { margin: 2px 0 8px 15px; padding: 8px; border-left: 2px solid rgba(232,145,58,.35); display: grid; gap: 5px; }
+.tp-edit .meta code { font-size: 9.5px; color: var(--text-3); word-break: break-all; }
+.wps { display: grid; gap: 3px; }
+.wp { display: grid; grid-template-columns: 16px 1fr 1fr 1fr 14px; gap: 3px; align-items: center; }
+.wp span { color: var(--text-3); font-size: 10px; }
+.wp.on span { color: var(--accent-2); font-weight: 700; }
+.dests { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; max-height: 120px; overflow: auto; }
+.dests label { display: flex; gap: 5px; align-items: center; font-size: 10.5px; white-space: nowrap; overflow: hidden; }
+.tp-foot { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line-2); }
+.tech-label { padding: 2px 6px; border-radius: 4px; background: rgba(10,11,12,.85); color: #e9e6df; font: 600 9.5px/1.3 var(--mono, monospace); border: 1px solid rgba(255,255,255,.12); white-space: nowrap; pointer-events: none; }
+.tech-label.enclosure { color: #ffb057; border-color: rgba(232,145,58,.4); }
+#app[data-tech-plan="1"] .hud-views { opacity: .92; }

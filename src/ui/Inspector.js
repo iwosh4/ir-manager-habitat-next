@@ -1,4 +1,6 @@
-import { getType, CATEGORIES } from '../objects/catalog.js';
+import { getType, CATEGORIES, propsOf } from '../objects/catalog.js';
+import { WALL_SURFACES, FLOOR_SURFACES, PAINT_FINISHES, SKIRTINGS, WALL_PROFILES, WALL_MODES, wallColor } from '../model/Surfaces.js';
+import { ROUTE_KINDS, PORT_KINDS } from '../tech/Network.js';
 import { WALLS } from '../model/RoomDocument.js';
 import { assemblyStats, TECH_KINDS, TEMPLATE_CATEGORY } from '../model/Library.js';
 import { icon } from './icons.js';
@@ -13,6 +15,22 @@ function num(label, key, value, { unit = '', step = 1, min, max, disabled = fals
 }
 function text(label, key, value, ph = '') { return `<label class="fld fld-wide"><span>${label}</span><input type="text" data-key="${key}" value="${esc(value)}" placeholder="${esc(ph)}" spellcheck="false"></label>`; }
 function toggle(label, key, on, hint = '') { return `<label class="tgl"><input type="checkbox" data-key="${key}" ${on ? 'checked' : ''}><i></i><span>${label}</span>${hint ? `<em>${hint}</em>` : ''}</label>`; }
+
+const titleCase = (w) => w[0].toUpperCase() + w.slice(1);
+function select(label, attr, value, choices, { wide = false } = {}) {
+  return `<label class="fld ${wide ? 'fld-wide' : ''}"><span>${label}</span><select ${attr}>${Object.entries(choices).map(([k, v]) => `<option value="${esc(k)}" ${String(value) === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
+}
+/** One entry of a type's `options` schema → form control (bound through data-key / data-opt). */
+function optionHTML(opt, i, p, o, t) {
+  const v = opt.key.split('.').slice(1).reduce((a, k) => a?.[k], p);
+  const attr = `data-key="${opt.key}" data-opt="${i}"`;
+  if (opt.type === 'select') return select(opt.label, attr, opt.sizes ? p.plantSize || 'medium' : v, opt.choices);
+  if (opt.type === 'toggle') return `<label class="tgl"><input type="checkbox" ${attr} ${v ? 'checked' : ''}><i></i><span>${opt.label}</span>${opt.hint ? `<em>${opt.hint}</em>` : ''}</label>`;
+  if (opt.type === 'range') return `<label class="fld fld-wide rng"><span>${opt.label} <b>${Math.round(v ?? 0)}${opt.unit || ''}</b></span><input type="range" ${attr} min="${opt.min}" max="${opt.max}" step="${opt.step || 1}" value="${v ?? 0}"></label>`;
+  if (opt.type === 'num') return `<label class="fld"><span>${opt.label}</span><div class="num"><input type="number" ${attr} value="${Math.round((v ?? 0) * (opt.scale || 1) * 10) / 10}" step="${opt.step || 1}" min="${opt.min ?? ''}" max="${opt.max ?? ''}"><em>${opt.unit || ''}</em></div></label>`;
+  if (opt.type === 'color') return `<label class="fld"><span>${opt.label}</span><input type="color" ${attr} value="${esc(v || '#888888')}"></label>`;
+  return '';
+}
 
 /** Collapsible properties inspector: object properties when selected, room properties otherwise. */
 export class Inspector {
@@ -87,6 +105,12 @@ export class Inspector {
       h += `<details class="grp raw"><summary>Logical record (exported JSON)</summary><pre>${esc(JSON.stringify({ placement: o, instance: inst }, null, 2))}</pre></details>`;
       return h;
     }
+    if (t.options?.length) {
+      const p = propsOf(o);
+      const rows = t.options.map((opt, i) => (!opt.when || opt.when(p) ? optionHTML(opt, i, p, o, t) : '')).join('');
+      h += `<section class="grp"><h4>${t.category === 'windows' ? 'Window · glass · blinds' : t.category === 'doors' ? 'Door' : 'Variant · material'}</h4><div class="grid2 opts">${rows}</div></section>`;
+    }
+    if (o.tech) h += this.portsHTML(o, t);
     if (t.enclosure) {
       const occ = o.props.occupied !== false;
       h += `<section class="grp"><h4>Enclosure</h4>
@@ -99,6 +123,48 @@ export class Inspector {
     }
     h += `<details class="grp raw"><summary>Logical record (exported JSON)</summary><pre>${esc(JSON.stringify(o, null, 2))}</pre></details>`;
     return h;
+  }
+
+  /** Technical ports of a device: catalogue ports + user ports; stable deviceId / portId (Home-Assistant-ready). */
+  portsHTML(o, t) {
+    const ports = [...Object.entries(t.ports || {}).map(([id, pp]) => ({ id, ...pp, fixed: true })), ...(o.tech.ports || [])];
+    const used = new Set(this.app.editor.network.routes.flatMap((r) => [r.from, r.to]).filter((e) => e?.owner === o.id).map((e) => e.port));
+    return `<section class="grp ports"><h4>Technical ports <em class="unit">device ${esc(o.tech.deviceId)}</em></h4>
+      <div class="port-list">${ports.map((pp) => `<div class="port ${used.has(pp.id) ? 'used' : ''}"><i style="background:${ROUTE_KINDS[pp.kind]?.color}"></i><b>${esc(pp.id)}</b><span>${esc(pp.label || '')} · ${pp.dir}</span>${pp.fixed ? '' : `<button class="link" data-act="port-del" data-port="${esc(pp.id)}" title="Remove port">×</button>`}</div>`).join('') || '<p class="hint">No ports yet.</p>'}</div>
+      <div class="port-add"><select data-port-kind>${PORT_KINDS.map((k) => `<option value="${k}">${ROUTE_KINDS[k].label}</option>`).join('')}</select><select data-port-dir><option value="in">in</option><option value="out">out</option><option value="both">both</option></select><input type="text" data-port-name placeholder="PORT_NAME" spellcheck="false"><button data-act="port-add">+ Port</button></div>
+      <p class="hint">portId = <code>${esc(o.tech.deviceId)}:PORT</code> — stable for IR Manager / Home Assistant bindings.</p></section>`;
+  }
+
+  /** Per-wall surface editor (paint · cladding · profile) + floor + details. */
+  surfacesHTML(r) {
+    const w = this.wallTab || 'north', wd = r.walls?.[w] || {};
+    const surf = WALL_SURFACES[wd.surface] || WALL_SURFACES.paint_light_grey;
+    const groups = (fam) => Object.entries(WALL_SURFACES).filter(([, v]) => v.family === fam).map(([k, v]) => `<option value="${k}" ${wd.surface === k ? 'selected' : ''}>${esc(v.label)}</option>`).join('');
+    const prof = wd.profile || { mode: 'full', hStart: r.height, hEnd: r.height };
+    const fl = r.floor || {};
+    return `<section class="grp surfaces"><h4>Walls <em class="unit">per wall</em></h4>
+      <div class="seg wall-tabs">${WALLS.map((x) => `<button data-wall-tab="${x}" class="${x === w ? 'on' : ''}"><i style="background:${wallColor(r.walls?.[x])}"></i>${titleCase(x)}</button>`).join('')}</div>
+      <label class="fld fld-wide"><span>Surface</span><select data-room="walls.${w}.surface"><optgroup label="Paint">${groups('paint')}</optgroup><optgroup label="Cladding · decor">${groups('cladding')}</optgroup></select></label>
+      <div class="grid2">
+        ${surf.family === 'paint' ? select('Finish', `data-room="walls.${w}.finish"`, wd.finish || 'smooth', PAINT_FINISHES) : `<label class="fld"><span>Cladding height</span><div class="num"><input type="number" data-room="walls.${w}.coverHeight" value="${cm(wd.coverHeight || 0)}" step="5" min="0" max="${cm(r.height)}"><em>cm</em></div></label>`}
+        <label class="fld"><span>${surf.family === 'paint' ? 'Colour' : 'Wall colour above'}</span><input type="color" data-room="walls.${w}.color" value="${esc(/^#/.test(wd.color || '') ? wd.color : wallColor(wd))}"></label>
+      </div>
+      ${surf.family === 'cladding' ? '<p class="hint">Cladding height 0 = full height; e.g. 120 cm = wainscot with painted wall above.</p>' : ''}
+      ${select('Wall profile', `data-room="walls.${w}.profile.mode"`, prof.mode, WALL_PROFILES, { wide: true })}
+      <div class="grid2">
+        ${prof.mode !== 'full' ? `<label class="fld"><span>${prof.mode === 'low' ? 'Height' : 'Start'}</span><div class="num"><input type="number" data-room="walls.${w}.profile.hStart" value="${cm(prof.hStart)}" step="5" min="60"><em>cm</em></div></label>` : ''}
+        ${prof.mode === 'sloped' ? `<label class="fld"><span>End</span><div class="num"><input type="number" data-room="walls.${w}.profile.hEnd" value="${cm(prof.hEnd)}" step="5" min="60"><em>cm</em></div></label>` : ''}
+      </div>
+      <div class="btn-row"><button data-room-act="wall-all">Apply to all walls</button><button data-room-act="wall-accent">Accent wall (black laminate)</button></div>
+    </section>
+    <section class="grp"><h4>Floor</h4><div class="grid2">
+      ${select('Surface', 'data-room="floor.surface"', fl.surface || 'concrete', Object.fromEntries(Object.entries(FLOOR_SURFACES).map(([k, v]) => [k, v.label])))}
+      <label class="fld"><span>Tint</span><input type="color" data-room="floor.color" value="${esc(/^#/.test(fl.color || '') ? fl.color : FLOOR_SURFACES[fl.surface || 'concrete']?.color || '#5b5751')}"></label>
+    </div></section>
+    <section class="grp"><h4>Details</h4><div class="grid2">
+      ${select('Skirting', 'data-room="details.skirting"', r.details?.skirting || 'black', SKIRTINGS)}
+      ${select('Walls in view', 'data-wallmode="1"', this.app.walls?.mode || 'auto', WALL_MODES)}
+    </div>${toggle('Corner trims', 'room-corners', r.details?.corners !== false, 'inner room corners')}</section>`;
   }
 
   /** Physical enclosure fields (instance): code, occupancy, lighting, animal, devices with stable ids. */
@@ -137,7 +203,6 @@ export class Inspector {
       else if (o.type === 'custom_enclosure') { const i = lib.instances.get(o.ref?.instanceId); enc.push(i); if (i?.props.occupied) occ.push(i); }
       else if (getType(o.type)?.enclosure) { enc.push(o); if (o.props.occupied !== false) occ.push(o); }
     }
-    const walls = ['none', ...WALLS];
     return `<div class="insp-title"><span class="chip">Room</span><input class="name" type="text" data-room="name" value="${esc(r.name)}" spellcheck="false"><span class="insp-sub">Nothing selected — room properties</span></div>
       <section class="grp"><h4>Room dimensions</h4><div class="grid2">
         <label class="fld"><span>Width</span><div class="num"><input type="number" data-room="width" value="${r.width}" step="0.1" min="1.5" max="30"><em>m</em></div></label>
@@ -145,21 +210,36 @@ export class Inspector {
         <label class="fld"><span>Height</span><div class="num"><input type="number" data-room="height" value="${r.height}" step="0.05" min="2.1" max="6"><em>m</em></div></label>
         <label class="fld"><span>Walls</span><div class="num"><input type="number" data-room="wallThickness" value="${cm(r.wallThickness)}" step="1" min="6" max="60"><em>cm</em></div></label>
       </div></section>
-      <section class="grp"><h4>Finishes</h4>
-        <label class="fld fld-wide"><span>Feature wall (graphite)</span><select data-room="finishes.accentWall">${walls.map((w) => `<option value="${w}" ${r.finishes.accentWall === w ? 'selected' : ''}>${w[0].toUpperCase() + w.slice(1)}</option>`).join('')}</select></label>
-      </section>
+      ${this.surfacesHTML(r)}
       <section class="grp"><h4>Summary</h4>
         <div class="stats"><div><b>${ed.objects.length}</b><span>objects</span></div><div><b>${enc.length}</b><span>enclosures</span></div><div><b>${occ.length}</b><span>occupied</span></div><div><b>${(r.width * r.depth).toFixed(1)}</b><span>m² floor</span></div></div>
       </section>
       <section class="grp keys"><h4>Shortcuts</h4>
         <dl><dt>Orbit / pan / zoom</dt><dd>LMB · RMB · wheel</dd><dt>Move</dt><dd>drag object · arrows</dd><dt>Rotate</dt><dd>ring handle · R / Shift+R</dd>
-        <dt>Duplicate · delete</dt><dd>Ctrl+D · Del</dd><dt>Focus</dt><dd>F · double-click</dd><dt>Views</dt><dd>1 top · 2 front · 3/4 sides · 5 iso · 6 interior · 0 reset</dd>
+        <dt>Duplicate · delete</dt><dd>Ctrl+D · Del</dd><dt>Focus</dt><dd>F · double-click</dd><dt>Views</dt><dd>1 top · 2 front · 3/4 sides · 5 iso · 6 interior · 7/8 corners · 9 fit room · 0 reset</dd>
+        <dt>Camera</dt><dd>WASD pan · Q/E orbit · wheel zoom</dd><dt>Walls · Tech plan</dt><dd>V cycle wall mode · T tech plan</dd>
         <dt>Snapping</dt><dd>G toggle · Alt bypass</dd><dt>Undo · redo</dt><dd>Ctrl+Z · Ctrl+Y</dd></dl>
       </section>`;
   }
 
   onField(e) {
     const el = e.target, ed = this.app.editor;
+    if (el.dataset.wallmode) { this.app.setWallMode(el.value); return; }
+    if (el.dataset.key === 'room-corners') { ed.setRoom({ details: { corners: el.checked } }); return; }
+    if (el.dataset.room?.startsWith('walls.') || el.dataset.room?.startsWith('floor.') || el.dataset.room?.startsWith('details.')) {
+      const path = el.dataset.room.split('.'); let v = el.type === 'number' ? Number(el.value) : el.value;
+      if (el.type === 'number' && !Number.isFinite(v)) { this.refresh(); return; }
+      if (/coverHeight|hStart|hEnd/.test(path.at(-1))) v = v / 100;
+      if (path[0] === 'walls') {
+        const [, w, k, k2] = path;
+        const patch = k === 'profile' ? { profile: { [k2]: v } } : { [k]: v };
+        if (k === 'color' && WALL_SURFACES[ed.room.walls[w]?.surface]?.family === 'paint') patch.surface = 'paint_custom';
+        if (k === 'profile' && k2 === 'mode' && v !== 'full' && ed.room.walls[w].profile.hStart >= ed.room.height - 0.01) Object.assign(patch.profile, { hStart: 1.5, hEnd: ed.room.height }); // attic default 150 → full
+        ed.setRoom({ walls: { [w]: patch } });
+      } else ed.setRoom({ [path[0]]: { [path[1]]: v } });
+      this._pending = false; this.refresh();
+      return;
+    }
     if (el.dataset.room) {
       const k = el.dataset.room; let v = el.type === 'number' ? Number(el.value) : el.value;
       if (k === 'wallThickness') v = v / 100;
@@ -188,6 +268,18 @@ export class Inspector {
       return;
     }
     if (el.type === 'number' && !Number.isFinite(v)) { this.refresh(); return; }
+    if (el.dataset.opt !== undefined) {
+      const t = getType(o.type), opt = t.options[+el.dataset.opt];
+      if (el.type === 'range') v = Number(el.value);
+      if (opt.scale) v = v / opt.scale;
+      const path = opt.key.split('.').slice(1);
+      if (opt.sizes) { // plant size preset → logical size follows
+        const f = opt.sizes[v] || 1;
+        ed.update(o.id, { props: { plantSize: v }, size: { w: t.size.w * f, d: t.size.d * f, h: t.size.h * f } });
+      } else ed.update(o.id, { props: { [path[0]]: v } });
+      this._pending = false; this.refresh();
+      return;
+    }
     const patch = {};
     if (k === 'name') patch.name = v;
     else if (k === 'rotation') patch.rotation = v;
@@ -203,7 +295,27 @@ export class Inspector {
   }
 
   onClick(e) {
+    const tab = e.target.closest('[data-wall-tab]'); if (tab) { this.wallTab = tab.dataset.wallTab; this.refresh(); return; }
+    const ra = e.target.closest('[data-room-act]');
+    if (ra) {
+      const ed = this.app.editor, w = this.wallTab || 'north', src = ed.room.walls[w];
+      if (ra.dataset.roomAct === 'wall-all') ed.setRoom({ walls: Object.fromEntries(WALLS.map((x) => [x, { surface: src.surface, color: src.color, finish: src.finish, coverHeight: src.coverHeight }])) });
+      if (ra.dataset.roomAct === 'wall-accent') ed.setRoom({ walls: { [w]: { surface: 'laminate_black' } } });
+      this.refresh(); return;
+    }
     const b = e.target.closest('[data-act]'); if (!b) return;
+    if (b.dataset.act === 'port-add' || b.dataset.act === 'port-del') {
+      const o = this.app.editor.selected; if (!o?.tech) return;
+      const ports = [...(o.tech.ports || [])];
+      if (b.dataset.act === 'port-del') this.app.editor.setDevicePorts(o.id, ports.filter((pp) => pp.id !== b.dataset.port));
+      else {
+        const box = b.closest('.port-add'), kind = box.querySelector('[data-port-kind]').value;
+        const name = (box.querySelector('[data-port-name]').value.trim() || `${kind.toUpperCase()}_${ports.length + 1}`).toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+        ports.push({ id: name, kind, dir: box.querySelector('[data-port-dir]').value, label: name });
+        this.app.editor.setDevicePorts(o.id, ports);
+      }
+      this.refresh(); return;
+    }
     const app = this.app, o = app.editor.selected; if (!o) return;
     const a = b.dataset.act;
     const lib = app.editor.lib;

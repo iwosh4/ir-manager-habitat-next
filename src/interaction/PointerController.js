@@ -78,6 +78,7 @@ export class PointerController {
   onDown(e) {
     if (e.button !== 0) return;
     this.app.rig.cancelAnimation();
+    if (this.app.tech?.onPointerDown(e)) { e.stopPropagation(); return; } // TECH PLAN: waypoint drag / port pick / route select
     if (this.placing) { e.stopPropagation(); this.app.rig.controls.enabled = false; this.state = { mode: 'place-click', x: e.clientX, y: e.clientY }; return; }
     if (this.app.assemblyContext) {
       // inside an assembly only its members are selectable; clicking another object leaves the assembly
@@ -110,6 +111,7 @@ export class PointerController {
   }
 
   onMove(e) {
+    if (this.app.tech?.drag) { this.app.tech.onPointerMove(e); return; }
     if (this.placing && !this.state) { this._updateGhost(e); return; }
     if (!this.state) { this._hover(e); return; }
     const s = this.state;
@@ -148,6 +150,7 @@ export class PointerController {
   }
 
   onUp(e) {
+    if (this.app.tech?.onPointerUp(e)) return;
     const s = this.state;
     this.app.rig.controls.enabled = true;
     this.el.classList.remove('is-dragging');
@@ -168,6 +171,7 @@ export class PointerController {
   }
 
   onDouble(e) {
+    if (this.app.tech?.onDouble(e)) return;
     if (this.app.assemblyContext) { // member → open enclosure detail (template designer)
       const m = this.app.selectedMember;
       if (m?.template && this.pickMember(e) === m.member.id) this.app.openDesigner(m.template, { instanceId: m.instance?.id });

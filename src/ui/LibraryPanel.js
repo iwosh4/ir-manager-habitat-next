@@ -1,4 +1,4 @@
-import { CATEGORIES, TYPES, typesByCategory } from '../objects/catalog.js';
+import { CATEGORIES, TYPES, typesByCategory, searchText } from '../objects/catalog.js';
 import { icon } from './icons.js';
 import { Thumbnails } from './Thumbnails.js';
 import { TEMPLATE_CATEGORY, assemblyStats } from '../model/Library.js';
@@ -13,7 +13,11 @@ export class LibraryPanel {
     this.collapsed = new Set();
     el.innerHTML = `
       <div class="panel-head"><span class="panel-title">${icon('library')} Library</span><span class="panel-count">${Object.keys(TYPES).length}</span></div>
-      <div class="lib-search">${icon('search')}<input type="search" placeholder="Search objects…" spellcheck="false"></div>
+      <div class="lib-search">${icon('search')}<input type="search" placeholder="Search — e.g. pump, black, zimoviště…" spellcheck="false"></div>
+      <div class="lib-filters">
+        <select class="lib-cat-filter" title="Category"><option value="">All categories</option>${CATEGORIES.map((c) => `<option value="${c.id}">${c.label.replace(/ \(.*\)/, '')}</option>`).join('')}</select>
+        <button data-filter="ports" title="Technical devices with ports">Ports</button><button data-filter="wall" title="Wall-mounted / openings">Wall</button><button data-filter="floor" title="Floor-standing">Floor</button>
+      </div>
       <div class="lib-list"><div class="lib-mine"></div><div class="lib-cats"></div></div>
       <div class="panel-foot">Click an item, then click in the room — or drag it into the viewport.</div>`;
     this.list = el.querySelector('.lib-cats');
@@ -21,6 +25,15 @@ export class LibraryPanel {
     this._bindMine();
     this.search = el.querySelector('input');
     this.search.addEventListener('input', () => this.render());
+    this.filters = new Set(); this.catFilter = '';
+    el.querySelector('.lib-cat-filter').addEventListener('change', (e) => { this.catFilter = e.target.value; this.render(); });
+    el.querySelector('.lib-filters').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-filter]'); if (!b) return;
+      const f = b.dataset.filter; this.filters.has(f) ? this.filters.delete(f) : this.filters.add(f);
+      if (f === 'wall') this.filters.delete('floor'); if (f === 'floor') this.filters.delete('wall');
+      for (const x of el.querySelectorAll('[data-filter]')) x.classList.toggle('on', this.filters.has(x.dataset.filter));
+      this.render();
+    });
     this.thumbs = new Thumbnails(() => app.assets);
     this.render();
     this.list.addEventListener('click', (e) => {
@@ -44,7 +57,9 @@ export class LibraryPanel {
     this.list.addEventListener('error', (e) => {
       const img = e.target; if (img.tagName !== 'IMG' || img.dataset.live) return;
       img.dataset.live = '1'; img.removeAttribute('src');
-      const id = img.dataset.thumb; this.thumbs.get(id, TYPES[id].model).then(() => this._applyThumbs());
+      const id = img.dataset.thumb;
+      if (TYPES[id].parametric && app.libraryImages) { app.libraryImages.catalogue(id).then((u) => { if (u) img.src = u; else img.parentElement.classList.add('missing'); }); return; }
+      this.thumbs.get(id, TYPES[id].model).then(() => this._applyThumbs());
     }, true);
   }
 
@@ -117,18 +132,22 @@ export class LibraryPanel {
 
   render() {
     this.refreshMine?.();
-    const q = this.search.value.trim().toLowerCase();
-    this.list.innerHTML = CATEGORIES.map((c) => {
-      const items = typesByCategory(c.id).filter((t) => !q || `${t.label} ${t.sub} ${c.label}`.toLowerCase().includes(q));
+    const q = this.search.value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+    const f = this.filters || new Set();
+    const pass = (t) => (!words.length || words.every((w) => searchText(t.id).includes(w)))
+      && (!f.has('ports') || !!t.ports) && (!f.has('wall') || t.placement === 'mounted' || t.placement === 'opening') && (!f.has('floor') || t.placement === 'floor' || t.placement === 'wall');
+    this.list.innerHTML = CATEGORIES.filter((c) => !this.catFilter || c.id === this.catFilter).map((c) => {
+      const items = typesByCategory(c.id).filter(pass);
       if (!items.length) return '';
-      const open = q || !this.collapsed.has(c.id);
+      const open = q || f.size || this.catFilter || !this.collapsed.has(c.id);
       return `<section class="lib-cat ${open ? 'open' : ''}">
         <button class="lib-cat-head" data-cat="${c.id}">${icon('chevron', 'chev')}<span>${c.label}</span><em>${items.length}</em></button>
         <div class="lib-grid">${open ? items.map((t) => `
           <div class="lib-item" draggable="true" data-type="${t.id}" title="${t.label} — ${t.sub}">
             <div class="lib-thumb"><img alt="" data-thumb="${t.id}" src="assets/thumbnails/${t.id}.png" loading="lazy" draggable="false"></div>
             <div class="lib-meta"><b>${t.label}</b><span>${t.sub}</span><i title="${dimsOrderLabel()}">${formatDims(t.size, { sep: '×' })}</i></div>
-            ${c.id === 'enclosure' ? `<button class="customize" data-customize="${t.id}" title="Create from template: change dimensions, doors, ventilation, interior — save to My Enclosures">Customize…</button>` : ''}
+            ${t.ports ? `<span class="lib-ports" title="${Object.keys(t.ports).length} technical ports">${Object.keys(t.ports).length}</span>` : ''}
+            ${c.id === 'enclosures' ? `<button class="customize" data-customize="${t.id}" title="Create from template: change dimensions, doors, ventilation, interior — save to My Enclosures">Customize…</button>` : ''}
           </div>`).join('') : ''}</div>
       </section>`;
     }).join('') || '<div class="lib-empty">No objects match your search.</div>';

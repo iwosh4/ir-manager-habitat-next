@@ -112,11 +112,11 @@ export class Hud {
     const mode = app.engine.isInteractive ? 'interactive' : 'final';
     this.stats.dataset.mode = mode;
     const q = d.quality === 'Auto' ? `AUTO→${d.finalProfile}` : d.quality;
-    const rm = app.renderMode === 'planner' ? 'PLANNER' : 'SHOWCASE';
+    const rm = { planner: 'PLANNER', showcase: 'SHOWCASE', techplan: 'TECH PLAN' }[app.renderMode] || 'PLANNER';
     this.stats.dataset.renderer = app.renderMode;
     this.statsLine.textContent = `${rm} · ${mode === 'interactive' ? 'INTERACTIVE' : 'FINAL'} · ${q} · ${this.fpsText(d)} · ${d.drawCalls} draws · ${(d.triangles / 1000).toFixed(0)}k tris · scale ${Math.round(d.renderScale * 100)}%`;
     if (this.diag.hidden) return;
-    const r = app.renderer.info, planner = app.renderMode === 'planner';
+    const r = app.renderer.info, planner = app.renderMode !== 'showcase';
     const rows = [
       ['Renderer', planner ? 'PLANNER — stylised hand-painted (1 pass + grade)' : 'SHOWCASE — realistic (PBR, shadows, GTAO, bloom)'],
       ['Mode', mode === 'interactive' ? (planner ? 'Interactive (adaptive scale, same pass)' : 'Interactive (reduced resolution, no AO/bloom/MSAA)') : 'Final (full quality)'],

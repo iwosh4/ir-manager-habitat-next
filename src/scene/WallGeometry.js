@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getType } from '../objects/catalog.js';
+import { getType, propsOf } from '../objects/catalog.js';
 import { wallTopAt } from '../model/Surfaces.js';
 
 /**
@@ -12,7 +12,7 @@ import { wallTopAt } from '../model/Surfaces.js';
  */
 export function roomOpenings(objects) {
   return objects.filter((o) => getType(o.type)?.placement === 'opening' && o.mount)
-    .map((o) => ({ wall: o.mount.wall, offset: o.mount.offset, w: o.size.w, h: o.size.h, sill: o.elevation, type: o.type, id: o.id, sliding: o.props?.style === 'sliding' }));
+    .map((o) => ({ wall: o.mount.wall, offset: o.mount.offset, w: o.size.w, h: o.size.h, sill: o.elevation, type: o.type, id: o.id, sliding: propsOf(o).style === 'sliding' }));
 }
 
 /** Top height function of a wall in its local x (shape x may start before 0 for corner overlap). */
