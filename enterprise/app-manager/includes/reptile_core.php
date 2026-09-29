@@ -214,6 +214,8 @@ function ir_repro_advance_cycle(PDO $pdo,int $uid,int $cycleId): array {
     if($idx===null)$idx=-1;$next=$names[$idx+1]??'Ukončení';$final=mb_strtolower($next)===mb_strtolower('Ukončení');
     $window=ir_repro_phase_window($pdo,$uid,(int)($cycle['druh_id']??0),$next);$nextDate=null;
     if(!$final){$days=max(0,(int)$window['from']);if($days>0)$nextDate=(new DateTimeImmutable('today'))->modify('+'.$days.' days')->format('Y-m-d');else $nextDate=(new DateTimeImmutable('today'))->modify('+1 day')->format('Y-m-d');}
+    // incubation is due on the expected hatch date, not on a generic phase window
+    if(!$final&&mb_strtolower($next)===mb_strtolower('Inkubace')&&!empty($cycle['predpoklad_lihnuti'])&&(string)$cycle['predpoklad_lihnuti']>=date('Y-m-d'))$nextDate=substr((string)$cycle['predpoklad_lihnuti'],0,10);
     $state=$final?'Ukončeno':(mb_strtolower($next)===mb_strtolower('Inkubace')?'Inkubace':'Aktivní');$action=$final?'Hotovo':ir_repro_next_action_for_phase($next);
     $pdo->prepare('UPDATE wp_ir2_snusky SET aktualni_faze=?,stav=?,dalsi_akce=?,dalsi_akce_datum=?,datum_ukonceni=CASE WHEN ? THEN CURDATE() ELSE datum_ukonceni END WHERE user_id=? AND id=?')->execute([$next,$state,$action,$nextDate,$final?1:0,$uid,$cycleId]);
     ir_sync_repro_task($pdo,$uid,$cycleId);return ['phase'=>$next,'state'=>$state,'date'=>$nextDate,'window'=>$window];
@@ -457,7 +459,12 @@ function ir_pedigree_tree(PDO $pdo,int $uid,int $animalId,int $depth=4,array &$s
 }
 function ir_pedigree_branch_html(?array $node,string $role='Jedinec',int $level=0): string {
     if(!$node)return '<div class="pedigree-node is-empty"><small>'.ir_e($role).'</small><strong>Nezadán</strong><span>Rodiče lze doplnit v editaci karty.</span></div>';
-    $a=$node['animal'];$photo=ir_animal_photo($a);$html='<div class="pedigree-node level-'.$level.'"><div class="pedigree-node-card">'.($photo?'<img src="'.ir_e($photo).'" alt="">':'<span class="pedigree-node-icon">'.ir_visual_icon('animals').'</span>').'<div><small>'.ir_e($role).'</small><strong>'.ir_e(ir_animal_display($a)).'</strong><span>'.ir_e(ir_animal_secondary($a)).'</span></div></div>';
+    // nodes from the pedigree register may be external ancestors (person without an animal card)
+    $a=$node['animal']??null;$p=$node['person']??[];
+    $photo=$a?ir_animal_photo($a):ir_asset_photo_url((string)($p['foto']??''));
+    $title=$a?ir_animal_display($a):(trim((string)($p['jmeno']??''))?:'Předek');
+    $sub=$a?ir_animal_secondary($a):trim((string)($p['latinsky_nazev']??$p['druh']??$p['kod']??''));
+    $html='<div class="pedigree-node level-'.$level.'"><div class="pedigree-node-card">'.($photo?'<img src="'.ir_e($photo).'" alt="">':'<span class="pedigree-node-icon">'.ir_visual_icon('animals').'</span>').'<div><small>'.ir_e($role).'</small><strong>'.ir_e($title).'</strong><span>'.ir_e($sub).'</span></div></div>';
     if(!empty($node['father'])||!empty($node['mother']))$html.='<div class="pedigree-parents">'.ir_pedigree_branch_html($node['father'],'Otec',$level+1).ir_pedigree_branch_html($node['mother'],'Matka',$level+1).'</div>';
     return $html.'</div>';
 }

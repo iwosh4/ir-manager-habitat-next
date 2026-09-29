@@ -48,7 +48,7 @@ echo ir_back('settings.php', 'Zpět do nastavení');
 ?>
 <section class="panel glow-panel">
   <header class="panel-head"><div><span class="panel-kicker">DATA JSOU VAŠE</span><h2>Export celého účtu</h2><p class="muted">Databáze je jediný zdroj pravdy. Export obsahuje všechny záznamy účtu; ZIP navíc fotografie a přílohy se SHA-256 kontrolními součty. Hesla se nikdy neexportují.</p></div></header>
-  <form method="post" class="b1-inline"><?=ir_csrf_field()?><button class="btn primary" name="action" value="export_zip">Stáhnout ZIP (data + soubory)</button><button class="btn" name="action" value="export_json">Stáhnout JSON (jen data)</button><a class="btn" href="backup.php">Záloha & obnova</a></form>
+  <form method="post" class="b1-inline" data-download><?=ir_csrf_field()?><button class="btn primary" name="action" value="export_zip">Stáhnout ZIP (data + soubory)</button><button class="btn" name="action" value="export_json">Stáhnout JSON (jen data)</button><a class="btn" href="backup.php">Záloha & obnova</a></form>
 </section>
 <section class="panel glow-panel">
   <header class="panel-head"><div><span class="panel-kicker">KONTROLA INTEGRITY</span><h2>Stav dat účtu</h2><p class="muted">Poslední záloha na serveru: <?=$report['last_backup'] ? date('j. n. Y H:i', strtotime($report['last_backup'])) : 'zatím žádná'?> · schéma <?=ir_e($report['schema_version'])?></p></div><span class="status-pill <?=$sev[$report['status']][0]?>"><?=$sev[$report['status']][1]?></span></header>

@@ -1,0 +1,17 @@
+  ✓ 4.2 TECH PLAN: MIST / WATER / DRAIN / IN-WALL routes to a specific enclosure; layers toggle (2683 ms)
+  ✓ 4.2 route editor: add route in the UI (type → source → destination), waypoints add / drag / snap / delete (6009 ms)
+  ✓ 4.2 misting circuit: SOLENOID → circuit → enclosures (name, ID, source, destinations, note, enabled) (60 ms)
+  ✓ 4.2 clean normal views: Planner / Showcase show only VISIBLE routes (no in-wall, hidden, arrows or ports) (406 ms)
+  ✓ 4.2 save / reload: routes, circuits, device ports, surfaces and new objects restored (9959 ms)
+  ✓ 4.2 export / import JSON keeps the network (version 3) (3 ms)
+  ✓ 4.2 compatibility: a 4.1 (v2) room loads with safe defaults — ids, sizes and objects unchanged (4 ms)
+  ✓ 4.2 modes & editors: Planner ↔ Showcase ↔ Tech Plan keep the document; Assembly Builder and Enclosure Designer open (8137 ms)
+  ✓ 4.2 Enclosure Designer: animal reference Snake / Lizard / Spider — adjustable, not saved, no collisions (10075 ms)
+  ✓ 4.2 undo / redo: surfaces, routes and procedural props (68 ms)
+      perf {"planner":{"fps":6.7,"draws":27,"tris":45288,"objects":59,"routes":16},"techplan":{"fps":5.1,"draws":45,"tris":74572,"objects":59,"routes":16},"showcase":{"fps":1.2,"draws":136,"tris":184188,"objects":59,"routes":16},"end":{"fps":6.4,"draws":27,"tris":45288,"objects":59,"routes":16}}
+  ✓ 4.2 performance: Planner / Tech Plan / Showcase with the extended catalogue + network (44961 ms)
+  ✓ no fatal console errors (1 ms)
+
+69/69 passed
+
+[exited with code 0]

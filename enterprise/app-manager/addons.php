@@ -14,7 +14,6 @@ function ir_addon_status(bool $fileOk,array $tables=[]): array {
 }
 $addons=[
  ['Habitat Studio','Vizuální návrh sestav a virtuální místnosti.','habitat','habitat-studio.php',ir_addon_file('habitat-studio.php'),['wp_ir2_habitat_rooms_71','wp_ir2_habitat_room_items_71']],
- ['Home Assistant a senzory','Napojení čidel, zdrojů dat a technických prvků ubikací.','habitat','habitat-home-assistant.php',ir_addon_file('habitat-home-assistant.php'),['wp_ir2_habitat_sources_15','wp_ir2_habitat_sensor_bindings_15']],
  ['Hlasový asistent','Hands-free zadávání péče a rychlé hlasové ovládání.','care','voice.php',ir_addon_file('voice.php'),[]],
  ['Automatizace','Pravidla, intervaly a automaticky vytvářené úkoly.','automation','automation.php',ir_addon_file('automation.php'),['wp_ir2_automation_rules']],
  ['Dokumenty','Přílohy, šablony, původ zvířat a tiskové výstupy.','document','documents.php',ir_addon_file('documents.php'),['wp_ir2_documents']],

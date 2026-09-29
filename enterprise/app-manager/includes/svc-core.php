@@ -61,7 +61,18 @@ function ir_guard_mutation(): void {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') return;
     if (defined('IR_PUBLIC_PAGE') && IR_PUBLIC_PAGE === true) return;
     if (!ir_logged_in()) return;
-    if (!ir_can('write')) { http_response_code(403); exit('Účet je pouze pro čtení.'); }
+    if (ir_can('write')) return;
+    $msg = 'Účet je pouze pro čtení.';
+    if (basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'api.php' || str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')) {
+        http_response_code(403); header('Content-Type: application/json; charset=utf-8');
+        exit(json_encode(['ok' => false, 'error' => 'forbidden', 'message' => $msg], JSON_UNESCAPED_UNICODE));
+    }
+    // page forms: back to the same page with an explanation instead of a bare error page
+    ir_flash('error', $msg);
+    $back = (string)($_SERVER['HTTP_REFERER'] ?? '');
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    if ($back === '' || parse_url($back, PHP_URL_HOST) !== strtok($host, ':')) $back = 'index.php';
+    header('Location: '.$back, true, 303); exit;
 }
 
 // ---------------------------------------------------------------------------------------------- audit

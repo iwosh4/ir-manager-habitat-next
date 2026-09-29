@@ -168,6 +168,13 @@
     feedSheet(a, { source: b.dataset.source || 'manual', taskId: +b.dataset.taskId || 0, after: () => { if (b.dataset.reload !== 'no') setTimeout(() => location.reload(), 500); } });
   });
 
+  // forms that answer with a file download stay on the page: give them a fresh one-time token after submitting,
+  // otherwise a second export from the same page is rejected as a duplicate submission
+  document.addEventListener('submit', (e) => {
+    const f = e.target.closest('form[data-download]'); if (!f) return;
+    setTimeout(() => { const t = f.querySelector('input[name=_submission]'); if (t) t.value = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join(''); }, 50);
+  });
+
   // ------------------------------------------------------------------ QR scanner
   let jsqrP = null;
   async function qrScanner() {

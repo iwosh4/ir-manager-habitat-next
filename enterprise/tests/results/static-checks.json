@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-29T21:00:22.073Z",
+  "pass": 8,
+  "fail": 0,
+  "results": [
+    {
+      "id": "S1",
+      "name": "php -l on every PHP file",
+      "ok": true,
+      "evidence": "88 files, 0 errors"
+    },
+    {
+      "id": "S2",
+      "name": "secrets scan of the runtime tree (config.local.php excluded — it is never packaged)",
+      "ok": true,
+      "evidence": "509 files scanned, 0 secrets"
+    },
+    {
+      "id": "S3",
+      "name": "no third-party runtime services (QR, fonts, CDNs) in PHP/JS/CSS",
+      "ok": true,
+      "evidence": "none (Revolut API is server-side only)"
+    },
+    {
+      "id": "S6",
+      "name": "Habitat: no demo room in the integrated workflow; no Home Assistant in the runtime",
+      "ok": true,
+      "evidence": "server room load; demo file not shipped; demo button hidden in Manager mode; no Home Assistant page or links"
+    },
+    {
+      "id": "S8",
+      "name": "JS syntax of every runtime script + every relative ES-module import resolves",
+      "ok": true,
+      "evidence": "80 scripts parsed, all relative imports resolve"
+    },
+    {
+      "id": "S7",
+      "name": "Migration SQL on a fresh copy of the real dump: applies, re-applies (idempotent), no user rows lost, no demo data",
+      "ok": true,
+      "evidence": "87 existing wp_ir2_ tables kept with all rows; 2nd run: identical schema + data; animals 34 (no demo); migration row 1"
+    },
+    {
+      "id": "S4",
+      "name": "crawl: every page linked from the app loads without 4xx/5xx or JS errors",
+      "ok": true,
+      "evidence": "160 pages crawled: 0 failed requests, 0 JS errors, 0 truncated pages, 0 duplicate ids"
+    },
+    {
+      "id": "S5",
+      "name": "CSS url() assets and page assets resolve (incl. KPI, crocodile, PWA icons, manifest)",
+      "ok": true,
+      "evidence": "all CSS urls, manifest icons and service-worker shell files exist"
+    }
+  ]
+}

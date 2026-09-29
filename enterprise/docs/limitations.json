@@ -1,0 +1,8 @@
+[
+  "Online payments require Revolut Merchant keys in config.local.php; until then checkout is refused with a clear message and plans are granted manually by an administrator (no fake success). Apple App Store / Google Play: notification endpoint and data model prepared, nothing is granted until store receipt verification is configured.",
+  "Speech recognition uses the browser Web Speech API (Chrome/Edge/Safari, needs network on most platforms); where it is unavailable the same dialogue works through the typed command field. Text-to-speech uses the voices installed on the device.",
+  "Camera QR scanning requires HTTPS (browser rule); BarcodeDetector is used where available, jsQR otherwise; manual code entry always works.",
+  "Habitat Studio 3D needs WebGL 2; Czech UI is applied by a translation layer — rare diagnostic strings (renderer statistics) stay technical.",
+  "Existing accounts start on the FREE plan (10 active animals) unless a subscription or manual grant exists; animals above the limit become read-only, nothing is deleted.",
+  "Home Assistant integration is intentionally out of scope; the old connector page was removed from the runtime (its DB rows are kept) and stable device/port ids are kept in Habitat for later."
+]

@@ -124,7 +124,8 @@
     for (const [r, re] of RESULTS) if (re.test(t)) { result = r; break; }
     if (result) type = 'Krmení';
     else for (const [ty, re] of TYPES) if (re.test(t)) { type = ty; break; }
-    const value = numberIn(t.replace(/\b\d+\s*\/\s*\d+\b/g, ' ')), unit = (t.match(UNIT) || [])[1] || null;
+    const value = numberIn(t.replace(/\b\d+\s*\/\s*\d+\b/g, ' ')), unitRaw = (t.match(UNIT) || [])[1] || null;
+    const unit = !unitRaw ? null : /^gram|^g$/.test(unitRaw) ? 'g' : /^kilo|^kg$/.test(unitRaw) ? 'kg' : /^kus|^ks$|^pc|^piece|^stuck/.test(unitRaw) ? 'ks' : unitRaw;
     // feed item after "krmivo|potrava|food|futter" or known feed words
     let feed = null; const fm = t.match(/\b(?:krmivo|potrava|dostal[ao]?|food|with|futter|mit)\s+([a-z ]{3,40}?)(?:\s+(?:\d|kus|ks|g\b|gram)|$)/); if (fm) feed = fm[1].trim();
     // animals
