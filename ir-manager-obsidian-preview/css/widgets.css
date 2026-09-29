@@ -1,12 +1,14 @@
 /* =========================================================================================
    WORKSPACE & WIDGETS — 12-col grid, sizes S(3) M(4) L(6) XL(8) W(12), accents, frames, density
    ========================================================================================= */
-.wsp { margin-top: 6px; }
+.wsp { margin-top: 6px; container-type: inline-size; }
+@container (max-width: 1100px) { .wgrid .w-s, .wgrid .w-m { grid-column: span 6; } .wgrid .w-l, .wgrid .w-xl { grid-column: 1 / -1; } .wgrid .w-addtile { grid-column: span 6; } }
+@container (max-width: 720px) { .wgrid { grid-template-columns: minmax(0, 1fr); } .wgrid > .w, .wgrid > .w-addtile { grid-column: 1 / -1 !important; } }
 .wsp-bar { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .wsp-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tx-3); }
 .wsp-hint .gl { width: 14px; height: 14px; }
 .wgrid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; grid-auto-flow: row dense; }
-.w { --acc: var(--acc-neutral); position: relative; min-width: 0; grid-column: span 4; display: flex; flex-direction: column; border-radius: var(--r-lg); border: 1px solid var(--line); background: linear-gradient(180deg, #0c1317, #0a1014); box-shadow: var(--sh-1); transition: border-color var(--t-fast), box-shadow var(--t), transform var(--t) var(--ease-out); }
+.w { --acc: var(--acc-neutral); position: relative; min-width: 0; container-type: inline-size; grid-column: span 4; display: flex; flex-direction: column; border-radius: var(--r-lg); border: 1px solid var(--line); background: linear-gradient(180deg, #0c1317, #0a1014); box-shadow: var(--sh-1); transition: border-color var(--t-fast), box-shadow var(--t), transform var(--t) var(--ease-out); }
 .w-s { grid-column: span 3; } .w-m { grid-column: span 4; } .w-l { grid-column: span 6; } .w-xl { grid-column: span 8; } .w-w { grid-column: 1 / -1; }
 .w-h { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 10px 10px 6px 14px; }
 .w-h h3 { flex: 1; min-width: 0; font-size: 14px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -123,3 +125,4 @@ select.inl { appearance: none; background: #0d1418; }
 .lk:hover { border-color: var(--am-line); transform: translateY(-1px); } .lk .gl { color: var(--am-2); } .lk span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lk-x { --s: 22px; opacity: 0; } .lk:hover .lk-x { opacity: 1; }
 .feedplan .tbl td, .energy .tbl td { white-space: nowrap; }
+.li .spark { width: 64px; flex: none; } .li.wq { flex-wrap: wrap; } .li.wq .li-main { min-width: 120px; }

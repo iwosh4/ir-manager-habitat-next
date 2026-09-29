@@ -44,7 +44,7 @@ export function liveMessages(db = store.get(), nowTs = Date.now()) {
   if (cy) out.push({ icon: 'reproduction', text: `${cy.next.label}`, detail: `${cy.name} · ${rel(cy.next.due)}`, href: `#/reprodukce/cyklus/${cy.id}` });
   const last = [...db.records].reverse().find((r) => r.by === 'you') || [...db.records].reverse().find((r) => r.t <= nowTs);
   if (last) { const a = db.animals.find((x) => x.id === last.subject) || db.enclosures.find((x) => x.id === last.subject); out.push({ icon: TYPE[last.type]?.icon || 'tasks', text: `Poslední záznam · ${TYPE[last.type]?.label || 'Záznam'}${a ? ` ${a.code}` : ''}`, detail: rel(last.t), href: '#/prehled' }); }
-  out.push({ icon: 'calendar', text: 'Terraristika Expo Praha · 18. 10.', detail: 'rezervovány 2 stoly', href: '#/adresar/akce' });
+  out.push({ icon: 'calendar', text: 'Terraristika Expo Praha · 18. 10.', detail: 'stůl B-14 · 2 předání', href: '#/adresar/akce' });
   return out;
 }
 
@@ -86,7 +86,7 @@ const isPaused = () => S.userPaused || S.hover || document.hidden;
 function tick() {
   clearTimeout(S.timer);
   S.timer = setTimeout(() => {
-    if (!isPaused() && !reduced() && S.msgs.length > 1) { S.i = (S.i + 1) % S.msgs.length; render(1); }
+    if (!isPaused() && !reduced() && prefs().auto !== false && S.msgs.length > 1) { S.i = (S.i + 1) % S.msgs.length; render(1); }
     tick();
   }, STEP_MS);
 }
@@ -95,7 +95,7 @@ export function refreshLive({ force = false } = {}) {
   const sig = msgs.map((m) => m.text).join('|');
   const newPrio = msgs.find((m) => m.prio && !S.msgs.some((o) => o.text === m.text));
   S.msgs = msgs;
-  if (newPrio) { S.i = msgs.indexOf(newPrio); render(1); $('[data-role=live]')?.classList.add('flash'); setTimeout(() => $('[data-role=live]')?.classList.remove('flash'), 900); }
+  if (newPrio && prefs().prio !== false) { S.i = msgs.indexOf(newPrio); render(1); $('[data-role=live]')?.classList.add('flash'); setTimeout(() => $('[data-role=live]')?.classList.remove('flash'), 900); }
   else if (force || sig !== S.sig) { if (S.i >= msgs.length) S.i = 0; render(0); }
   S.sig = sig;
 }

@@ -14,7 +14,7 @@ import { done } from './feedback.js';
 import { editRecordPanel } from './quickrecord.js';
 import { DAY, HOUR, MIN, startOfDay, hm, dShort, rel, wd, wdLong, toLocalInput, daysBetween, plural } from '../core/time.js';
 
-const lateShort = (t) => { const m = Math.round((Date.now() - t) / 60e3); return m < 60 ? `+${m} min` : m < 1440 ? `+${Math.round(m / 60)} h` : `+${Math.round(m / 1440)} d`; };
+const lateShort = (t) => { const m = Math.round((Date.now() - t) / 60e3); if (m < 1) return ''; return m < 60 ? `+${m} min` : m < 1440 ? `+${Math.round(m / 60)} h` : `+${Math.round(m / 1440)} d`; };
 const late = (t) => { const m = Math.round((Date.now() - t) / 60e3); return m < 60 ? `${m} min po termínu` : m < 1440 ? `${Math.round(m / 60)} h po termínu` : `${Math.round(m / 1440)} d po termínu`; };
 export const UI = { expanded: new Set(), sel: new Map(), refused: new Set(), detail: null, doneOpen: false };
 const reduced = () => document.documentElement.dataset.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -74,7 +74,7 @@ function metaHTML(it) {
   if (it.priority === 'high') out.push('<span class="mt hi">vysoká priorita</span>');
   if (it.postponed && it.status !== 'done') out.push(`<span class="mt">${gl('later')}odloženo${it.due ? ` z ${hm(it.due)}` : ''}</span>`);
   if (it.note) out.push(`<span class="mt note">${gl('note')}${esc(it.note)}</span>`);
-  if (it.type === 'inventory' && m.items) { const db = store.get(); out.push(`<span class="mt">${m.items.map((id) => esc(db.inventory.find((x) => x.id === id)?.name.split(' (')[0])).join(', ')}</span>`); }
+  if (it.type === 'inventory' && m.items) { const db = store.get(); out.push(`<span class="mt note">${m.items.map((id) => esc(db.inventory.find((x) => x.id === id)?.name.split(' (')[0])).join(', ')}</span>`); }
   if (it.origin === 'auto' && it.why?.includes('provádí')) out.push(`<span class="mt auto">${gl('bolt')}automaticky</span>`);
   return out.join('');
 }
@@ -107,7 +107,7 @@ export function itemHTML(it, mode = 'full') {
       <div class="tl-main">${typeTile(it.type)}<div class="tl-tx"><div class="tl-title"><b>${esc(title)}</b>${second ? `<span class="dim">${esc(second)}</span>` : ''}</div>
         <div class="tl-meta">${compact ? subjectChip(it) : ''}${metaHTML(it)}</div>
         ${it.type === 'incubation' && it.meta?.day != null && !compact ? `<div class="tl-rb">${rangeBar(it.meta.day, it.meta.expected, { compact: true })}</div>` : ''}</div>
-        ${compact ? '' : subjectHTML(it, compact)}</div>
+        ${compact || mode === 'animal' ? '' : subjectHTML(it, compact)}</div>
       <div class="tl-acts">${actionsHTML(it, mode)}</div>
     </div></div>`;
 }

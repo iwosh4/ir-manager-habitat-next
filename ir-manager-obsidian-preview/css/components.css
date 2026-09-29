@@ -25,7 +25,7 @@
 .sec { margin-top: 18px; } .sec:first-child { margin-top: 0; }
 
 /* ---------------- blocks: PRIMARY / SECONDARY / DETAIL ---------------- */
-.blk { position: relative; min-width: 0; border-radius: var(--r-lg); border: 1px solid var(--line); background: linear-gradient(180deg, #0c1317, #0a1014); box-shadow: var(--sh-1); }
+.blk { position: relative; min-width: 0; container-type: inline-size; border-radius: var(--r-lg); border: 1px solid var(--line); background: linear-gradient(180deg, #0c1317, #0a1014); box-shadow: var(--sh-1); }
 .blk-h { display: flex; align-items: center; gap: 11px; padding: 14px 16px 10px; }
 .blk-t { flex: 1; min-width: 0; display: grid; gap: 1px; } .blk-t h2 { font-size: 15px; font-weight: 750; letter-spacing: -.005em; }
 .blk-a { display: flex; align-items: center; gap: 6px; }
@@ -213,3 +213,7 @@ a.li:hover, .li.hov:hover { background: rgba(255, 255, 255, .025); }
 .more-subs { display: none; padding: 0 10px 10px 58px; gap: 2px; } .more-i.open .more-subs { display: grid; animation: subIn var(--t) var(--ease-out); }
 .more-subs a { min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; color: var(--tx-2); font-size: 15px; } .more-subs a.on { color: var(--am-3); background: var(--am-bg); }
 .kbd-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; align-items: center; } .kbd-list dd { margin: 0; color: var(--tx-2); }
+.g2 > *, .g3 > *, .g4 > *, .g-main > *, .stack > *, .blk-b > * { min-width: 0; }
+.feedplan, .energy { overflow-x: auto; }
+
+.field { grid-template-columns: minmax(0, 1fr); }
