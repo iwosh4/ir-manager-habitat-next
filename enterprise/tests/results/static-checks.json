@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-29T21:00:22.073Z",
+  "date": "2026-09-29T21:27:39.938Z",
   "pass": 8,
   "fail": 0,
   "results": [
@@ -13,7 +13,7 @@
       "id": "S2",
       "name": "secrets scan of the runtime tree (config.local.php excluded — it is never packaged)",
       "ok": true,
-      "evidence": "509 files scanned, 0 secrets"
+      "evidence": "477 files scanned, 0 secrets"
     },
     {
       "id": "S3",

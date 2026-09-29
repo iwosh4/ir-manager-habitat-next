@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-29T20:50:41.439Z",
+  "date": "2026-09-29T21:31:55.888Z",
   "base": "http://127.0.0.1:8091/app-manager/",
   "db": "ir_accept",
   "pass": 26,
@@ -14,7 +14,7 @@
         "shots/A01_dashboard_1440.png"
       ],
       "ok": true,
-      "ms": 4882
+      "ms": 4220
     },
     {
       "id": "A02",
@@ -24,7 +24,7 @@
         "6 messages from DB; overdue=27; next/prev/pause verified"
       ],
       "ok": true,
-      "ms": 8979
+      "ms": 8458
     },
     {
       "id": "A03",
@@ -35,7 +35,7 @@
         "13 pages at 390 px without horizontal overflow; bottom nav Domů / Zvířata / Rychlý záznam / Úkoly / Více"
       ],
       "ok": true,
-      "ms": 15913
+      "ms": 9539
     },
     {
       "id": "A04",
@@ -45,7 +45,7 @@
         "animal #41 created/edited/archived/restored; Latin autocomplete linked catalogue taxon"
       ],
       "ok": true,
-      "ms": 9936
+      "ms": 8127
     },
     {
       "id": "A05",
@@ -55,7 +55,7 @@
         "manual taxon created without Czech name; alias search; validation message"
       ],
       "ok": true,
-      "ms": 75
+      "ms": 126
     },
     {
       "id": "A06",
@@ -66,7 +66,7 @@
         "4 cards → 4 results stored; history grouped DNES with result summary"
       ],
       "ok": true,
-      "ms": 24548
+      "ms": 25927
     },
     {
       "id": "A07",
@@ -76,7 +76,7 @@
         "HTTP 409 duplicate, nothing written"
       ],
       "ok": true,
-      "ms": 58
+      "ms": 53
     },
     {
       "id": "A08",
@@ -87,7 +87,7 @@
         "group 1: 4 members, batch 4|{\"eaten\":3,\"refused\":1}"
       ],
       "ok": true,
-      "ms": 7853
+      "ms": 7924
     },
     {
       "id": "A09",
@@ -95,10 +95,10 @@
       "req": "BETA1-04",
       "evidence": [
         "shots/A09_label_qr.png",
-        "label QR decoded by jsQR → IR:A:AA29B7B7A5D471C → animal #6"
+        "label QR decoded by jsQR → IR:A:A9AF309BE66DEEA → animal #6"
       ],
       "ok": true,
-      "ms": 2454
+      "ms": 2624
     },
     {
       "id": "A10",
@@ -110,7 +110,7 @@
         "fake camera stream decoded (BarcodeDetector unavailable → jsQR) → animal 6 → NOT FED saved with source qr"
       ],
       "ok": true,
-      "ms": 11701
+      "ms": 11074
     },
     {
       "id": "A11",
@@ -122,7 +122,7 @@
         "CZ dialogue with 3-way Latin ambiguity, TTS read-back, confirmation; EN/DE parser"
       ],
       "ok": true,
-      "ms": 7045
+      "ms": 6324
     },
     {
       "id": "A12",
@@ -132,18 +132,18 @@
         "cloned “Box (S) Braplast” ×3; save & new prefilled"
       ],
       "ok": true,
-      "ms": 6963
+      "ms": 5088
     },
     {
       "id": "A13",
       "name": "Habitat 4.2: same entities as Manager, autosave to MySQL, ← IR MANAGER, Czech, no demo",
       "req": "BETA1-06",
       "evidence": [
-        "studio ready in 14547 ms",
+        "studio ready in 10614 ms",
         "shots/A13_habitat.png"
       ],
       "ok": true,
-      "ms": 23948
+      "ms": 21375
     },
     {
       "id": "A14",
@@ -153,7 +153,7 @@
         "row #83 edited, deleted, restored"
       ],
       "ok": true,
-      "ms": 3379
+      "ms": 4336
     },
     {
       "id": "A15",
@@ -167,7 +167,7 @@
         "4 views rendered; overdue feeding task #64 → EATEN → Hotovo"
       ],
       "ok": true,
-      "ms": 14573
+      "ms": 15138
     },
     {
       "id": "A16",
@@ -177,7 +177,7 @@
         "file #1: download/preview OK, script rejected, cross-account 404, storage 403"
       ],
       "ok": true,
-      "ms": 5409
+      "ms": 5312
     },
     {
       "id": "A17",
@@ -187,7 +187,7 @@
         "item #5: 0 + 10 after purchase"
       ],
       "ok": true,
-      "ms": 2797
+      "ms": 2403
     },
     {
       "id": "A18",
@@ -197,7 +197,7 @@
         "3-line document = 828,69 Kč client and server"
       ],
       "ok": true,
-      "ms": 2355
+      "ms": 4824
     },
     {
       "id": "A19",
@@ -207,17 +207,17 @@
         "suspend → session revoked + login blocked; unsuspend; audit rows"
       ],
       "ok": true,
-      "ms": 4556
+      "ms": 7804
     },
     {
       "id": "A20",
       "name": "Team roles: read-only cannot mutate (403), staff writes but cannot delete",
       "req": "Roles",
       "evidence": [
-        "acc_readonly_mun5glgg read-only 403; acc_staff_mun5gmlv staff write OK, delete 403"
+        "acc_readonly_mun6xpq6 read-only 403; acc_staff_mun6xr8r staff write OK, delete 403"
       ],
       "ok": true,
-      "ms": 6672
+      "ms": 7919
     },
     {
       "id": "A21",
@@ -227,7 +227,7 @@
         "shots/A21_plans.png"
       ],
       "ok": true,
-      "ms": 4982
+      "ms": 5027
     },
     {
       "id": "A22",
@@ -237,7 +237,7 @@
         "webhook 401; checkout refused without gateway keys; 0 subscriptions"
       ],
       "ok": true,
-      "ms": 2350
+      "ms": 2200
     },
     {
       "id": "A23",
@@ -245,10 +245,10 @@
       "req": "Data safety",
       "evidence": [
         "shots/A23_data_safety.png",
-        "zip 29752852 B, json 35 animals, integrity warn"
+        "zip 29752873 B, json 35 animals, integrity warn"
       ],
       "ok": true,
-      "ms": 5956
+      "ms": 6229
     },
     {
       "id": "A25",
@@ -259,7 +259,7 @@
         "cycle #4: expected hatch 2026-11-26 → Planner; advance → Líhnutí; hatch → 3 cards (mother #11)"
       ],
       "ok": true,
-      "ms": 7746
+      "ms": 7314
     },
     {
       "id": "A26",
@@ -271,7 +271,7 @@
         "manifest ok, 2 icons"
       ],
       "ok": true,
-      "ms": 4989
+      "ms": 3701
     },
     {
       "id": "A24",
@@ -285,7 +285,7 @@
         "shots/A24_index_390.png"
       ],
       "ok": true,
-      "ms": 35279
+      "ms": 32312
     }
   ]
 }

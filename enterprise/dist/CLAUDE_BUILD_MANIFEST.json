@@ -1,0 +1,97 @@
+{
+  "product": "IR Manager Enterprise",
+  "release": "BETA 1.0 FINAL",
+  "built_at": "2026-09-29T21:32:18.121Z",
+  "runtime_zip": {
+    "name": "IR_MANAGER_ENTERPRISE_BETA_1_0_FINAL_CLAUDE.zip",
+    "sha256": "ceba175ca112e38375d641906b5b9ab9e93bac705e9ed948863f077a93f17ee6",
+    "bytes": 23652427,
+    "runtime_file_count": 479,
+    "root": "app-manager/",
+    "classification": {
+      "server: access rules": 1,
+      "server: pages / endpoints": 54,
+      "pwa: favicons / touch icon": 4,
+      "ui: stylesheets": 10,
+      "ui: other assets": 1,
+      "graphics: header crocodile, icons, placeholders, PWA icons": 72,
+      "graphics: KPI backgrounds": 6,
+      "ui: scripts": 12,
+      "vendor: QR generate / scan": 2,
+      "config template (no secrets)": 1,
+      "habitat: 3D models / textures / environment": 177,
+      "habitat: Studio 4.2 runtime + Manager bridge": 66,
+      "habitat: three.js vendor": 31,
+      "server: services / includes": 29,
+      "pwa": 3,
+      "db: migration runner": 5,
+      "scaffolding: upload folders (deny-all .htaccess)": 5
+    },
+    "excluded": [
+      "config.local.php",
+      "uploads/* user files",
+      "storage/",
+      "docs",
+      "tests",
+      "reports",
+      "screenshots",
+      "*.sql",
+      "*.md",
+      "node_modules",
+      "backups",
+      "dev tools"
+    ]
+  },
+  "schema": {
+    "version": "20260929_070_beta1_final",
+    "migration_file": "IR_MANAGER_BETA_1_0_FINAL_MIGRATION.sql",
+    "properties": [
+      "additive",
+      "idempotent",
+      "no DROP/TRUNCATE",
+      "touches only wp_ir2_* tables"
+    ]
+  },
+  "tests": {
+    "service_integration": {
+      "pass": 28,
+      "fail": 0
+    },
+    "voice_parser_unit": {
+      "pass": 21,
+      "fail": 0
+    },
+    "browser_acceptance": {
+      "pass": 26,
+      "fail": 0,
+      "workflows": 26
+    },
+    "habitat_4_2_regression": {
+      "pass": 69,
+      "total": 69
+    },
+    "static_checks": {
+      "pass": 8,
+      "fail": 0
+    }
+  },
+  "known_limitations": {
+    "blockers": [],
+    "non_blocking": [
+      "Online payments require Revolut Merchant keys in config.local.php; until then checkout is refused with a clear message and plans are granted manually by an administrator (no fake success). Apple App Store / Google Play: notification endpoint and data model prepared, nothing is granted until store receipt verification is configured.",
+      "Speech recognition uses the browser Web Speech API (Chrome/Edge/Safari, needs network on most platforms); where it is unavailable the same dialogue works through the typed command field. Text-to-speech uses the voices installed on the device.",
+      "Camera QR scanning requires HTTPS (browser rule); BarcodeDetector is used where available, jsQR otherwise; manual code entry always works.",
+      "Habitat Studio 3D needs WebGL 2; Czech UI is applied by a translation layer — rare diagnostic strings (renderer statistics) stay technical.",
+      "Existing accounts start on the FREE plan (10 active animals) unless a subscription or manual grant exists; animals above the limit become read-only, nothing is deleted.",
+      "Home Assistant integration is intentionally out of scope; the old connector page was removed from the runtime (its DB rows are kept) and stable device/port ids are kept in Habitat for later."
+    ]
+  },
+  "source_archives": [
+    "web_app-manager_2026-09-28-212601.zip",
+    "ireptilescz6002(20260927-155307).sql",
+    "HABITAT_STUDIO_4_2_ROOM_EVOLUTION_COMPLETE.zip",
+    "IR_MANAGER_OBSIDIAN_EVOLUTION_PREVIEW_HOSTING_READY.zip",
+    "IR_MANAGER_FEEDING_LIVE_DEMO.zip",
+    "IR_MANAGER_ENTERPRISE_BETA_1_0_RC1_OSTRY_TEST.zip (reference only, not used as base)"
+  ]
+}

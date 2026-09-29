@@ -58,7 +58,7 @@ const RULES = [
   [/^app-manager\/assets\/css\//, 'ui: stylesheets'], [/^app-manager\/assets\/js\//, 'ui: scripts'], [/^app-manager\/assets\/fonts?\//, 'ui: fonts'],
   [/^app-manager\/uploads\//, 'scaffolding: upload folders (deny-all .htaccess)'], [/^app-manager\/migrations\//, 'db: migration runner'],
   [/^app-manager\/includes\//, 'server: services / includes'], [/(^|\/)\.htaccess$/, 'server: access rules'],
-  [/^app-manager\/(manifest\.webmanifest|sw\.js|offline\.html)$/, 'pwa'], [/^app-manager\/config\.local\.example\.php$/, 'config template (no secrets)'],
+  [/^app-manager\/(manifest\.webmanifest|sw\.js|offline\.html)$/, 'pwa'], [/^app-manager\/(favicon[-0-9]*\.(png|ico)|apple-touch-icon\.png)$/, 'pwa: favicons / touch icon'], [/^app-manager\/config\.local\.example\.php$/, 'config template (no secrets)'],
   [/^app-manager\/[^/]+\.php$/, 'server: pages / endpoints'], [/^app-manager\/assets\//, 'ui: other assets'],
 ];
 const list = fs.readFileSync(path.join(dist, '.filelist'), 'utf8').trim().split('\n'); fs.unlinkSync(path.join(dist, '.filelist'));

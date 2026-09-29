@@ -48,6 +48,8 @@ async function login(page, user = USER, pass = PASS) {
   await Promise.all([page.waitForNavigation(), page.locator('input[name=heslo]').press('Enter')]);
   ok(!page.url().includes('auth.php'), 'login failed for ' + user);
 }
+// a save shows a toast and then reloads the page 0.5 s later: accept either, the DB assertions prove the result
+const saved = (p) => Promise.race([p.waitForSelector('.b1-toast', { state: 'attached', timeout: 15000 }), p.waitForNavigation({ timeout: 15000 })]).then(() => p.waitForLoadState('load'));
 const clean = (page, where) => { ok(!page.errors.length, `${where}: JS errors: ${page.errors.slice(0, 3).join(' | ')}`); ok(!page.bad.length, `${where}: failed requests: ${page.bad.slice(0, 3).join(' | ')}`); };
 
 console.log('IR Manager BETA 1.0 FINAL — acceptance on ' + B + ' (' + DB + ')');
@@ -171,7 +173,7 @@ await test('A08', 'Group feeding session: per-member results in ONE batch, mini-
   const rows = await page.$$('.b1-gs-row'); ok(rows.length === cards, 'session rows = members');
   await rows[0].$eval('[data-r=eaten]', (e) => e.click()); await rows[1].$eval('[data-r=refused]', (e) => e.click());
   await page.fill('.b1-sheet [name=when]', new Date(Date.now() - 86400000 * 2 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
-  await page.click('[data-save]'); await page.waitForSelector('.b1-toast');
+  await page.click('[data-save]'); await saved(page); await page.waitForTimeout(800);
   const batch = sql(`SELECT CONCAT(pocet,'|',souhrn_json) FROM wp_ir2_event_batches WHERE user_id=1 AND skupina_id=${g[0]} ORDER BY vytvoreno DESC LIMIT 1`);
   ok(new RegExp('^' + cards + '\\|').test(batch) && /"refused":1/.test(batch), 'one batch: ' + batch);
   const distinct = +sql(`SELECT COUNT(DISTINCT zvire_id) FROM wp_ir2_pece WHERE davka_id=(SELECT id FROM wp_ir2_event_batches WHERE user_id=1 AND skupina_id=${g[0]} ORDER BY vytvoreno DESC LIMIT 1)`);
@@ -209,7 +211,7 @@ await test('A10', 'QR scanner with a real camera stream (fake device) → jsQR f
   await p.waitForSelector('.b1-qr-result [data-a=feed]', { timeout: 20000 });
   const name = await p.textContent('.b1-qr-result .b1-feed-head b'); ok(name.length > 2, 'scanned animal shown');
   await p.screenshot({ path: path.join(SHOTS, 'A10_qr_scanned.png') }); ev('shots/A10_qr_scanned.png');
-  await p.click('[data-a=feed]'); await p.click('[data-res=not_fed]'); await p.click('[data-save]'); await p.waitForSelector('.b1-toast');
+  await p.click('[data-a=feed]'); await p.click('[data-res=not_fed]'); await p.click('[data-save]'); await saved(p); await p.waitForTimeout(800);
   ok(sql("SELECT CONCAT(zvire_id,'|',vysledek,'|',zdroj) FROM wp_ir2_pece WHERE user_id=1 ORDER BY id DESC LIMIT 1") === '6|not_fed|qr', 'record via QR');
   ok(!p.errors.length, 'no JS errors: ' + p.errors.join('|')); await cam.close();
   if (dialogs.length) { ok(dialogs.every((m) => /Zapsat přesto/.test(m)), 'only the duplicate question was asked: ' + dialogs.join('|')); ev('animal already fed today (A06) → duplicate question confirmed → second record written'); }
