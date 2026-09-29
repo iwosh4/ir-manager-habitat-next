@@ -82,7 +82,7 @@ Upravené:
   * `tools/asset-pipeline/build-planner-atlas.mjs`, `tools/build-thumbnails.mjs`
   * `schema/habitat-room.schema.json`: v3
 * **Testy a dokumentace**
-  * `tests/run-e2e.mjs`: 21 nových testů
+  * `tests/run-e2e.mjs`: 20 nových testů
   * `README.md`, `ARCHITECTURE.md`, `DATA_MODEL.md`
 
 ## 3. Jak funguje systém stěn a kamery
@@ -175,9 +175,34 @@ Podrobně v `DATA_MODEL.md` (sekce Version 3), schéma je v `schema/habitat-room
 ## 8. Výsledky testů
 
 Sada `tests/run-e2e.mjs` (Playwright, Chromium se softwarovým rendererem SwiftShader, bez GPU) má 49 testů
-z verze 4.1 a 21 nových testů pro 4.2. Samotné nové testy spustíte `ONLY='^4\.2' node tests/run-e2e.mjs`.
+z verze 4.1 a 20 nových testů pro 4.2. Samotné nové testy spustíte `ONLY='^4\.2' node tests/run-e2e.mjs`.
 
-__TEST_RESULTS__
+**Výsledek finálního běhu: 69 / 69 testů prošlo** (49 regresních testů 4.1 + 20 nových testů 4.2), bez chyb v konzoli. Log: `tests/last-run-4_2.txt`, JSON: `tests/last-run.json`.
+
+Nové testy 4.2:
+
+* ✓ 4.2 new room + resize; no ceiling in Planner and Showcase (scene lighting stays)
+* ✓ 4.2 free camera: fit room, fit selection, corner presets, assembly view, reset
+* ✓ 4.2 camera-aware walls: AUTO lowers the near walls to a footprint; ALL / CUTAWAY / FOOTPRINT / HIDE
+* ✓ 4.2 per-wall surfaces (paint, cladding, accent), floor and skirting via the Properties panel
+* ✓ 4.2 doors: interior / sliding / glazed sit in the wall, hinge + open state
+* ✓ 4.2 window + blinds NONE / Venetian / Roller: Planner and Showcase draw the SAME window
+* ✓ 4.2 furniture: corner table arms, table resize, wall shelves, plants, incubator BLACK, wintering BLACK
+* ✓ 4.2 catalog UX: 14 categories, search "pump" / "black" / "zimoviště", filters, thumbnails
+* ✓ 4.2 technical device: stable deviceId, catalogue ports, create a user port in the Properties panel
+* ✓ 4.2 TECH PLAN: MIST / WATER / DRAIN / IN-WALL routes to a specific enclosure; layers toggle
+* ✓ 4.2 route editor: add route in the UI (type → source → destination), waypoints add / drag / snap / delete
+* ✓ 4.2 misting circuit: SOLENOID → circuit → enclosures (name, ID, source, destinations, note, enabled)
+* ✓ 4.2 clean normal views: Planner / Showcase show only VISIBLE routes (no in-wall, hidden, arrows or ports)
+* ✓ 4.2 save / reload: routes, circuits, device ports, surfaces and new objects restored
+* ✓ 4.2 export / import JSON keeps the network (version 3)
+* ✓ 4.2 compatibility: a 4.1 (v2) room loads with safe defaults — ids, sizes and objects unchanged
+* ✓ 4.2 modes & editors: Planner ↔ Showcase ↔ Tech Plan keep the document; Assembly Builder and Enclosure Designer open
+* ✓ 4.2 Enclosure Designer: animal reference Snake / Lizard / Spider — adjustable, not saved, no collisions
+* ✓ 4.2 undo / redo: surfaces, routes and procedural props
+* ✓ 4.2 performance: Planner / Tech Plan / Showcase with the extended catalogue + network
+
+Pokrytí zadání: nová místnost, změna rozměrů, volná kamera, AUTO cutaway, bez stropu, povrch jednotlivých stěn, podlaha · dveře, okno, žaluzie NONE / Venetian / Roller, shoda okna v Planneru a Showcase · rohový stůl, změna velikosti stolu, nástěnné police, několik rostlin, inkubátor BLACK, zimoviště BLACK · technické zařízení, vytvoření portu, trasy MIST / WATER / DRAIN / IN WALL, přepínání vrstev, trasa ke konkrétnímu teráriu, uložení / znovunačtení / všechny trasy zpět · Planner, Showcase, Tech Plan, Assembly Builder, Enclosure Designer · zvíře Snake, Lizard, Spider · undo / redo · regrese 4.1.
 
 Úpravy testů 4.1 byly nutné kvůli záměrným změnám:
 
@@ -185,6 +210,20 @@ __TEST_RESULTS__
 * **JSON export.** Dokument má verzi 3, test nyní vyžaduje `version >= 2` a pole `network.routes`.
 
 Kvůli testům 4.1 se nesnižovala žádná jiná kontrola.
+
+Během regresního běhu se našly a opravily tři chyby:
+
+1. **Dokončovací snímek ve Showcase.** Animace stěn spouštěla plnohodnotné snímky a na pomalém HW se Showcase neustálil. Nyní se stěny animují interaktivním profilem podle reálného času.
+2. **Počet materiálů v Planneru.** Místo samostatné sady materiálů na každou stěnu je teď jedna sdílená sada, jejíž materiály se vytvářejí až při použití (výšky všech stěn ve `vec4`). Materiálů je tak méně než 10, jak vyžaduje test 4.1.
+3. **Latentní chyba 4.1 v Assembly Builderu.** Snímek naplánovaný přes `requestAnimationFrame` se vykreslil po zavření dialogu. Nyní se po zavření zruší.
+
+Screenshoty: `docs/screenshots/4.2/`
+* 01–03: Planner, stěny podle kamery a režim footprint
+* 04–05: Tech Plan a editor tras
+* 06: Showcase
+* 07–08: stejné okno ve Showcase a Planneru (bez žaluzií / venetian / roleta)
+* 09: hledání v katalogu
+* 10: referenční zvíře
 
 ## 9. Výkon Planner / Showcase / Tech Plan
 
@@ -194,9 +233,9 @@ reprezentativní** pro skutečnou GPU. Směrodatné jsou draw cally a trojúheln
 
 | Režim | Draw calls | Trojúhelníky | Poznámka |
 |---|---|---|---|
-| PLANNER | __P_DRAWS__ | __P_TRIS__ | statický batching: všechny procedurální objekty se slijí do ≤ 5 materiálových bucketů; bez světel, stínů a postprocessingu; viditelné trasy 1 mesh na trasu |
-| TECH PLAN | __T_DRAWS__ | __T_TRIS__ | Planner + 1 mesh na trasu (trubka, šipky, klouby sloučené) + instancované porty (1 draw na druh) + body trasy |
-| SHOWCASE | __S_DRAWS__ | __S_TRIS__ | PBR, stíny, GTAO, bloom; procedurální typy sdílejí geometrii s Plannerem |
+| PLANNER | 27 | 45 288 | statický batching: všechny procedurální objekty se slijí do ≤ 5 materiálových bucketů; bez světel, stínů a postprocessingu; viditelné trasy 1 mesh na trasu |
+| TECH PLAN | 45 | 74 572 | Planner + 1 mesh na trasu (trubka, šipky, klouby sloučené) + instancované porty (1 draw na druh) + body trasy |
+| SHOWCASE | 136 | 184 188 | PBR, stíny, GTAO, bloom; procedurální typy sdílejí geometrii s Plannerem |
 
 * **Sdílení.** Geometrie procedurálních modelů se cachuje podle klíče (typ, rozměr, props), takže identické objekty sdílejí jednu sadu. Materiály jsou sdílené (5 painted shaderů v Planneru, 1 materiál na druh trasy).
 * **Lazy loading.** Showcase se stáhne až při prvním přepnutí (test 4.1 „Planner starts without loading the realistic pipeline“ prochází).

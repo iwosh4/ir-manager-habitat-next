@@ -96,6 +96,8 @@ export class AssemblyBuilder {
     window.removeEventListener('keydown', this._key, true);
     window.removeEventListener('pointermove', this._pm); window.removeEventListener('pointerup', this._pu);
     this._ro.disconnect();
+    if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+    clearTimeout(this._pt);
     this.stage.setParts([]); this.stage.unmount();
     this.el.remove(); this.el = null;
     if (this.app.modal === this) this.app.modal = this._prevModal || null;
@@ -394,6 +396,7 @@ export class AssemblyBuilder {
   }
 
   _paint() {
+    if (!this.el) return; // closed before the scheduled frame
     const g = this.ctx2d, v = this.view, dpr = this.dpr;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#101113'; g.fillRect(0, 0, this.cw, this.ch);

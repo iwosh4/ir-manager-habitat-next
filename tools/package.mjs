@@ -10,7 +10,7 @@ const out = path.resolve(process.argv[2] || path.join(ROOT, 'dist', 'habitat-stu
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.rmSync(out, { force: true });
 const include = ['index.html', 'README.md', 'ARCHITECTURE.md', 'ASSET_LICENSES.md', 'PERFORMANCE.md', 'STYLIZED_RENDERER.md', 'ENCLOSURE_BUILDER.md', 'ASSEMBLY_BUILDER.md', 'DATA_MODEL.md', 'TEST_REPORT.md', 'PHASE_4_1_FINAL_REPORT.md', 'HABITAT_STUDIO_4_2_REPORT.md', '.htaccess', 'package.json', 'package-lock.json', '.gitignore', 'docs',
-  'src', 'assets', 'data', 'schema', 'vendor', 'tools', 'tests/run-e2e.mjs', 'tests/benchmark.mjs', 'tests/stress.mjs', 'tests/assembly-perf.mjs'];
+  'src', 'assets', 'data', 'schema', 'vendor', 'tools', 'tests/run-e2e.mjs', 'tests/last-run-4_2.txt', 'tests/benchmark.mjs', 'tests/stress.mjs', 'tests/assembly-perf.mjs'];
 const prefix = 'habitat-studio-next';
 const stage = fs.mkdtempSync(path.join(fs.realpathSync(process.env.TMPDIR || '/tmp'), 'pkg-'));
 fs.mkdirSync(path.join(stage, prefix));

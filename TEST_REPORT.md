@@ -130,3 +130,14 @@ draw calls, triangles and memory are the meaningful numbers. Raw output: `docs/a
 * The auto frame adds its profiles to the overall dimensions (reported both ways).
 * Pieces may be placed floating (allowed; the frame carries them).
 * All measurements are from a software rasteriser; no real-GPU numbers could be taken in this container.
+
+## Habitat Studio 4.2
+
+`node tests/run-e2e.mjs` — **69 / 69 passed** (49 regression tests from 4.1 + 20 new 4.2 tests), no console errors.
+New tests cover: no ceiling, free camera presets, camera-aware walls (AUTO/ALL/CUTAWAY/FOOTPRINT/HIDE, animated),
+per-wall surfaces / floor / skirting, door types, window blinds NONE / Venetian / Roller with the same model in
+Planner and Showcase, corner table / resize / shelves / plants / BLACK incubator and wintering, catalogue search and
+filters, device ports and user ports, Tech Plan routes (mist / water / drain / in-wall) to a specific enclosure,
+layers, route editor (UI workflow, waypoint add / drag / snap / delete), circuits, clean normal views, save / reload,
+export v3, v2 compatibility, mode switching + builder / designer, animal reference, undo / redo and performance.
+Details and numbers: `HABITAT_STUDIO_4_2_REPORT.md`; run only these with `ONLY='^4\.2' node tests/run-e2e.mjs`.

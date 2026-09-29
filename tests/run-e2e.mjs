@@ -987,9 +987,15 @@ await test('4.2 camera-aware walls: AUTO lowers the near walls to a footprint; A
   await ev(() => window.habitat.setWallMode('cutaway'));
   await waitWalls(() => { const c = window.habitat.walls.current, H = window.habitat.editor.room.height; return c.south === 0 && c.west === 0 && c.north === H && c.east === H; });
   await ev(() => window.habitat.setWallMode('auto'));
-  // transitions are animated (eased over several frames, not a jump)
-  const steps = await ev(async () => { const h = window.habitat; h.setView('corner_right', { instant: true }); h.rig.goTo('corner_right', { instant: true }); const seen = new Set(); for (let i = 0; i < 12; i++) { await new Promise((r) => requestAnimationFrame(r)); seen.add(h.walls.current.east.toFixed(2)); } return seen.size; });
-  assert(steps >= 3, `animated wall transition (${steps} distinct heights)`);
+  // transitions are animated: eased over ≈ 220 ms of real time (deterministic check with 16 ms steps)
+  const steps = await ev(async () => {
+    const { WallVisibility } = await import('/src/scene/WallVisibility.js'); const T = await import('three');
+    const wv = new WallVisibility(), room = window.habitat.editor.room, tgt = new T.Vector3(0, 0.5, 0);
+    wv.update(room, new T.Vector3(-8, 4, 7), tgt, 1000);                     // corner left: south & west low
+    const seen = []; for (let t = 1016; t <= 1600; t += 16) seen.push(wv.update(room, new T.Vector3(8, 4, 7), tgt, t).clips.west); // swing to corner right: west rises
+    return { distinct: new Set(seen.map((v) => v.toFixed(2))).size, first: seen[0], last: seen[seen.length - 1], H: room.height };
+  });
+  assert(steps.distinct >= 6 && steps.first < steps.H * 0.5 && steps.last === steps.H, `animated wall transition (${JSON.stringify(steps)})`);
 });
 
 await test('4.2 per-wall surfaces (paint, cladding, accent), floor and skirting via the Properties panel', async () => {
