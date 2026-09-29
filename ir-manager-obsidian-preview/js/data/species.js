@@ -41,7 +41,7 @@ export const SPECIES = {
     img: 'python-regius', tint: '#b88838',
     env: { day: [28, 30], basking: [31, 33], night: [24, 26], rh: [55, 70] },
     feeding: { feeder: 'Myš (adult, mraž.)', every: 10, time: [19, 0], qty: '1 ks', rotation: ['—'] },
-    repro: { kind: 'eggs', clutch: [4, 10], incubation: [55, 60], temp: '31.5–32 °C', preLayShed: [18, 25], layAfterShed: [25, 35], note: 'Ovulation → pre-lay shed ~18–25 d; laying ~25–35 d after the shed; incubation 55–60 d at 31.5–32 °C.' },
+    repro: { kind: 'eggs', clutch: [4, 10], incubation: [55, 60], temp: '31.5–32 °C', preLayShed: [18, 25], layAfterShed: [25, 35], note: 'Ovulace → předsnůškový svlek ~18–25 dní; snůška ~25–35 dní po svleku; inkubace 55–60 dní při 31,5–32 °C.' },
   },
   'atheris-squamigera': {
     latin: 'Atheris squamigera', common: 'Křovinář proměnlivý', cz: 'Křovinář proměnlivý', cls: 'Reptilia', order: 'Squamata', family: 'Viperidae',

@@ -41,7 +41,7 @@ body.sb-c #app { grid-template-columns: var(--sb-w-c) minmax(0, 1fr); }
 .sb-studio span { flex: 1; display: grid; line-height: 1.2; } .sb-studio b { font-size: 12.5px; } .sb-studio i { font-style: normal; font-size: 11px; color: var(--tx-4); }
 .sb-studio .gl { width: 15px; height: 15px; color: var(--tx-4); transition: transform var(--t-fast); }
 .sb-studio:hover { border-color: var(--am-line); } .sb-studio:hover .gl { transform: translateX(2px); color: var(--am-2); }
-.sb-collapse { position: absolute; right: -15px; top: 86px; background: #0b1115; border: 1px solid var(--line-2) !important; border-radius: 50% !important; z-index: 3; }
+.sb-collapse { position: absolute; right: -15px; top: calc(var(--hd-h) - 15px); background: #0b1115; border: 1px solid var(--line-2) !important; border-radius: 50% !important; z-index: 3; }
 body.sb-c .sb-collapse .gl { transform: rotate(180deg); }
 body.sb-c .sb-brand { justify-content: center; padding: 0; } body.sb-c .sb-brand span, body.sb-c .sb-item span, body.sb-c .sb-badge, body.sb-c .sb-subs, body.sb-c .sb-item kbd, body.sb-c .sb-studio span, body.sb-c .sb-studio .gl { display: none !important; }
 body.sb-c .sb-item { justify-content: center; padding: 0; } body.sb-c .sb-studio { justify-content: center; padding: 6px; } body.sb-c .sb-studio img { width: 40px; height: 32px; }
@@ -50,7 +50,7 @@ body.sb-c .sb-item { justify-content: center; padding: 0; } body.sb-c .sb-studio
 .hd { position: relative; z-index: 30; display: flex; align-items: center; gap: 10px; padding: 0 0 0 var(--gut); background: linear-gradient(180deg, #080c0f 0%, #05080a 100%); border-bottom: 1px solid var(--line); overflow: hidden; }
 .hd::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(242, 139, 40, .55) 30%, rgba(255, 157, 63, .7) 60%, rgba(242, 139, 40, .15) 100%); pointer-events: none; }
 .hd::before { content: ''; position: absolute; inset: 0; background: radial-gradient(600px 90px at 70% 120%, rgba(242, 139, 40, .06), transparent 70%); pointer-events: none; }
-.hd-mbrand, .hd-mtitle, .hd-m { display: none; }
+.hd-mbrand, .hd-mtitle, .hd-icon.hd-m { display: none; }
 .hd-actions { display: flex; gap: 8px; flex: none; }
 .hd-rec { display: inline-flex; align-items: center; gap: 9px; height: 46px; padding: 0 14px 0 9px; border-radius: 13px; border: 1px solid #c56a17; background: linear-gradient(180deg, rgba(150, 70, 8, .9), rgba(72, 32, 5, .95)); color: #fff; font-weight: 750; font-size: 14px; box-shadow: 0 0 24px rgba(242, 139, 40, .18), inset 0 1px 0 rgba(255, 190, 120, .2); transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast), border-color var(--t-fast); }
 .hd-rec .hd-rec-ico { width: 30px; height: 30px; transition: transform var(--t) var(--ease-out); }
@@ -74,7 +74,7 @@ body.sb-c .sb-item { justify-content: center; padding: 0; } body.sb-c .sb-studio
 @keyframes wave { 0%, 100% { height: 25%; } 50% { height: 95%; } }
 .hd-tool.processing .hd-gl { animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.hd-search { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 10px 0 11px; border-radius: 13px; border: 1px solid rgba(242, 139, 40, .3); background: linear-gradient(180deg, rgba(10, 16, 19, .96), rgba(7, 11, 14, .96)); color: var(--tx-4); font-size: 14px; text-align: left; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .02); transition: border-color var(--t-fast), box-shadow var(--t-fast); }
+.hd-search { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 10px 0 11px; border-radius: 13px; border: 1px solid rgba(242, 139, 40, .3); background: linear-gradient(180deg, rgba(10, 16, 19, .96), rgba(7, 11, 14, .96)); color: var(--tx-4); font-size: 14px; text-align: left; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .02); transition: border-color var(--t-fast), box-shadow var(--t-fast); }
 .hd-search .hd-sico { width: 28px; height: 28px; }
 .hd-search span { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .hd-search:hover { border-color: var(--am-edge); box-shadow: 0 0 0 3px rgba(242, 139, 40, .07), 0 0 24px rgba(242, 139, 40, .08); color: var(--tx-3); }

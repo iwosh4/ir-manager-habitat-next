@@ -60,7 +60,7 @@ function completeOne(db, it, opts, nowTs) {
   }
   if (it.src === 'followup') {
     const h = db.health.find((x) => x.id === it.health);
-    const r = { id: rid(), t, type: 'health', subject: it.subject, data: { health: h?.id, title: `Follow-up — ${h?.title}`, severity: 'info', note: opts.note || 'Checked' }, source: opts.source || 'planner', by: 'you', occId: it.id };
+    const r = { id: rid(), t, type: 'health', subject: it.subject, data: { health: h?.id, title: `Kontrola — ${h?.title}`, severity: 'info', note: opts.note || 'Zkontrolováno' }, source: opts.source || 'planner', by: 'you', occId: it.id };
     db.records.push(r); db.occ[it.id] = { status: 'done', at: t, recordId: r.id };
     return r;
   }
@@ -170,7 +170,7 @@ export function quickRecord(type, subjects, data = {}) {
       }
       if (type === 'weight' && data.g != null) { const a = d.animals.find((x) => x.id === s); if (a) a.weightG = data.g; }
       if (type === 'health' && data.title) { const h = { id: rid('h'), t: r.t, animal: s, kind: data.kind || 'observation', title: data.title, severity: data.severity || 'info', notes: data.note || '', resolved: false, followUp: data.followUp || null, attachments: data.attachments || [], vet: data.vet || null, diagnosis: data.diagnosis || '' }; d.health.unshift(h); r.data.health = h.id; }
-      if (type === 'repro' && data.cycle) { const cy = d.cycles.find((c) => c.id === data.cycle); if (cy) cy.events.push({ t: r.t, type: data.kind || 'note', label: data.label || 'Event' }); }
+      if (type === 'repro' && data.cycle) { const cy = d.cycles.find((c) => c.id === data.cycle); if (cy) cy.events.push({ t: r.t, type: data.kind || 'note', label: data.label || 'Událost' }); }
       d.records.push(r); out.push(r);
     }
     d.records.sort((a, b) => a.t - b.t);
@@ -198,6 +198,6 @@ export function deleteTask(id) { store.mutate('Úkol smazán', (db) => { const k
 export function setOccOverride(id, patch) { store.mutate('Termín upraven', (db) => { db.occ[id] = { ...(db.occ[id] || {}), ...patch }; }); }
 
 // ------------------------------------------------------------------ inventory helpers used by widgets / tools
-export function adjustStock(itemId, delta, reason = 'Inventura') { store.mutate(`${delta > 0 ? 'Přidáno' : 'Odebráno'} stock`, (db) => stockMove(db, itemId, delta, reason, null)); }
+export function adjustStock(itemId, delta, reason = 'Inventura') { store.mutate(`${delta > 0 ? 'Naskladněno' : 'Vyskladněno'}`, (db) => stockMove(db, itemId, delta, reason, null)); }
 export function setStock(itemId, qty) { store.mutate('Inventura', (db) => { const it = db.inventory.find((x) => x.id === itemId); if (!it) return; stockMove(db, itemId, qty - it.qty, 'Inventura', null); }); }
 export const todayKey = () => dayKey(Date.now());

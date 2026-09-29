@@ -63,7 +63,7 @@ function seedHistory(d) {
   const occ = occurrences(d, from, nowTs + 1).sort((a, b) => a.due - b.due);
   for (const o of occ) {
     const isToday = o.due >= T0;
-    if (isToday && o.due > nowTs - 2 * 60 * 60e3) continue; // the last two hours stay open ("now")
+    if (isToday && o.due > nowTs - 60 * 60e3) continue; // poslední hodina zůstává otevřená („teď“)
     if (o.plan.id === 'p_weight_a_msp04' && o.due > T0 - 3 * DAY) { keepOpen.add(o.id); continue; }
     if (o.plan.id === 'p_clean_e_q1' && o.due > T0 - 3 * DAY) { keepOpen.add(o.id); continue; }
     if (o.plan.id === 'p_water_a_pl02' && o.due > T0 - 2 * DAY) { keepOpen.add(o.id); continue; }

@@ -25,7 +25,7 @@ export function buildTimeline(db, { from, to, nowTs = Date.now(), includeHistory
     const status = statusOf(o.st, o.t, nowTs);
     const it = { id: o.id, src: 'occ', kind: 'occ', type: p.type, t: o.t, due: o.due, status, planId: p.id, subject: p.subject, subjectKind: p.subjectKind || 'animal', sub: s,
       title: p.title || TYPE[p.type]?.label || p.type, origin: p.auto ? 'auto' : 'care-plan', group: p.group ? `${p.group}@${o.t}` : null,
-      why: `Vytvořeno z: ${p.protocol || 'plán péče'} · every ${p.every === 1 ? 'day' : `${p.every} dní`}${p.times.length > 1 ? ` · ${p.times.map(([h, m]) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`).join(', ')}` : ''}${p.auto ? ` · provádí ${p.auto}` : ''}`,
+      why: `Vytvořeno z: ${p.protocol || 'plán péče'} · ${p.every === 1 ? 'každý den' : `každé ${p.every} dny`}${p.times.length > 1 ? ` · ${p.times.map(([h, m]) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`).join(', ')}` : ''}${p.auto ? ` · provádí ${p.auto}` : ''}`,
       postponed: o.st?.status === 'postponed', recordId: o.st?.recordId, doneAt: o.st?.at, note: o.st?.note };
     if (p.type === 'feeding') {
       const rs = rotationState(db, p); it.meta = { feeder: p.feeder, qty: p.qty, supplement: status === 'done' ? db.records.find((r) => r.id === o.st?.recordId)?.data?.supplement : rs.next, rotation: rs, refused: db.records.find((r) => r.id === o.st?.recordId)?.data?.refused };

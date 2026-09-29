@@ -21,7 +21,8 @@ export function liveMessages(db = store.get(), nowTs = Date.now()) {
   const todayOpen = open.filter((i) => i.t < sod + DAY);
   const doneToday = db.records.filter((r) => r.t >= sod && r.by === 'you').length + Object.values(db.occ).filter((o) => o.status === 'done' && o.at >= sod && o.by !== 'you').length;
   // PRIORITY
-  if (overdue.length) out.push({ prio: true, icon: 'status-warning', text: `${overdue.length} ${overdue.length === 1 ? 'úkol' : overdue.length < 5 ? 'úkoly' : 'úkolů'} po termínu`, detail: overdue.slice(0, 3).map((i) => `${TYPE[i.type]?.label || 'Úkol'}${i.sub?.code ? ` ${i.sub.code}` : ''}`).join(' · '), href: '#/ukoly/dnes' });
+  const odG = groupItems(overdue);
+  if (odG.length) out.push({ prio: true, icon: 'status-warning', text: `${odG.length} ${odG.length === 1 ? 'úkol' : odG.length < 5 ? 'úkoly' : 'úkolů'} po termínu`, detail: odG.slice(0, 3).map((i) => i.kind === 'group' ? `${TYPE[i.type]?.label} ×${i.items.length}` : `${TYPE[i.type]?.label || 'Úkol'}${i.sub?.code ? ` ${i.sub.code}` : ''}`).join(' · '), href: '#/ukoly/dnes' });
   const alert = db.health.find((h) => !h.resolved && h.followUp && h.followUp < nowTs);
   if (alert) { const a = db.animals.find((x) => x.id === alert.animal); out.push({ prio: true, icon: 'health', text: `Zdravotní kontrola po termínu · ${a?.code}`, detail: alert.title, href: `#/zvirata/karta/${alert.animal}?sekce=zdravi` }); }
   // NORMAL stream
