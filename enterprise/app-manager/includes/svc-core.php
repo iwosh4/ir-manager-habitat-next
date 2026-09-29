@@ -197,11 +197,11 @@ function ir_qr_payload(PDO $pdo, string $kind, int $accountId, int $id): string 
 /** Resolve a scanned code to an entity of THIS account (never another account's data). */
 function ir_qr_resolve(PDO $pdo, int $accountId, string $code): ?array {
     $code = trim($code);
-    if (preg_match('~[?&]code=([^&]+)~', $code, $m)) $code = urldecode($m[1]);
+    if (preg_match('~[?&]code=([^&#]+)~', $code, $m)) $code = urldecode($m[1]);
     $code = strtoupper(trim($code));
-    $kind = null; $col = null; $val = null;
-    if (preg_match('~^IR:(A|E):([A-Z0-9]{6,24})$~', $code, $m)) { $kind = $m[1] === 'A' ? 'animal' : 'enclosure'; $col = 'qr_token'; $val = $m[2]; }
-    elseif (preg_match('~^IR:(ANIMAL|ENCLOSURE|HABITAT|UBIKACE):(\d+)(?::[A-Z]+)?$~', $code, $m)) { $kind = $m[1] === 'ANIMAL' ? 'animal' : 'enclosure'; $col = 'id'; $val = (int)$m[2]; }
+    $kind = null; $col = null; $val = null; $action = '';
+    if (preg_match('~^IR:(A|E):([A-Z0-9]{6,24})(?::([A-Z]+))?$~', $code, $m)) { $kind = $m[1] === 'A' ? 'animal' : 'enclosure'; $col = 'qr_token'; $val = $m[2]; $action = $m[3] ?? ''; }
+    elseif (preg_match('~^IR:(ANIMAL|ZVIRE|ENCLOSURE|HABITAT|UBIKACE|CAGE):(\d+)(?::([A-Z]+))?$~', $code, $m)) { $kind = in_array($m[1], ['ANIMAL', 'ZVIRE'], true) ? 'animal' : 'enclosure'; $col = 'id'; $val = (int)$m[2]; $action = $m[3] ?? ''; }
     elseif (preg_match('~^(A|E)[0-9A-F]{14}$~', $code)) { $kind = $code[0] === 'A' ? 'animal' : 'enclosure'; $col = 'qr_token'; $val = $code; }
     if (!$kind) return null;
     $table = $kind === 'animal' ? 'wp_ir2_zvirata' : 'wp_ir2_ubikace';
@@ -209,7 +209,7 @@ function ir_qr_resolve(PDO $pdo, int $accountId, string $code): ?array {
     $q = $pdo->prepare("SELECT * FROM `$table` WHERE user_id=? AND `$col`=? LIMIT 1");
     $q->execute([$accountId, $val]);
     $row = $q->fetch();
-    return $row ? ['kind' => $kind, 'id' => (int)$row['id'], 'row' => $row] : null;
+    return $row ? ['kind' => $kind, 'id' => (int)$row['id'], 'row' => $row, 'action' => $action] : null;
 }
 
 // ---------------------------------------------------------------------------------------------- JSON API helpers

@@ -9,6 +9,7 @@ require __DIR__.'/includes/config.php';
 require_once __DIR__.'/includes/reptile_core.php';
 
 if (empty($_SESSION['user_id'])) ir_json(['ok' => false, 'error' => 'auth', 'message' => 'Přihlaste se znovu.'], 401);
+require_once __DIR__.'/includes/live.php'; // photo URL helper
 $uid = ir_current_user_id();
 $action = (string)($_GET['a'] ?? '');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -82,8 +83,8 @@ try {
             $r = ir_qr_resolve($pdo, $uid, (string)$req('code', ''));
             if (!$r) ir_json(['ok' => false, 'error' => 'not_found', 'message' => 'Kód nepatří k žádnému zvířeti ani ubikaci tohoto účtu.'], 404);
             $row = $r['row'];
-            $out = ['ok' => true, 'kind' => $r['kind'], 'id' => $r['id'], 'name' => (string)($row['jmeno_kod'] ?? $row['nazev'] ?? ''), 'url' => $r['kind'] === 'animal' ? 'animal.php?id='.$r['id'] : 'habitats.php?view=overview&id='.$r['id']];
-            if ($r['kind'] === 'animal') { $out['species'] = (string)($row['druh'] ?? ''); $out['latin'] = (string)($row['latinsky_nazev'] ?? ''); $out['locked'] = ir_animal_is_locked($pdo, $uid, $r['id']); }
+            $out = ['ok' => true, 'kind' => $r['kind'], 'id' => $r['id'], 'action' => $r['action'] ?? '', 'photo' => $r['kind'] === 'animal' && function_exists('ir_asset_photo_url') ? ir_asset_photo_url((string)($row['foto'] ?? '')) : '', 'name' => (string)($row['jmeno_kod'] ?? $row['nazev'] ?? ''), 'url' => $r['kind'] === 'animal' ? 'animal.php?id='.$r['id'] : 'habitats.php?view=overview&id='.$r['id']];
+            if ($r['kind'] === 'animal') { $out['species'] = (string)($row['druh'] ?? ''); $out['latin'] = (string)($row['latinsky_nazev'] ?? ''); $out['locked'] = ir_animal_is_locked($pdo, $uid, $r['id']); $out['appetite'] = ir_appetite($pdo, $uid, $row); $out['shed'] = ir_shed_estimate($pdo, $uid, $row); $out['feed'] = (string)($row['potrava'] ?? ''); $out['archived'] = !empty($row['archivovano']); }
             else { $st = $pdo->prepare('SELECT id, jmeno_kod FROM wp_ir2_zvirata z WHERE z.user_id=? AND z.ubikace_id=? AND '.ir_status_active_sql('z')); $st->execute([$uid, $r['id']]); $out['animals'] = $st->fetchAll() ?: []; }
             ir_json($out);
         }
@@ -97,8 +98,16 @@ try {
         }
         case 'voice.vocabulary': {
             ir_require_perm('read');
-            $st = $pdo->prepare('SELECT id, jmeno_kod FROM wp_ir2_zvirata z WHERE z.user_id=? AND '.ir_status_active_sql('z')); $st->execute([$uid]);
-            ir_json(['ok' => true, 'taxa' => ir_taxon_vocabulary($pdo, $uid), 'animals' => $st->fetchAll() ?: []]);
+            $st = $pdo->prepare("SELECT z.id, z.animal_id AS code, z.jmeno_kod AS name, z.latinsky_nazev AS latin, z.druh AS species, z.potrava AS feed, COALESCE(z.pohlavi,'') AS sex, u.nazev AS enclosure FROM wp_ir2_zvirata z LEFT JOIN wp_ir2_ubikace u ON u.id=z.ubikace_id AND u.user_id=z.user_id WHERE z.user_id=? AND ".ir_status_active_sql('z')." ORDER BY z.jmeno_kod");
+            $st->execute([$uid]); $animals = $st->fetchAll() ?: [];
+            if (ir_table_exists($pdo, 'wp_ir2_voice_aliases')) {
+                $al = $pdo->prepare('SELECT zvire_id, alias FROM wp_ir2_voice_aliases WHERE user_id=?'); $al->execute([$uid]);
+                $by = []; foreach ($al->fetchAll() ?: [] as $r) $by[(int)$r['zvire_id']][] = (string)$r['alias'];
+                foreach ($animals as &$a) $a['aliases'] = $by[(int)$a['id']] ?? []; unset($a);
+            }
+            $g = ir_table_exists($pdo, 'wp_ir2_skupiny') ? $pdo->prepare("SELECT id, nazev AS name FROM wp_ir2_skupiny WHERE user_id=? AND status='Aktivní'") : null;
+            $groups = []; if ($g) { $g->execute([$uid]); $groups = $g->fetchAll() ?: []; }
+            ir_json(['ok' => true, 'animals' => $animals, 'groups' => $groups, 'taxa' => ir_taxon_vocabulary($pdo, $uid)]);
         }
         // ------------------------------------------------------------------------------------------ enclosures
         case 'enclosures.clone': {
@@ -132,7 +141,7 @@ try {
         }
         case 'files.delete': { $mut('delete'); ir_file_delete($pdo, $uid, (int)$req('id', 0)); ir_json(['ok' => true]); }
         // ------------------------------------------------------------------------------------------ system
-        case 'live.summary': { ir_require_perm('read'); ir_json(['ok' => true] + ir_live_summary($pdo, $uid)); }
+        case 'live.summary': { ir_require_perm('read'); $s = ir_live_summary($pdo, $uid); ir_json(['ok' => true] + $s + ['messages' => ir_live_messages($s)]); }
         case 'integrity': { ir_require_perm('export'); ir_json(['ok' => true] + ir_integrity_report($pdo, $uid)); }
         case 'ping': ir_json(['ok' => true, 'version' => IR_APP_VERSION, 'time' => date('c')]);
         default: ir_json(['ok' => false, 'error' => 'unknown_action'], 404);

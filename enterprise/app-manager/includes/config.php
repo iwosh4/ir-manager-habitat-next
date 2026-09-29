@@ -73,7 +73,7 @@ function ir_verify_csrf(): void {
 function ir_logged_in(): bool { return !empty($_SESSION['user_id']); }
 function ir_current_user_id(): int { return (int)($_SESSION['user_id']??0); }
 function ir_current_user_name(): string { return (string)($_SESSION['user_name']??''); }
-function ir_require_login(): void { if(!ir_logged_in()) ir_redirect('auth.php'); }
+function ir_require_login(): void { if(ir_logged_in()) return; if(defined('IR_API')){http_response_code(401);header('Content-Type: application/json; charset=utf-8');echo '{"ok":false,"error":"auth","message":"Přihlaste se znovu."}';exit;} ir_redirect('auth.php'); }
 
 if (!function_exists('e')) { function e(?string $v): string { return ir_e($v); } }
 if (!function_exists('redirect')) { function redirect(string $u): never { ir_redirect($u); } }

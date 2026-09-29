@@ -78,7 +78,8 @@ function ir_event_record_tx(PDO $pdo, int $uid, array $e): int {
     if ($type === 'Nekrmeno' && !in_array($result, ['in_shed', 'not_fed'], true)) $result = 'not_fed';
     if ($type === 'Svlek') $result = in_array($e['shed'] ?? $result, ['observed', 'completed'], true) ? (string)($e['shed'] ?? $result) : 'completed';
     if ($type === '') throw new RuntimeException('Chybí typ aktivity.');
-    $ts = strtotime((string)($e['performed_at'] ?? 'now'));
+    $when = trim((string)($e['performed_at'] ?? ''));
+    $ts = strtotime($when === '' ? 'now' : $when);
     if (!$ts) throw new RuntimeException('Neplatné datum.');
     $performed = date('Y-m-d H:i:s', $ts);
     if (substr($performed, 0, 10) > date('Y-m-d')) throw new RuntimeException('Záznam nemůže být v budoucnosti — budoucí práci naplánujte v Plánovači.');

@@ -127,30 +127,34 @@ function ir_render_header_profile(): void {
 }
 
 function ir_render_fixed_header(): void {
-    global $ir_stats;
+    global $pdo;
+    $live = [];
+    try { $live = ir_live_messages(ir_live_summary($pdo, ir_current_user_id())); } catch (Throwable $e) { error_log('IR live strip: '.$e->getMessage()); }
+    $unread = (int)ir_scalar($pdo, 'SELECT COUNT(*) FROM wp_ir2_notifikace WHERE user_id=? AND precteno=0', [ir_current_user_id()], 0);
     ?>
-    <header class="global-header">
-      <div class="header-caiman" aria-hidden="true"><img src="assets/img/caiman-hero.webp" alt=""></div>
-      <div class="global-header-top">
-        <button class="mobile-nav-toggle" type="button" aria-label="Otevřít navigaci" aria-expanded="false" data-mobile-nav><?=ir_icon('menu')?></button>
-        <a class="mobile-brand" href="index.php" aria-label="IR Manager – domů"><img src="assets/img/ir-logo-mark.webp" alt=""><span><strong>IR MANAGER</strong><small><span data-live-date><?=ir_e(date('d.m.Y'))?></span><b data-live-clock><?=ir_e(date('H:i'))?></b></small></span></a>
-        <div class="mobile-header-tools" aria-label="Mobilní nástroje"><a href="search.php" aria-label="Vyhledávání"><?=ir_visual_icon('search')?></a><a href="voice.php" aria-label="Hlasový asistent"><?=ir_icon('mic')?></a></div>
-        <div class="header-action-cluster" aria-label="Rychlé akce">
-          <a class="header-action is-primary" href="quick.php" aria-label="Přidat záznam" title="Přidat záznam"><?=ir_visual_icon('quick-add')?><span>Přidat záznam</span></a>
-          <a class="header-action" href="scan.php" aria-label="Skenovat QR" title="Skenovat QR"><?=ir_visual_icon('scan')?><span>Skenovat QR</span></a>
-          <a class="header-action" href="voice.php" aria-label="Hlasový vstup" title="Hlasový vstup"><?=ir_icon('mic')?><span>Hlasový vstup</span></a>
-        </div>
-        <form class="global-search" action="search.php" method="get"><?=ir_visual_icon('search')?><input name="q" placeholder="Hledat zvíře, druh, ubikaci, úkol…" autocomplete="off"><kbd>Ctrl + K</kbd></form>
-        <div class="header-datetime" aria-label="Datum a čas"><span class="header-date" data-live-date><?=ir_e(date('d.m.Y'))?></span><strong class="header-time" data-live-clock><?=ir_e(date('H:i'))?></strong></div>
-        <div class="notification-wrap">
-          <button type="button" class="header-notification" data-notification-toggle aria-label="Oznámení" aria-expanded="false" aria-controls="notification-panel">
-            <?=ir_visual_icon('notification')?>
-            <?php $unread=(int)ir_scalar($GLOBALS['pdo'],'SELECT COUNT(*) FROM wp_ir2_notifikace WHERE user_id=? AND precteno=0',[ir_current_user_id()],0); ?>
-            <span class="notification-badge" <?=$unread?'':'hidden'?>><?=$unread>99?'99+':$unread?></span>
-          </button>
+    <header class="global-header b1-hd" data-csrf="<?=ir_e(ir_csrf_token())?>">
+      <div class="b1-hd-row">
+        <button class="mobile-nav-toggle b1-hd-burger" type="button" aria-label="Otevřít navigaci" aria-expanded="false" data-mobile-nav><?=ir_icon('menu')?></button>
+        <a class="mobile-brand b1-hd-brand" href="index.php" aria-label="IR Manager – domů"><img src="assets/img/ir-logo-mark.webp" alt=""><span><strong>IR MANAGER</strong><small>TERARISTIKA</small></span></a>
+        <nav class="b1-hd-actions" aria-label="Rychlé akce">
+          <a class="b1-hd-rec" href="quick.php" data-quick-record title="Rychlý záznam (R)"><?=ir_visual_icon('quick-add')?><span>Rychlý záznam</span></a>
+          <a class="b1-hd-tool" href="scan.php" data-qr-open title="Skenovat QR (Q)"><?=ir_visual_icon('scan')?><span>QR</span></a>
+          <a class="b1-hd-tool" href="voice.php" data-voice-open title="Hlasové ovládání (V)"><?=ir_icon('mic')?><span>Hlas</span></a>
+        </nav>
+        <form class="global-search b1-hd-search" action="search.php" method="get" role="search"><?=ir_visual_icon('search')?><input name="q" placeholder="Hledat zvíře, druh, ubikaci, úkol…" autocomplete="off" aria-label="Hledat"><kbd>Ctrl K</kbd></form>
+        <div class="notification-wrap b1-hd-bell">
+          <button type="button" class="header-notification" data-notification-toggle aria-label="Oznámení" aria-expanded="false" aria-controls="notification-panel"><?=ir_visual_icon('notification')?><span class="notification-badge" <?=$unread ? '' : 'hidden'?>><?=$unread > 99 ? '99+' : $unread?></span></button>
           <section id="notification-panel" class="notification-panel panel" data-notification-panel data-csrf="<?=ir_e(ir_csrf_token())?>" hidden><header><strong>Oznámení</strong><button type="button" data-notification-refresh>Obnovit</button></header><div data-notification-list aria-live="polite"></div></section>
         </div>
-        <div class="global-header-account"><?php ir_render_header_profile(); ?></div>
+        <div class="global-header-account b1-hd-profile"><?php ir_render_header_profile(); ?></div>
+        <a class="b1-hd-croc" href="index.php" aria-label="IR Manager"><img src="assets/img/caiman-hero.webp" alt="" loading="eager" decoding="async"></a>
+        <div class="mobile-header-tools b1-hd-mtools" aria-label="Mobilní nástroje"><a href="scan.php" data-qr-open aria-label="Skenovat QR"><?=ir_visual_icon('scan')?></a><a href="voice.php" data-voice-open aria-label="Hlasové ovládání"><?=ir_icon('mic')?></a><a href="search.php" aria-label="Vyhledávání"><?=ir_visual_icon('search')?></a></div>
+      </div>
+      <div class="b1-live" data-live data-live-messages="<?=ir_e(json_encode($live, JSON_UNESCAPED_UNICODE))?>" role="region" aria-label="Živé informace z chovu">
+        <span class="b1-live-tag"><i class="b1-live-dot"></i>ŽIVĚ</span>
+        <div class="b1-live-track" aria-live="polite"><?php if ($live): $f = $live[0]; ?><a class="b1-live-msg <?=!empty($f['prio']) ? 'prio' : ''?>" href="<?=ir_e($f['href'])?>"><?=ir_visual_icon($f['icon'])?><b><?=ir_e($f['text'])?></b><span><?=ir_e($f['detail'])?></span></a><?php endif ?></div>
+        <span class="b1-live-count" data-live-count><?=$live ? '1/'.count($live) : ''?></span>
+        <div class="b1-live-ctl"><button type="button" data-live-prev aria-label="Předchozí zpráva"><?=ir_icon('chevron-left')?></button><button type="button" data-live-pause aria-label="Pozastavit" aria-pressed="false"><span class="b1-i-pause" aria-hidden="true"></span></button><button type="button" data-live-next aria-label="Další zpráva"><?=ir_icon('chevron-right')?></button></div>
       </div>
     </header>
     <?php
@@ -174,7 +178,7 @@ function ir_page_start(string $title,string $active='dashboard',string $eyebrow=
     <title><?=ir_e($title)?> · IR Manager</title>
     <link rel="icon" href="favicon.ico" sizes="any"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="assets/css/core.css?v=65.0">
-    <link rel="stylesheet" href="assets/css/workspace.css?v=65.0"><link rel="stylesheet" href="assets/css/compact.css?v=65.0"><link rel="stylesheet" href="assets/css/visual-lock.css?v=65.0"><link rel="stylesheet" href="assets/css/premium-ui.css?v=65.0"><link rel="stylesheet" href="assets/css/lock063.css?v=65.0"><link rel="stylesheet" href="assets/css/lock064.css?v=65.0"><link rel="stylesheet" href="assets/css/security065.css?v=65.0"><link rel="stylesheet" href="assets/css/beta1.css?v=b1.0"></head><body data-active-module="<?=ir_e($active)?>"><div class="app-shell"><?php ir_render_sidebar($active); ?><div class="app-stage"><?php ir_render_fixed_header(); ir_render_mobile_bottom_nav($active); ?><main class="app-main" data-page-title="<?=ir_e($title)?>" data-module="<?=ir_e($active)?>">
+    <link rel="stylesheet" href="assets/css/workspace.css?v=65.0"><link rel="stylesheet" href="assets/css/compact.css?v=65.0"><link rel="stylesheet" href="assets/css/visual-lock.css?v=65.0"><link rel="stylesheet" href="assets/css/premium-ui.css?v=65.0"><link rel="stylesheet" href="assets/css/lock063.css?v=65.0"><link rel="stylesheet" href="assets/css/lock064.css?v=65.0"><link rel="stylesheet" href="assets/css/security065.css?v=65.0"><link rel="stylesheet" href="assets/css/beta1.css?v=<?=@filemtime(IR_ROOT.'/assets/css/beta1.css')?>"></head><body data-active-module="<?=ir_e($active)?>"><div class="app-shell"><?php ir_render_sidebar($active); ?><div class="app-stage"><?php ir_render_fixed_header(); ir_render_mobile_bottom_nav($active); ?><main class="app-main" data-page-title="<?=ir_e($title)?>" data-module="<?=ir_e($active)?>">
     <?php
     $module=basename((string)($_SERVER['SCRIPT_NAME']??''),'.php');
     foreach(ir_pull_flashes() as $flash)echo '<div class="flash '.ir_e((string)$flash['type']).'" role="status">'.ir_e((string)$flash['message']).'</div>';
@@ -192,7 +196,7 @@ function ir_page_start(string $title,string $active='dashboard',string $eyebrow=
 
 function ir_page_end(): void {
     ?></main><footer class="app-footer"><span>IR Manager · Teraristika</span><span><?=ir_e(IR_APP_VERSION)?></span></footer></div></div>
-    <script src="assets/js/core.js?v=65.0"></script><script src="assets/js/notifications.js?v=65.0"></script><script src="assets/js/workspace.js?v=65.0"></script><script src="assets/js/tables.js?v=65.0"></script><script src="assets/js/premium-ui.js?v=65.0"></script></body></html><?php
+    <script src="assets/js/core.js?v=65.0"></script><script src="assets/js/notifications.js?v=65.0"></script><script src="assets/js/workspace.js?v=65.0"></script><script src="assets/js/tables.js?v=65.0"></script><script src="assets/js/premium-ui.js?v=65.0"></script><script src="assets/js/beta1.js?v=<?=@filemtime(IR_ROOT.'/assets/js/beta1.js')?>"></script><script src="assets/js/voice-core.js?v=<?=@filemtime(IR_ROOT.'/assets/js/voice-core.js')?>" defer></script><script src="assets/js/voice-hf.js?v=<?=@filemtime(IR_ROOT.'/assets/js/voice-hf.js')?>" defer></script></body></html><?php
 }
 
 function ir_back(string $href,string $label='Zpět'): string { return '<a class="back-link" href="'.ir_e($href).'">'.ir_icon('chevron-left').'<span>'.ir_e($label).'</span></a>'; }

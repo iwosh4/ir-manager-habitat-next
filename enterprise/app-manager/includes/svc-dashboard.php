@@ -44,3 +44,21 @@ function ir_live_summary(PDO $pdo, int $uid): array {
     $s['generated_at'] = date('c');
     return $s;
 }
+
+/** LIVE strip messages from real account data (one message at a time in the UI). */
+function ir_live_messages(array $s): array {
+    $pl = static fn(int $n, string $one, string $few, string $many) => $n === 1 ? $one : ($n >= 2 && $n <= 4 ? $few : $many);
+    $m = [];
+    if ($s['tasks_overdue'] > 0) $m[] = ['prio' => true, 'icon' => 'status-warning', 'text' => $s['tasks_overdue'].' '.$pl($s['tasks_overdue'], 'úkol', 'úkoly', 'úkolů').' po termínu', 'detail' => 'otevřít plánovač', 'href' => 'tasks.php'];
+    foreach (array_slice($s['appetite_alerts'], 0, 2) as $a) $m[] = ['prio' => true, 'icon' => 'feeding', 'text' => $a['name'].' · '.$a['refusals'].'× odmítnutí za sebou', 'detail' => 'zkontrolovat chuť k jídlu', 'href' => 'animal.php?id='.$a['id']];
+    $m[] = ['icon' => 'tasks', 'text' => $s['tasks_today'].' '.$pl($s['tasks_today'], 'úkol', 'úkoly', 'úkolů').' dnes', 'detail' => $s['done_today'] ? $s['done_today'].' '.$pl($s['done_today'], 'záznam', 'záznamy', 'záznamů').' už zapsáno' : 'zatím nic nezapsáno', 'href' => 'tasks.php'];
+    if ($s['fed_today'] || $s['refused_today']) $m[] = ['icon' => 'feeding', 'text' => 'Krmení dnes · '.$s['fed_today'].' snědlo', 'detail' => $s['refused_today'] ? $s['refused_today'].' odmítlo' : 'bez odmítnutí', 'href' => 'activities.php'];
+    if ($s['shed_window'] > 0) $m[] = ['icon' => 'shedding', 'text' => $s['shed_window'].' '.$pl($s['shed_window'], 'zvíře', 'zvířata', 'zvířat').' v okně svlékání', 'detail' => 'krmení může být odmítnuto', 'href' => 'animals.php'];
+    if ($s['incubating'] > 0) $m[] = ['icon' => 'reproduction', 'text' => 'Inkubace · '.$s['incubating'].' '.$pl($s['incubating'], 'snůška', 'snůšky', 'snůšek'), 'detail' => 'reprodukce', 'href' => 'clutches.php'];
+    elseif ($s['repro_active'] > 0) $m[] = ['icon' => 'reproduction', 'text' => $s['repro_active'].' '.$pl($s['repro_active'], 'aktivní reprodukční cyklus', 'aktivní reprodukční cykly', 'aktivních reprodukčních cyklů'), 'detail' => 'reprodukce', 'href' => 'clutches.php'];
+    if ($s['health_open'] > 0) $m[] = ['icon' => 'health', 'text' => $s['health_open'].' '.$pl($s['health_open'], 'otevřený zdravotní záznam', 'otevřené zdravotní záznamy', 'otevřených zdravotních záznamů'), 'detail' => 'zdraví', 'href' => 'health.php'];
+    if ($s['low_stock'] > 0) $m[] = ['icon' => 'inventory', 'text' => 'Nízký stav skladu · '.$s['low_stock'].' '.$pl($s['low_stock'], 'položka', 'položky', 'položek'), 'detail' => 'přidat do nákupu', 'href' => 'inventory.php'];
+    if (!empty($s['last_event'])) $m[] = ['icon' => 'care', 'text' => 'Poslední záznam · '.$s['last_event']['typ'].($s['last_event']['jmeno_kod'] ? ' · '.$s['last_event']['jmeno_kod'] : ''), 'detail' => ir_human_day(substr((string)$s['last_event']['datum'], 0, 10)).' '.substr((string)$s['last_event']['datum'], 11, 5), 'href' => 'activities.php'];
+    $m[] = ['icon' => 'animals', 'text' => $s['animals'].' '.$pl($s['animals'], 'zvíře', 'zvířata', 'zvířat').' · '.$s['groups'].' '.$pl($s['groups'], 'skupina', 'skupiny', 'skupin').' · '.$s['enclosures'].' '.$pl($s['enclosures'], 'ubikace', 'ubikace', 'ubikací'), 'detail' => 'přehled chovu', 'href' => 'animals.php'];
+    return $m;
+}

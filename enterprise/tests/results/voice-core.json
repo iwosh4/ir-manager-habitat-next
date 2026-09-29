@@ -1,0 +1,91 @@
+{
+  "date": "2026-09-29T15:41:30.533Z",
+  "pass": 21,
+  "fail": 0,
+  "results": [
+    {
+      "name": "CZ: \"Python regius snědl\" → feeding, eaten, Latin match",
+      "ok": true
+    },
+    {
+      "name": "CZ abbreviated Latin: \"P. regius odmítl potravu\" → refused",
+      "ok": true
+    },
+    {
+      "name": "CZ alias: \"Pastelka je ve svleku\" → in_shed",
+      "ok": true
+    },
+    {
+      "name": "CZ: \"Morelia spilota nekrmeno\" → not_fed",
+      "ok": true
+    },
+    {
+      "name": "Recogniser misspelling: \"Morelija spilóta snědla\" still matches",
+      "ok": true
+    },
+    {
+      "name": "Ambiguous shared Latin → candidates, never a guess",
+      "ok": true
+    },
+    {
+      "name": "Disambiguation by code: \"Atheris squamigera jedna lomeno dvacet šest\" is not solved by words → still asks; \"1/26\" solves",
+      "ok": true
+    },
+    {
+      "name": "Choose from candidates: \"druhá\" → index 1",
+      "ok": true
+    },
+    {
+      "name": "Weighing with Czech number words: \"Poecilotheria regalis vážení sto dvacet gramů\" → 120 g",
+      "ok": true
+    },
+    {
+      "name": "Weighing decimal digits: \"zvážit Furcifer pardalis 12,5 g\"",
+      "ok": true
+    },
+    {
+      "name": "Czech common name: \"chameleon pardálí rosení\"",
+      "ok": true
+    },
+    {
+      "name": "EN: \"Correlophus ciliatus ate two crickets\" → eaten, value 2",
+      "ok": true
+    },
+    {
+      "name": "EN: \"ball python refused\" with alias-less Latin still by genus when unique",
+      "ok": true
+    },
+    {
+      "name": "DE: \"Morelia spilota hat verweigert\" → refused",
+      "ok": true
+    },
+    {
+      "name": "DE: \"Lampropeltis californiae eins Strich zwei gefressen\" → needs code; ambiguous without it",
+      "ok": true
+    },
+    {
+      "name": "DE numbers: \"Poecilotheria regalis wiegen zweiundzwanzig\" → 22",
+      "ok": true
+    },
+    {
+      "name": "Confirmation words CZ/EN/DE",
+      "ok": true
+    },
+    {
+      "name": "Commands: zrušit / repeat / wiederholen / konec",
+      "ok": true
+    },
+    {
+      "name": "Correction: \"oprav, odmítl\" → correct intent with result",
+      "ok": true
+    },
+    {
+      "name": "Unknown speech → unknown (no fabricated record)",
+      "ok": true
+    },
+    {
+      "name": "Summary TTS text CZ",
+      "ok": true
+    }
+  ]
+}
