@@ -95,6 +95,7 @@ export class RoomShell {
       const body = new THREE.Mesh(geo, [this._surface('paint', { color: paintCol, finish: wd.finish }, wall), this._capMat(wall)]);
       body.castShadow = true; body.receiveShadow = true; body.name = `wall-${wall}`;
       g.add(body);
+      g.geometry = body.geometry; // 4.1 API: shell.walls[wall].geometry is the wall body (openings cut)
       if (surf.family === 'cladding') this._cladding(g, wd, surf, f.length, top, ops, wall);
       // skirting
       if (sk !== 'none') {

@@ -264,7 +264,7 @@ export class App {
       }
       const wallsMoving = this._updateCutaway();
       const rendered = this.mode.frame(now);
-      if (wallsMoving) this.engine.invalidate(); // walls still easing towards their camera-aware height
+      if (wallsMoving) this.engine.interact(); // walls easing: cheap interactive frames, the final frame follows once settled
       if (rendered) {
         this.labels.render(this.scene, this.rig.camera);
         const dt = now - lastFrame; lastFrame = now;

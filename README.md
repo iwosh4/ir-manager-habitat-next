@@ -11,6 +11,11 @@ breeding walls / racks by dragging them together in a Tetris-like front elevatio
 **MY ASSEMBLIES**) and drag a finished assembly into the room as one structure — every enclosure inside
 keeps its own id. See **ENCLOSURE_BUILDER.md**, **ASSEMBLY_BUILDER.md**, **DATA_MODEL.md**, **TEST_REPORT.md**.
 
+**Habitat Studio 4.2** (see **HABITAT_STUDIO_4_2_REPORT.md**): no ceiling, free camera with fit / corner presets,
+camera-aware walls (AUTO · ALL · CUTAWAY · FOOTPRINT · HIDE), per-wall paints and claddings, floors, attic wall
+profiles, one shared procedural window model (blinds NONE / venetian / roller), door types, an extended catalogue
+of 90 items in 14 categories, and the **TECH PLAN** mode for water, misting, drainage, electrical and sensor networks.
+
 This is a greenfield prototype meant to be integrated into IR Manager (PHP/MySQL) **after** visual
 review. It has no server-side dependencies: it runs from any static web server.
 
@@ -44,6 +49,7 @@ reset.
 |---|---|---|
 | **PLANNER** (default) | stylised hand-painted renderer: painted atlas + 5 tiny shader materials, painted light, no real-time lights / shadow maps / post chain; ≈20 draw calls for the whole room | toolbar **PLANNER** · `?mode=planner` |
 | **SHOWCASE** | the approved realistic renderer (GLB + PBR + HDRI + shadows + GTAO + bloom), downloaded and compiled the first time you switch | toolbar **SHOWCASE** · `?mode=showcase` |
+| **TECH PLAN** (4.2) | the Planner with the room subdued and the technical network on top: routes coloured by type with flow arrows, in-wall runs highlighted, ports, circuits, route editor, layers ROOM · ENCLOSURES · WATER · MISTING · DRAINAGE · ELECTRICAL · SENSORS | toolbar **TECH PLAN** · **T** · `?mode=techplan` |
 
 Both render the same `RoomDocument`: switching never changes the room, ids, transforms, selection or undo
 history, and export/import is identical in both. The diagnostics panel (**I**) has **Compare Showcase ↔
@@ -60,16 +66,21 @@ GPU-synchronised timings, draw calls, triangles, materials and textures. Details
 | Rotate | drag the ring handle (15° steps, Shift = free) · **R** / **Shift+R** = ±90° · Inspector |
 | Duplicate / delete | **Ctrl+D** / **Del** (animal IDs are auto-incremented on duplicates) |
 | Focus selection | **F** or double-click |
-| Views | toolbar at the top-right of the viewport, or keys **1** top · **2** front · **3** left · **4** right · **5** isometric · **6** eye-level interior · **0** reset |
+| Views | toolbar at the top-right of the viewport, or keys **1** top · **2** front · **3** left · **4** right · **5** isometric · **6** eye-level interior · **7 / 8** left / right corner · **9** fit room · **0** reset; **F** fit selection; assembly button = frontal view of the selection |
+| Free camera | orbit / pan / zoom with the mouse, **W A S D** pan, **Q / E** orbit, double-click focuses |
+| Walls | camera-aware by default (**AUTO**: far walls full, the wall in front of the camera drops to an 18 cm footprint); HUD wall button or **V** cycles ALL WALLS · CUTAWAY · WALL FOOTPRINT · HIDE WALLS |
+| Room surfaces | deselect (Esc) → Properties: per-wall surface (paint colour, smooth / fine plaster, claddings incl. wood slats and black technical panel, wainscot height), wall profile (full / low / sloped attic wall), floor, skirting, corner trims |
 | Add objects | click a library item then click in the room (**R** rotates the preview, **Esc** cancels) — or drag it from the library into the viewport |
-| Doors & windows | drag along walls; they cut real openings; wall, offset and sill height in the Inspector |
+| Doors & windows | drag along walls; they cut real openings; wall, offset and sill height in the Inspector; doors: type, hinge side, open, decor, frame; windows: glass, frame, blinds (none / venetian / roller, open amount, slat angle, inside / outside) |
+| Library | search by name, tag or colour (“pump”, “black”, “zimoviště”), category filter, **Ports / Wall / Floor** filters |
+| Technical network | **TECH PLAN**: **+ Route** (type, mode) → click the source port → the destination port (or choose them in the panel) → automatic path along the walls; drag the white waypoints (Shift = vertical, Alt = no snap), double-click the route to add one, **Del** removes it; circuits generate routes to their enclosures; **Load example network** builds RO tank → pump → filter → manifold → solenoid → misting circuit + drainage |
 | Room size | deselect (Esc) and edit width / depth / height / wall thickness in the Inspector |
 | Undo / redo | **Ctrl+Z** / **Ctrl+Y** |
 | Export / import | toolbar: **Export JSON** (Ctrl+S) · **Import JSON** (Ctrl+O) |
 | Lighting | Day / Evening / Night (night = enclosure lighting only) |
 | Quality | **Auto** (default, adapts to the measured frame time) · Ultra / High / Balanced / Fast manual overrides. While you orbit / pan / zoom / drag, a lighter *interactive* profile is drawn; the full-quality frame returns ≈ 0.2 s after you stop |
 | Diagnostics | click the stats line (bottom-right) or press **I**: renderer, FPS, frame time, draw calls, triangles, render scale, interactive/final mode, batches, materials/textures, light pool (Showcase), GPU · **Compare Showcase ↔ Planner** for the current camera |
-| Render mode | **PLANNER** / **SHOWCASE** selector at the left of the toolbar |
+| Render mode | **PLANNER** / **SHOWCASE** / **TECH PLAN** selector at the left of the toolbar |
 | Panels / fullscreen | **[** library · **]** inspector · **F11** fullscreen (viewport becomes the whole screen) |
 
 ### Custom enclosures & assemblies
@@ -81,6 +92,7 @@ GPU-synchronised timings, draw calls, triangles, materials and textures. Details
 | Build an assembly | **MY ASSEMBLIES → + Create**: drag enclosures, cabinets, shelves, technical compartments and reserved spaces into the front elevation; they snap magnetically (green = fits, red = collision); Delete · Ctrl+D · arrows (Shift ×10) · Ctrl+Z/Y; **Save to My Assemblies** |
 | Place an assembly | click or drag a MY ASSEMBLIES card into the room; it moves / rotates / collides as one structure |
 | Enter an assembly | double-click it (or **Enter** / Inspector **Enter assembly**): now single enclosures can be selected, inspected, replaced, removed or opened in the designer; **Esc** goes back up |
+| Animal reference | Enclosure Designer → **Animal reference**: snake, lizard, gecko, chameleon, turtle, frog, spider / tarantula, scorpion, insect with adjustable size — a scale check only (not saved, never collides) |
 
 Enclosures have **Occupied** and **Lighting** switches: occupied enclosures are lit and show their animal,
 empty ones go dark and quiet. Species and animal ID are printed on the enclosure's label.

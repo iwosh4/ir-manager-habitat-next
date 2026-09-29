@@ -14,7 +14,7 @@ import { rbox, flat, heightfield } from './geometry.js';
  *    light oak, dark wood, walnut, wood slats, decorative panel, black technical panel), full height or as a
  *    wainscot, plus skirting and corner trims
  *  · wall PROFILE (full · low · sloped top) for attic rooms
- *  · camera-aware walls: each wall owns a clipped material set; `setClips()` lowers it to any height and
+ *  · camera-aware walls: one clipped material set (per-wall heights in a vec4); `setClips()` lowers a wall and
  *    shows a capped top edge (the wall footprint line), without rebuilding geometry
  */
 export class PlannerShell {
@@ -48,7 +48,7 @@ export class PlannerShell {
     this.floor = floor;
     this.group.add(floor);
 
-    // ---- walls (one mesh group each; clipped material set per wall)
+    // ---- walls (one mesh group each; shared clipped material set)
     const sk = room.details?.skirting || 'black';
     for (const wall of WALLS) {
       const f = wallFrame(room, wall);
@@ -74,11 +74,11 @@ export class PlannerShell {
       // corner trims (inner vertical corners)
       if (room.details?.corners !== false) for (const c of [0, f.length]) wb.add(rbox(0.018, top(c) - 0.1, 0.018, 0.004), 'metal_dark', { pos: [c + (c ? -0.009 : 0.009), 0.1 + (top(c) - 0.1) / 2, 0.009], color: SKIRTING_TINT[sk === 'none' ? 'black' : sk].map((v) => v * 0.9) });
       const g = wb.build(`wall-${wall}`);
-      const clipSet = M.clipped(`wall-${wall}`);
+      const clipSet = M.clipped();
       g.traverse((o) => { if (o.isMesh) { o.userData.batchable = false; o.material = clipSet[o.userData.bucket] || o.material; } });
       g.position.set(f.start.x - W / 2, 0, f.start.z - D / 2);
       g.rotation.y = Math.atan2(-f.dir.z, f.dir.x);
-      g.userData.clip = clipSet.clip;
+      g.userData.clip = { get value() { return clipSet.clip4.value.getComponent(WALLS.indexOf(wall)); } }; // 4.1-style accessor (N,E,S,W)
       this.walls[wall] = g;
       this.group.add(g);
 
@@ -146,10 +146,12 @@ export class PlannerShell {
    * walls clipped at ~0 remain as a footprint line on the floor.
    */
   setClips(clips, room) {
+    const set = this.mats.clipped();
+    set.half.value.set(room.width / 2, room.depth / 2);
     for (const w of WALLS) {
       const g = this.walls[w], cap = this.caps[w]; if (!g) continue;
       const h = clips[w] ?? room.height;
-      g.userData.clip.value = h >= room.height - 0.004 ? 1e6 : h;
+      set.clip4.value.setComponent(WALLS.indexOf(w), h >= room.height - 0.004 ? 1e6 : h);
       g.visible = h > 0.004;
       if (cap) { cap.visible = h < room.height - 0.02; cap.position.y = Math.max(0.006, h); }
     }

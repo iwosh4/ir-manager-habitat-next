@@ -98,13 +98,14 @@ await test('GLB loading (all catalogue models load, materials bound)', async () 
     const h = window.habitat; const out = { failures: [...h.assets.failures.keys()], placeholders: 0, meshes: 0, unbound: 0 };
     for (const v of h.objects.views.values()) {
       if (v.missing) out.placeholders++;
+      if (v.constructor.name === 'PlannerView') { out.procedural = (out.procedural || 0) + 1; continue; } // 4.2: procedural types (door, window, plants…) share the painted kit
       v.visual?.traverse((m) => { if (m.isMesh) { out.meshes++; if (!h.materials.get(m.userData.slot) && !['led_warm', 'led_cool', 'uvb_tube', 'bulb_hot', 'label'].includes(m.userData.slot)) out.unbound++; } });
     }
     return out;
   });
   assert(s.failures.length === 0, 'failed assets: ' + s.failures.join(', '));
   assert(s.placeholders === 0, `${s.placeholders} placeholder visuals`);
-  assert(s.meshes > 200 && s.unbound === 0, `meshes ${s.meshes}, unbound ${s.unbound}`);
+  assert(s.meshes > 150 && s.unbound === 0, `meshes ${s.meshes}, unbound ${s.unbound}`);
 });
 
 await test('missing asset handling (placeholder, logical object intact, no crash)', async () => {
@@ -288,7 +289,7 @@ await test('JSON export (download)', async () => {
   await dl.saveAs(file);
   exported = JSON.parse(fs.readFileSync(file, 'utf8'));
   exported.__file = file;
-  assert(exported.schema === 'ir-manager/habitat-room' && exported.version === 2 && Array.isArray(exported.assemblies) && Array.isArray(exported.enclosures) && Array.isArray(exported.instances), 'schema/version 2 + library arrays');
+  assert(exported.schema === 'ir-manager/habitat-room' && exported.version >= 2 && Array.isArray(exported.network?.routes) && Array.isArray(exported.assemblies) && Array.isArray(exported.enclosures) && Array.isArray(exported.instances), 'schema/version 2+ (4.2: v3 with network) + library arrays');
   assert(Array.isArray(exported.objects) && exported.objects.length > 20, 'objects exported');
   const o = exported.objects[0];
   assert(o.id && o.type && o.position && o.size && 'rotation' in o, 'logical fields present');
@@ -923,6 +924,414 @@ await test('Starting templates: geometry matches their W × D × H (no swapped a
   for (const [k, v] of Object.entries(r)) assert(v.want.every((w, i) => Math.abs(w - v.got[i]) < 0.025), `${k}: W×D×H ${v.want.map((x) => Math.round(x * 100)).join('×')} vs geometry ${v.got.map((x) => (x * 100).toFixed(1)).join('×')}`);
 });
 
+// ============================================================== HABITAT STUDIO 4.2 — ROOM EVOLUTION + TECH PLAN + EXTENDED CATALOG
+const perf42 = {};
+const waitWalls = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 60000 });
+async function fresh42(mode = 'planner') {
+  await ev(async (m) => { const h = window.habitat; if (h.modal) h.modal.close?.(); await h.setRenderMode(m); h.newRoom(); h.setWallMode('auto'); }, mode);
+  await page.waitForFunction((m) => window.habitat.renderMode === m, mode, { timeout: 120000 });
+  await settle(300);
+}
+
+await test('4.2 new room + resize; no ceiling in Planner and Showcase (scene lighting stays)', async () => {
+  await fresh42('planner');
+  const s = await ev(async () => {
+    const h = window.habitat; h.editor.setRoom({ width: 6.2, depth: 4.6, height: 2.8 });
+    const names = []; h.scene.traverse((o) => { if (o.isMesh) names.push(o.name); });
+    const planner = { ceiling: names.filter((n) => /ceiling/i.test(n)).length, walls: Object.keys(h.shell.walls).length, parts: h.shell.ceilingParts.length };
+    await h.setRenderMode('showcase');
+    const sn = []; h.scene.traverse((o) => { if (o.isMesh && o.visible) sn.push(o.name); });
+    const lights = []; h.scene.traverse((o) => { if (o.isLight) lights.push(o.type); });
+    return { planner, showcase: { ceiling: sn.filter((n) => /ceiling/i.test(n)).length, shellCeiling: h.shell.ceiling, lights: lights.length }, room: h.editor.room };
+  });
+  assert(s.room.width === 6.2 && s.room.depth === 4.6 && s.room.height === 2.8, 'room resized');
+  assert(s.planner.ceiling === 0 && s.planner.parts === 0 && s.planner.walls === 4, `planner: ${JSON.stringify(s.planner)}`);
+  assert(s.showcase.ceiling === 0 && !s.showcase.shellCeiling, 'no ceiling mesh in Showcase');
+  assert(s.showcase.lights > 0, 'scene lighting kept');
+});
+
+await test('4.2 free camera: fit room, fit selection, corner presets, assembly view, reset', async () => {
+  await fresh42('planner');
+  const s = await ev(async () => {
+    const h = window.habitat, wait = () => new Promise((r) => { const f = () => (h.rig.animating ? requestAnimationFrame(f) : r()); f(); });
+    const out = {};
+    h.setView('corner_left'); await wait(); out.cl = h.rig.camera.position.toArray();
+    h.setView('corner_right'); await wait(); out.cr = h.rig.camera.position.toArray();
+    h.fitRoom(); await wait(); out.fit = h.rig.controls.target.toArray();
+    const o = h.editor.add('table_straight', { position: { x: 1, z: 1 } }); h.focusSelected(); await wait(); out.sel = h.rig.controls.target.toArray(); out.obj = [o.position.x - 2.5, o.position.z - 2];
+    h.viewAssembly(); await wait(); out.asm = h.rig.controls.target.toArray();
+    h.setView('hero'); await wait(); out.hero = h.rig.camera.position.toArray();
+    out.buttons = ['fit-room', 'focus', 'asm-view', 'walls'].every((a) => !!document.querySelector(`.hud [data-act="${a}"]`)) && !!document.querySelector('.hud [data-view="corner_left"]');
+    return out;
+  });
+  assert(s.cl[0] < -2.5 && s.cl[2] > 2 && s.cr[0] > 2.5 && s.cr[2] > 2, `corner presets outside the two near walls (${s.cl.map((v) => v.toFixed(1))} / ${s.cr.map((v) => v.toFixed(1))})`);
+  assert(Math.hypot(s.fit[0], s.fit[2]) < 0.2, 'fit room centres the room');
+  assert(Math.hypot(s.sel[0] - s.obj[0], s.sel[2] - s.obj[1]) < 0.3, 'fit selection centres the selected table');
+  assert(s.buttons, 'HUD camera buttons');
+});
+
+await test('4.2 camera-aware walls: AUTO lowers the near walls to a footprint; ALL / CUTAWAY / FOOTPRINT / HIDE', async () => {
+  await fresh42('planner');
+  await ev(() => window.habitat.setView('corner_left'));
+  await waitWalls(() => { const c = window.habitat.walls.current; return !window.habitat.rig.animating && c.south < 0.3 && c.west < 0.3; });
+  const auto = await ev(() => ({ ...window.habitat.walls.current, clipS: window.habitat.shell.walls.south.userData.clip.value, cap: window.habitat.shell.caps.south.visible, H: window.habitat.editor.room.height }));
+  assert(auto.north === auto.H && auto.east === auto.H, 'far walls full height');
+  assert(auto.south >= 0.1 && auto.south <= 0.3 && auto.west >= 0.1 && auto.west <= 0.3, `near walls → 10–30 cm footprint (${auto.south}, ${auto.west})`);
+  assert(auto.clipS < 0.31 && auto.cap, 'Planner wall clipped with a visible footprint cap');
+  await page.click('.hud [data-act="walls"]'); await page.click('.hud [data-wall="all"]');
+  await waitWalls(() => Object.values(window.habitat.walls.current).every((v) => v === window.habitat.editor.room.height));
+  await ev(() => window.habitat.setWallMode('footprint'));
+  await waitWalls(() => Object.values(window.habitat.walls.current).every((v) => Math.abs(v - 0.18) < 0.005));
+  await ev(() => window.habitat.setWallMode('hide'));
+  await waitWalls(() => Object.values(window.habitat.walls.current).every((v) => v === 0));
+  await ev(() => window.habitat.setWallMode('cutaway'));
+  await waitWalls(() => { const c = window.habitat.walls.current, H = window.habitat.editor.room.height; return c.south === 0 && c.west === 0 && c.north === H && c.east === H; });
+  await ev(() => window.habitat.setWallMode('auto'));
+  // transitions are animated (eased over several frames, not a jump)
+  const steps = await ev(async () => { const h = window.habitat; h.setView('corner_right', { instant: true }); h.rig.goTo('corner_right', { instant: true }); const seen = new Set(); for (let i = 0; i < 12; i++) { await new Promise((r) => requestAnimationFrame(r)); seen.add(h.walls.current.east.toFixed(2)); } return seen.size; });
+  assert(steps >= 3, `animated wall transition (${steps} distinct heights)`);
+});
+
+await test('4.2 per-wall surfaces (paint, cladding, accent), floor and skirting via the Properties panel', async () => {
+  await fresh42('planner');
+  await ev(() => window.habitat.editor.select(null));
+  await page.click('[data-wall-tab="east"]');
+  await page.selectOption('[data-room="walls.east.surface"]', 'wood_slats');
+  await page.click('[data-wall-tab="north"]');
+  await page.selectOption('[data-room="walls.north.surface"]', 'paint_beige');
+  await page.selectOption('[data-room="walls.north.finish"]', 'plaster');
+  await page.click('[data-wall-tab="west"]'); await page.click('[data-room-act="wall-accent"]');
+  await page.selectOption('[data-room="floor.surface"]', 'tile_dark');
+  await page.selectOption('[data-room="details.skirting"]', 'wood');
+  const s = await ev(() => { const r = window.habitat.editor.room; return { e: r.walls.east.surface, n: r.walls.north, w: r.walls.west.surface, f: r.floor.surface, sk: r.details.skirting, key: window.habitat.shell.key.length > 0 }; });
+  assert(s.e === 'wood_slats' && s.n.surface === 'paint_beige' && s.n.finish === 'plaster' && s.w === 'laminate_black', `walls ${JSON.stringify(s)}`);
+  assert(s.f === 'tile_dark' && s.sk === 'wood', 'floor and skirting');
+  const sc = await ev(async () => { await window.habitat.setRenderMode('showcase'); return { ok: !!window.habitat.shell.walls, key: window.habitat.editor.room.walls.east.surface }; });
+  assert(sc.key === 'wood_slats', 'Showcase uses the same room data');
+});
+
+await test('4.2 doors: interior / sliding / glazed sit in the wall, hinge + open state', async () => {
+  await fresh42('planner');
+  const s = await ev(() => {
+    const h = window.habitat, ed = h.editor, T = ed.room.wallThickness;
+    const a = ed.add('door_interior', { mount: { wall: 'north', offset: 1.2 }, props: { hinge: 'left', open: true } });
+    const b = ed.add('door_sliding', { mount: { wall: 'east', offset: 1.5 } });
+    const c = ed.add('door_glazed', { mount: { wall: 'south', offset: 2.5 } });
+    ed.update(c.id, { props: { decor: 'walnut', frame: 'black' } });
+    const views = [a, b, c].map((o) => h.objects.get(o.id));
+    return { T, a: ed.get(a.id), b: ed.get(b.id), c: ed.get(c.id), keys: views.map((v) => v.key), room: ed.room, cut: h.shell.key.includes(String(a.mount.offset)) };
+  });
+  assert(near(s.a.position.z, s.T / 2, 0.02) || near(s.a.position.z, 0, 0.08), `north door in the wall plane (z ${s.a.position.z})`);
+  assert(near(s.b.position.x, s.room.width - s.T / 2, 0.08) || near(s.b.position.x, s.room.width, 0.1), `east door in the wall plane (x ${s.b.position.x})`);
+  assert(s.a.props.open === true && s.a.props.hinge === 'left' && s.c.props.decor === 'walnut', 'door props');
+  assert(s.keys.every((k) => k && k !== 'missing') && new Set(s.keys).size === 3, 'three distinct procedural door models');
+  assert(s.cut, 'door openings cut into the wall');
+});
+
+await test('4.2 window + blinds NONE / Venetian / Roller: Planner and Showcase draw the SAME window', async () => {
+  await fresh42('planner');
+  const ids = await ev(() => {
+    const ed = window.habitat.editor;
+    return ['none', 'venetian', 'roller'].map((b, i) => ed.add('window_clear', { mount: { wall: 'north', offset: 0.9 + i * 1.5 }, props: { blinds: b, blindsOpen: 40, blindsAngle: 30 } }).id);
+  });
+  const tris = async () => ev((ids) => ids.map((id) => { const v = window.habitat.objects.get(id); let t = 0; v.root.traverse((m) => { if (m.isMesh && m.name !== 'proxy') t += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); return { key: v.key, t, cls: v.constructor.name }; }), ids);
+  const p = await tris();
+  await ev(async () => { await window.habitat.setRenderMode('showcase'); });
+  await page.waitForFunction(() => window.habitat.renderMode === 'showcase');
+  await ev(() => window.habitat.objects.whenLoaded?.());
+  const s = await tris();
+  for (let i = 0; i < 3; i++) assert(p[i].key === s[i].key && p[i].cls === 'PlannerView' && s[i].cls === 'PlannerView', `window ${i}: same model key in both modes`);
+  assert(p[0].t < p[1].t && p[0].t < p[2].t, `NONE has no blind geometry (${p.map((x) => Math.round(x.t)).join(' / ')})`);
+  // switching NONE ↔ venetian in Showcase changes the Showcase model too
+  const k2 = await ev((id) => { const ed = window.habitat.editor; ed.update(id, { props: { blinds: 'venetian' } }); const a = window.habitat.objects.get(id).key; ed.update(id, { props: { blinds: 'none' } }); return [a, window.habitat.objects.get(id).key]; }, ids[0]);
+  assert(k2[0] !== k2[1] && k2[1] === p[0].key, 'Showcase follows blinds NONE');
+  const ui = await ev(async (id) => { await window.habitat.setRenderMode('planner'); window.habitat.editor.select(id); return { blinds: !!document.querySelector('[data-key="props.blinds"]'), open: !!document.querySelector('[data-key="props.blindsOpen"]'), glass: !!document.querySelector('[data-key="props.glass"]') }; }, ids[0]);
+  assert(ui.blinds && ui.glass && !ui.open, 'inspector: glass + blinds; no open-amount slider for NONE');
+});
+
+await test('4.2 furniture: corner table arms, table resize, wall shelves, plants, incubator BLACK, wintering BLACK', async () => {
+  await fresh42('planner');
+  const s = await ev(() => {
+    const h = window.habitat, ed = h.editor;
+    const ct = ed.add('table_corner', { position: { x: 1.2, z: 1.0 } }); const k0 = h.objects.get(ct.id).key;
+    ed.update(ct.id, { props: { armA: 0.9, armB: 0.45 } }); const k1 = h.objects.get(ct.id).key;
+    const t = ed.add('table_straight', { position: { x: 3.2, z: 1.0 } }); ed.update(t.id, { size: { w: 1.8, d: 0.8, h: 0.74 } });
+    const sh = ['shelf_single', 'shelf_double', 'shelf_multi'].map((ty, i) => ed.add(ty, { mount: { wall: 'west', offset: 0.8 + i * 1.1 } }));
+    const pl = ['plant_monstera', 'plant_ficus', 'plant_palm', 'plant_pothos', 'plant_table'].map((ty, i) => ed.add(ty, { position: { x: 0.6 + i * 0.8, z: 3.3 } }));
+    const inc = ed.add('incubator_black', { position: { x: 4.4, z: 3.3 } }), win = ed.add('wintering', { position: { x: 3.6, z: 3.3 } });
+    const all = [ct, t, ...sh, ...pl, inc, win].map((o) => h.objects.get(o.id));
+    return { k0, k1, t: ed.get(t.id).size, tv: h.objects.get(t.id).proxy.scale.toArray(), sh: sh.map((o) => ({ mount: !!ed.get(o.id).mount, el: ed.get(o.id).elevation })), inc: ed.get(inc.id).props.color, win: ed.get(win.id).props.color, missing: all.filter((v) => !v || v.missing).length };
+  });
+  assert(s.k0 !== s.k1, 'corner table rebuilt from its arm dimensions');
+  assert(near(s.t.w, 1.8) && near(s.t.d, 0.8) && near(s.tv[0], 1.8) && near(s.tv[2], 0.8), 'table resized W × D × H');
+  assert(s.sh.every((x) => x.mount && x.el > 0.5), 'shelves are wall-mounted');
+  assert(s.inc === 'black' && s.win === 'black', 'BLACK incubator and wintering chamber');
+  assert(s.missing === 0, 'all procedural models built');
+  // plant size preset through the Properties panel
+  const ps = await ev(() => { const ed = window.habitat.editor; const p = ed.objects.find((o) => o.type === 'plant_monstera'); ed.select(p.id); return p.size.h; });
+  await page.selectOption('[data-key="props.plantSize"]', 'large');
+  const ps2 = await ev(() => window.habitat.editor.objects.find((o) => o.type === 'plant_monstera').size.h);
+  assert(ps2 > ps * 1.3, `plant size LARGE scales the plant (${ps} → ${ps2})`);
+  assert(!(await page.$('.grp.ports')), 'plants have no technical ports section');
+});
+
+await test('4.2 catalog UX: 14 categories, search "pump" / "black" / "zimoviště", filters, thumbnails', async () => {
+  const cats = await ev(() => [...document.querySelectorAll('.lib-cats .lib-cat-head')].map((b) => b.dataset.cat));
+  for (const c of ['room', 'doors', 'windows', 'furniture', 'storage', 'decor', 'plants', 'enclosures', 'breeding', 'water', 'misting', 'drainage', 'electrical', 'sensors']) assert(cats.includes(c), `category ${c}`);
+  await page.fill('.lib-search input', 'pump');
+  let items = await ev(() => [...document.querySelectorAll('.lib-cats .lib-item')].map((i) => i.dataset.type));
+  assert(items.includes('pump') && items.includes('misting_pump') && !items.includes('door'), `search pump → ${items}`);
+  await page.fill('.lib-search input', 'black');
+  items = await ev(() => [...document.querySelectorAll('.lib-cats .lib-item')].map((i) => i.dataset.type));
+  assert(items.includes('incubator_black') && items.includes('wintering') && items.includes('door_black'), 'search black');
+  await page.fill('.lib-search input', 'zimoviště');
+  items = await ev(() => [...document.querySelectorAll('.lib-cats .lib-item')].map((i) => i.dataset.type));
+  assert(items.includes('wintering') && items.includes('wintering_white'), 'Czech tag search');
+  await page.fill('.lib-search input', '');
+  await page.click('.lib-filters [data-filter="ports"]');
+  items = await ev(() => [...document.querySelectorAll('.lib-cats .lib-item')].map((i) => i.dataset.type));
+  assert(items.length > 20 && !items.includes('plant_monstera') && items.includes('solenoid_valve'), 'ports filter');
+  await page.click('.lib-filters [data-filter="ports"]');
+  await page.selectOption('.lib-cat-filter', 'drainage');
+  items = await ev(() => [...document.querySelectorAll('.lib-cats .lib-item')].map((i) => i.dataset.type));
+  assert(items.length === 5 && items.includes('floor_drain'), 'category filter');
+  await page.waitForFunction(() => { const i = document.querySelector('.lib-item[data-type="floor_drain"] img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 30000 });
+  await page.selectOption('.lib-cat-filter', '');
+});
+
+await test('4.2 technical device: stable deviceId, catalogue ports, create a user port in the Properties panel', async () => {
+  await fresh42('planner');
+  const id = await ev(() => window.habitat.editor.add('pump', { position: { x: 2, z: 2 } }).id);
+  await page.fill('.port-add [data-port-name]', 'aux feed');
+  await page.selectOption('.port-add [data-port-kind]', 'water');
+  await page.click('.port-add [data-act="port-add"]');
+  const s = await ev((id) => { const h = window.habitat, o = h.editor.get(id), ports = h.tech.ports(); return { dev: o.tech.deviceId, user: o.tech.ports, catalogue: [...ports.values()].filter((p) => p.owner === id).map((p) => p.portId), rows: document.querySelectorAll('.grp.ports .port').length }; }, id);
+  assert(s.dev === `dev_${id}`, 'stable deviceId');
+  assert(s.user.length === 1 && s.user[0].id === 'AUX_FEED' && s.user[0].kind === 'water', `user port ${JSON.stringify(s.user)}`);
+  assert(s.catalogue.includes(`dev_${id}:WATER_IN`) && s.catalogue.includes(`dev_${id}:AUX_FEED`) && s.rows === 4, `ports ${s.catalogue}`);
+  const dup = await ev((id) => { const ed = window.habitat.editor; ed.select(id); const c = ed.duplicate(id); return c.tech.deviceId !== ed.get(id).tech.deviceId; }, id);
+  assert(dup, 'a duplicate is a new device (new deviceId)');
+});
+
+await test('4.2 TECH PLAN: MIST / WATER / DRAIN / IN-WALL routes to a specific enclosure; layers toggle', async () => {
+  await fresh42('planner');
+  await page.click('[data-mode="techplan"]');
+  await page.waitForFunction(() => window.habitat.renderMode === 'techplan');
+  const s = await ev(() => {
+    const h = window.habitat, ed = h.editor, t = h.tech;
+    const enc = ed.add('terrarium_tropical', { position: { x: 2.5, z: 0.4 } });
+    const ro = ed.add('ro_tank', { position: { x: 4.5, z: 3.5 } }), pump = ed.add('misting_pump', { position: { x: 4.0, z: 3.6 } }), drain = ed.add('drain_point', { mount: { wall: 'east', offset: 1 }, elevation: 0.25 });
+    ed.select(null);
+    const w = t.createRoute({ kind: 'water', from: { owner: ro.id, port: 'WATER_OUT' }, to: { owner: pump.id, port: 'WATER_IN' } });
+    const m = t.createRoute({ kind: 'mist', from: { owner: pump.id, port: 'MIST_OUT' }, to: { owner: enc.id, port: 'MIST_IN' } });
+    const d = t.createRoute({ kind: 'drain', from: { owner: enc.id, port: 'DRAIN_OUT' }, to: { owner: drain.id, port: 'DRAIN_IN' }, mode: 'in_wall' });
+    t.update(true);
+    const infos = [w, m, d].map((r) => t.routeInfo(ed.getRoute(r.id)));
+    const inwall = t.layer.routeMeshes.find((x) => x.userData.routeId === d.id);
+    return { enc: enc.id, infos, routes: t.layer.stats().routes, ports: t.layer.stats().ports, inwallDepth: inwall?.material.depthTest, dPts: ed.getRoute(d.id).points, T: ed.room.wallThickness, W: ed.room.width, dto: ed.getRoute(m.id).to, tech: h.modes.planner.mats.uniforms?.uTech?.value ?? null, techAttr: document.getElementById('app')?.dataset.techPlan ?? document.querySelector('[data-tech-plan]')?.dataset.techPlan };
+  });
+  assert(s.infos.every((i) => i.connected), 'all three routes connected port → port');
+  assert(s.dto.owner === s.enc && s.dto.port === 'MIST_IN', 'misting route ends at MIST_IN of that enclosure');
+  assert(s.infos[1].toPortId.startsWith(s.enc) || s.infos[1].toPortId.includes(':MIST_IN'), 'portId of the enclosure');
+  assert(s.routes === 3 && s.ports > 10, `tech layer: ${s.routes} routes, ${s.ports} port markers`);
+  assert(s.inwallDepth === false, 'IN-WALL route highlighted through the wall');
+  assert(s.dPts.some((p) => near(p.x, s.W + s.T / 2, 0.01)), 'in-wall run inside the east wall');
+  await page.click('.tech-panel [data-layer="water"]');
+  const off = await ev(() => { window.habitat.tech.update(true); return window.habitat.tech.layer.stats().routes; });
+  await page.click('.tech-panel [data-layer="water"]');
+  assert(off === 2, `WATER layer off hides the water route (${off})`);
+  await page.click('.tech-panel [data-layer="room"]');
+  const roomOff = await ev(() => ({ shell: window.habitat.shell.group.visible, enc: window.habitat.objects.views.size }));
+  await page.click('.tech-panel [data-layer="room"]');
+  assert(roomOff.shell === false, 'ROOM layer off hides the room shell');
+});
+
+await test('4.2 route editor: add route in the UI (type → source → destination), waypoints add / drag / snap / delete', async () => {
+  const before = await ev(() => window.habitat.editor.network.routes.length);
+  await page.selectOption('.tech-panel [data-new="kind"]', 'mist');
+  await page.selectOption('.tech-panel [data-new="mode"]', 'visible');
+  await page.click('.tech-panel [data-tp="new-route"]');
+  const src = await ev(() => [...window.habitat.tech.ports()].find(([, p]) => p.kind === 'mist' && p.dir === 'out')[0]);
+  await page.selectOption('.tech-panel [data-pickport]', src);
+  const dst = await ev(() => [...window.habitat.tech.ports()].find(([k, p]) => p.kind === 'mist' && p.dir === 'in' && p.ownerKind === 'enclosure')[0]);
+  await page.selectOption('.tech-panel [data-pickport]', dst);
+  const r = await ev(() => { const t = window.habitat.tech; return { n: window.habitat.editor.network.routes.length, sel: t.selectedRoute, pts: window.habitat.editor.getRoute(t.selectedRoute).points.length }; });
+  assert(r.n === before + 1 && r.sel && r.pts >= 2, `route created with an automatic path (${r.pts} waypoints)`);
+  await page.click('.tech-panel [data-tp="wp-add"]');
+  const added = await ev(() => window.habitat.editor.getRoute(window.habitat.tech.selectedRoute).points.length);
+  assert(added === r.pts + 1, 'waypoint added');
+  // snap: a point dropped 7 cm from the north wall snaps onto the wall run (4 cm in front of it)
+  const snapped = await ev(() => { const t = window.habitat.tech, id = t.selectedRoute; t.setWaypoint(id, 0, { x: 1.33, y: 2.0, z: 0.07 }); return window.habitat.editor.getRoute(id).points[0]; });
+  assert(near(snapped.z, 0.04, 0.001), `snapped to the wall (${JSON.stringify(snapped)})`);
+  // drag a waypoint handle with the mouse
+  await ev(() => { window.habitat.setView('top'); });
+  await page.waitForFunction(() => !window.habitat.rig.animating);
+  await ev(() => window.habitat.tech.update(true));
+  // a handle that is on screen and not covered by a panel (the Tech panel / HUD float over the canvas)
+  const hp = await ev(() => {
+    const h = window.habitat, c = h.renderer.domElement, r = c.getBoundingClientRect();
+    for (const m of h.tech.layer.handleMeshes) {
+      const v = m.position.clone().project(h.rig.camera), x = r.left + (v.x + 1) / 2 * r.width, y = r.top + (1 - v.y) / 2 * r.height;
+      const free = [[0, 0], [40, 30]].every(([dx, dy]) => { const el = document.elementFromPoint(x + dx, y + dy); return el === c || el?.classList?.contains('label-layer'); });
+      if (free) return { x, y, i: m.userData.waypoint, p0: { ...h.editor.getRoute(h.tech.selectedRoute).points[m.userData.waypoint] } };
+    }
+    return null;
+  });
+  assert(hp, 'a waypoint handle is visible on the canvas');
+  await page.mouse.move(hp.x, hp.y); await page.mouse.down(); await page.mouse.move(hp.x + 40, hp.y + 30, { steps: 5 }); await page.mouse.up();
+  const p1 = await ev((i) => window.habitat.editor.getRoute(window.habitat.tech.selectedRoute).points[i], hp.i);
+  assert(Math.hypot(p1.x - hp.p0.x, p1.z - hp.p0.z) > 0.05, `waypoint dragged in the viewport (${JSON.stringify(hp.p0)} → ${JSON.stringify(p1)})`);
+  await page.click('.tech-panel .wp [data-tp="wp-del"]');
+  const del = await ev(() => window.habitat.editor.getRoute(window.habitat.tech.selectedRoute).points.length);
+  assert(del === added - 1, 'waypoint deleted');
+});
+
+await test('4.2 misting circuit: SOLENOID → circuit → enclosures (name, ID, source, destinations, note, enabled)', async () => {
+  const s = await ev(() => {
+    const h = window.habitat, ed = h.editor, t = h.tech;
+    const sol = ed.add('solenoid_valve', { mount: { wall: 'east', offset: 2.6 }, elevation: 1.9 });
+    const e2 = ed.add('terrarium_arid', { position: { x: 1.2, z: 3.2 } }); ed.select(null);
+    const encs = t.endpoints().map((e) => e.owner);
+    const c = ed.addCircuit({ name: 'Misting circuit 1', kind: 'mist', source: { owner: sol.id, port: 'OUT' }, destinations: encs, note: 'test', enabled: true });
+    const made = t.generateCircuitRoutes(c.id);
+    const again = t.generateCircuitRoutes(c.id);
+    return { code: c.code, n: encs.length, made: made.length, again: again.length, routes: ed.network.routes.filter((r) => r.circuitId === c.id).map((r) => r.to.owner), e2: e2.id };
+  });
+  assert(/^C\d+$/.test(s.code), 'circuit ID');
+  assert(s.made === s.n && s.n >= 2 && s.again === 0, `one route per destination (${s.made}/${s.n}), no duplicates`);
+  assert(s.routes.includes(s.e2), 'route to the specific enclosure');
+});
+
+await test('4.2 clean normal views: Planner / Showcase show only VISIBLE routes (no in-wall, hidden, arrows or ports)', async () => {
+  const s = await ev(async () => {
+    const h = window.habitat, ed = h.editor;
+    const vis = ed.network.routes.filter((r) => r.mode === 'visible' && r.enabled).length, inwall = ed.network.routes.filter((r) => r.mode !== 'visible').length;
+    await h.setRenderMode('planner'); h.tech.update(true);
+    const p = h.tech.layer.stats();
+    await h.setRenderMode('showcase'); h.tech.update(true);
+    const sc = { ...h.tech.layer.stats(), attached: h.tech.layer.group.parent === h.scene, tech: h.modes.planner.mats.techValue ?? null };
+    await h.setRenderMode('planner');
+    return { vis, inwall, p, sc };
+  });
+  assert(s.inwall >= 1, 'there are in-wall / hidden routes');
+  assert(s.p.routes === s.vis && s.p.ports === 0 && s.p.handles === 0, `Planner: ${JSON.stringify(s.p)} (visible ${s.vis})`);
+  assert(s.sc.routes === s.vis && s.sc.ports === 0 && s.sc.attached, `Showcase: ${JSON.stringify(s.sc)}`);
+});
+
+await test('4.2 save / reload: routes, circuits, device ports, surfaces and new objects restored', async () => {
+  const before = await ev(() => { const ed = window.habitat.editor; window.habitat.persistence.autosave(); return JSON.stringify({ n: ed.doc.network, walls: ed.room.walls, floor: ed.room.floor, objs: ed.objects.map((o) => [o.id, o.type, o.size, o.props, o.tech]) }); });
+  await page.reload();
+  await page.waitForFunction(() => window.habitat && window.habitat.engine?.stats.frames > 0, null, { timeout: 180000 });
+  const after = await ev(() => { const ed = window.habitat.editor; return JSON.stringify({ n: ed.doc.network, walls: ed.room.walls, floor: ed.room.floor, objs: ed.objects.map((o) => [o.id, o.type, o.size, o.props, o.tech]) }); });
+  assert(before === after, 'document identical after reload');
+  const s = await ev(() => { const h = window.habitat; return { routes: h.editor.network.routes.length, all: h.editor.network.routes.every((r) => h.tech.routeInfo(r).connected || !r.to) }; });
+  assert(s.routes >= 5 && s.all, `all ${s.routes} routes reloaded and connected`);
+});
+
+await test('4.2 export / import JSON keeps the network (version 3)', async () => {
+  const s = await ev(async () => {
+    const h = window.habitat, ed = h.editor, RD = await import('/src/model/RoomDocument.js');
+    const json = JSON.parse(JSON.stringify(ed.doc));
+    const re = RD.normalizeDocument(json);
+    return { v: json.version, V: RD.VERSION, routes: re.network.routes.length === ed.network.routes.length, circuits: re.network.circuits.length === ed.network.circuits.length, same: JSON.stringify(re.network) === JSON.stringify(ed.doc.network) };
+  });
+  assert(s.V === 3 && s.routes && s.circuits && s.same, JSON.stringify(s));
+});
+
+await test('4.2 compatibility: a 4.1 (v2) room loads with safe defaults — ids, sizes and objects unchanged', async () => {
+  const s = await ev(async () => {
+    const RD = await import('/src/model/RoomDocument.js');
+    const v2 = { schema: 'ir-manager/habitat-room', version: 2, room: { id: 'room_x', name: 'Old', width: 5, depth: 4, height: 2.7, wallThickness: 0.14, finishes: { accentWall: 'north', floor: 'concrete_polished' } },
+      objects: [{ id: 'win_1', type: 'window', position: { x: 2, z: 0 }, elevation: 1, rotation: 0, size: { w: 1.4, d: 0.14, h: 1.2 }, mount: { wall: 'north', offset: 2 }, props: {} },
+        { id: 'inc_1', type: 'incubator', position: { x: 1, z: 1 }, elevation: 0, rotation: 0, size: { w: 0.62, d: 0.6, h: 1.25 }, props: { occupied: true } }], templates: [], instances: [], assemblies: [] };
+    const d = RD.normalizeDocument(JSON.parse(JSON.stringify(v2)));
+    const cat = await import('/src/objects/catalog.js');
+    return { walls: Object.fromEntries(Object.entries(d.room.walls).map(([k, v]) => [k, v.surface])), floor: d.room.floor.surface, ids: d.objects.map((o) => o.id), sizes: d.objects.map((o) => o.size), net: d.network, inc: d.objects[1].tech?.deviceId, winProps: cat.propsOf(d.objects[0]) };
+  });
+  assert(s.walls.north === 'paint_anthracite' && s.walls.south === 'paint_warm_grey', 'accent wall migrated');
+  assert(s.floor === 'concrete' && s.net.routes.length === 0 && s.net.circuits.length === 0, 'floor + empty network');
+  assert(s.ids.join() === 'win_1,inc_1' && near(s.sizes[0].w, 1.4) && near(s.sizes[1].h, 1.25), 'ids and dimensions unchanged');
+  assert(s.winProps.blinds === 'venetian' && s.winProps.glass === 'frosted', '4.1 windows keep their look (frosted + venetian)');
+  assert(s.inc === 'dev_inc_1', 'devices get a stable id');
+});
+
+await test('4.2 modes & editors: Planner ↔ Showcase ↔ Tech Plan keep the document; Assembly Builder and Enclosure Designer open', async () => {
+  const s = await ev(async () => {
+    const h = window.habitat, snap = () => JSON.stringify(h.editor.doc);
+    const a = snap();
+    for (const m of ['showcase', 'techplan', 'planner', 'techplan', 'showcase', 'planner']) { await h.setRenderMode(m); if (h.renderMode !== m) return { bad: m }; }
+    const b = snap();
+    h.openBuilder(); const builder = !!document.querySelector('.studio-modal.builder, .studio-modal'); h.modal?.close?.();
+    h.openDesigner(); const designer = !!document.querySelector('.studio-modal.designer'); h.modal?.close?.();
+    return { same: a === b, builder, designer, open: !!h.modal };
+  });
+  assert(!s.bad, `mode ${s.bad}`);
+  assert(s.same, 'document untouched by mode switching');
+  assert(s.builder && s.designer && !s.open, 'builder and designer open and close');
+});
+
+await test('4.2 Enclosure Designer: animal reference Snake / Lizard / Spider — adjustable, not saved, no collisions', async () => {
+  await ev(() => window.habitat.openDesigner());
+  await page.waitForSelector('.designer [data-arefcat="snake"]');
+  const res = {};
+  for (const c of ['snake', 'lizard', 'spider']) {
+    await page.click(`.designer [data-arefcat="${c}"]`); await settle(200);
+    res[c] = await ev(() => { const st = window.habitat.previewStage(); const names = []; st.scene?.traverse((o) => { if (o.name) names.push(o.name); }); const d = window.habitat.modal; return { show: d.animalRef.show, cat: d.animalRef.category, part: JSON.stringify(names).includes('animal-reference') || (st.parts || st._parts || []).some?.((p) => p.name === 'animal-reference'), inDraft: JSON.stringify(d.draft).includes('animal') && /"animalRef"|animal-reference/.test(JSON.stringify(d.draft)) }; });
+  }
+  await page.evaluate(() => { const r = document.querySelector('.designer [data-aref="size"]'); r.value = String(Number(r.max) * 0.8); r.dispatchEvent(new Event('input', { bubbles: true })); });
+  const size = await ev(() => window.habitat.modal.animalRef.size);
+  await page.click('.designer [data-aref="show"] + i');
+  const hidden = await ev(() => window.habitat.modal.animalRef.show);
+  await ev(() => window.habitat.modal.close());
+  for (const c of ['snake', 'lizard', 'spider']) assert(res[c].show && res[c].cat === c && !res[c].inDraft, `${c}: ${JSON.stringify(res[c])}`);
+  assert(size > 0.2 && size <= 0.3, `size adjustable (${size})`);
+  assert(hidden === false, 'can be hidden');
+});
+
+await test('4.2 undo / redo: surfaces, routes and procedural props', async () => {
+  const s = await ev(() => {
+    const ed = window.habitat.editor, r0 = ed.network.routes.length, surf0 = ed.room.walls.south.surface;
+    ed.setRoom({ walls: { south: { surface: 'walnut' } } });
+    const w = ed.add('window_clear', { mount: { wall: 'south', offset: 1.5 } }); ed.update(w.id, { props: { blinds: 'roller' } });
+    ed.removeRoute(ed.network.routes[0].id);
+    const mid = [ed.network.routes.length, ed.room.walls.south.surface, ed.get(w.id)?.props.blinds];
+    ed.undo(); const u1 = ed.network.routes.length; ed.undo(); const u2 = ed.get(w.id)?.props.blinds; ed.undo(); ed.undo(); const u3 = ed.room.walls.south.surface;
+    ed.redo(); ed.redo(); ed.redo(); ed.redo();
+    return { r0, surf0, mid, u1, u2, u3, re: [ed.network.routes.length, ed.room.walls.south.surface, ed.get(w.id)?.props.blinds] };
+  });
+  assert(s.mid[0] === s.r0 - 1 && s.u1 === s.r0, 'route delete undone');
+  assert(s.u2 === 'none' || s.u2 === undefined, 'blinds edit undone');
+  assert(s.u3 === s.surf0, 'surface change undone');
+  assert(s.re[0] === s.r0 - 1 && s.re[1] === 'walnut' && s.re[2] === 'roller', `redo restores (${JSON.stringify(s.re)})`);
+});
+
+await test('4.2 performance: Planner / Tech Plan / Showcase with the extended catalogue + network', async () => {
+  const s = await ev(async () => {
+    const h = window.habitat, ed = h.editor, { TYPES } = await import('/src/objects/catalog.js');
+    ed.setRoom({ width: 9, depth: 7 });
+    let x = 0.5, z = 1.2;
+    for (const [id, t] of Object.entries(TYPES)) {
+      if (t.hidden || !t.parametric || t.placement === 'opening' || t.placement === 'mounted') continue;
+      ed.add(id, { position: { x: x + t.size.w / 2, z: z + t.size.d / 2 } }); x += t.size.w + 0.2; if (x > 8.2) { x = 0.5; z += 1.1; }
+    }
+    ed.select(null);
+    h.tech.loadDemoNetwork();
+    const measure = async (mode) => {
+      await h.setRenderMode(mode); h.setView('corner_left', { instant: true }); h.rig.goTo('corner_left', { instant: true });
+      for (let i = 0; i < 30; i++) await new Promise((r) => requestAnimationFrame(r));
+      const t0 = performance.now(); let n = 0;
+      while (performance.now() - t0 < 2500) { h.rig.controls.rotateLeft?.(0.01); h.engine.interact(); await new Promise((r) => requestAnimationFrame(r)); n++; }
+      const info = h.renderer.info.render;
+      return { fps: +(n / ((performance.now() - t0) / 1000)).toFixed(1), draws: info.calls, tris: info.triangles, objects: ed.objects.length, routes: ed.network.routes.length };
+    };
+    return { planner: await measure('planner'), techplan: await measure('techplan'), showcase: await measure('showcase'), end: await measure('planner') };
+  });
+  Object.assign(perf42, s);
+  console.log('      perf', JSON.stringify(s));
+  assert(s.planner.draws < 80, `Planner stays batched (${s.planner.draws} draw calls with ${s.planner.objects} objects)`);
+  assert(s.techplan.fps > 0 && s.showcase.fps > 0, 'all modes render');
+});
+
 await test('no fatal console errors', async () => {
   const fatal = errors.filter((e) => !/__missing__\.glb|Failed to load resource|favicon/i.test(e));
   assert(fatal.length === 0, fatal.slice(0, 5).join('\n'));
@@ -932,5 +1341,5 @@ await browser.close();
 srv?.close();
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} passed`);
-fs.writeFileSync(path.join(ROOT, 'tests/last-run.json'), JSON.stringify({ date: new Date().toISOString(), results }, null, 2));
+fs.writeFileSync(path.join(ROOT, 'tests/last-run.json'), JSON.stringify({ date: new Date().toISOString(), results, perf42 }, null, 2));
 process.exit(failed.length ? 1 : 0);

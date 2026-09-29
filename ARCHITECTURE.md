@@ -13,7 +13,8 @@ the PHP/MySQL side only ever stores and validates the small logical document.
                           │ 'change' events (ids)
           ┌───────────────▼──────────── visual layer ──────────────────┐
           │ ObjectLayer ─▶ ObjectView (per object) ─▶ GLB clone fitted  │
-          │ RoomShell (walls with openings, floor, ceiling, panels)     │
+          │ RoomShell (walls with openings, surfaces, floor — no ceiling) │
+          │ WallVisibility (camera-aware walls) · TechLayer (network)   │
           │ Lighting presets · Environment (IBL/HDRI) · RenderEngine    │
           │ Pointer / SelectionOverlay (reads & writes via Editor only) │
           └────────────────────────────────────────────────────────────┘
@@ -131,6 +132,35 @@ emitting `change` with affected ids and recording a JSON snapshot in `History`. 
 wrapped in `begin()`/`commit()` so a whole gesture is one undo step. `Snapper` implements grid, wall
 (flush + auto-orientation), neighbour-edge and stacking snaps, wall projection for mounted items, and
 2-D OBB collision reports (height-aware).
+
+## 5b. Habitat Studio 4.2 — room evolution, Tech Plan, extended catalogue
+
+| Module | Role |
+|---|---|
+| `src/model/Surfaces.js` | wall / floor surface catalogue (paint, claddings, floors, skirting), wall profile helper `wallTopAt` |
+| `src/scene/WallGeometry.js` | shared wall outline for both renderers: profiled top (full / low / sloped), door notches, window holes |
+| `src/scene/WallVisibility.js` | CAMERA-AWARE WALLS — per-wall clip height from the camera; modes AUTO · ALL · CUTAWAY · FOOTPRINT · HIDE; eased transitions |
+| `src/planner/PlannerShell.js` | Planner room: floor, walls with surfaces / claddings / skirting / corner trims, per-wall clipped material set (`uClipY`) + footprint caps; **no ceiling** |
+| `src/scene/RoomShell.js` | Showcase room: same data, PBR materials, per-wall `clippingPlanes`, caps; no ceiling (light positions kept for the lighting rig) |
+| `src/planner/extendedModels.js` | procedural builders of the extended catalogue (doors, windows + blinds, tables, storage, plants, breeding, devices) |
+| `src/tech/Network.js` | pure network logic: route kinds, ports (`collectPorts`), normalisation, auto-routing along walls, snapping, circuits |
+| `src/tech/TechLayer.js` | network visuals: merged route tubes + flow arrows, in-wall highlight, port markers (instanced), waypoint handles, labels |
+| `src/tech/TechController.js` | TECH PLAN: activation (subdued Planner + layer filters), route / circuit operations, viewport route editor, example network |
+| `src/ui/TechPanel.js` | layers, new-route workflow, route + waypoint editor, circuits |
+| `src/enclosures/AnimalReference.js` | scale figures for the Enclosure Designer (never saved, never collide) |
+
+**Render modes.** `RENDER_MODES = { planner, showcase, techplan }`. TECH PLAN is not a third renderer: it is the
+Planner (`mats.setTech(1)` grades the painted room to a calm grey, `objects.setFilter()` applies the layers) plus the
+TechLayer. The TechLayer group is attached to the active mode's scene, so VISIBLE routes also appear in PLANNER and
+SHOWCASE (as neutral pipes), while IN-WALL / HIDDEN routes, arrows, ports and labels exist only in TECH PLAN.
+
+**Procedural types in Showcase.** Types flagged `parametric` are drawn by `PlannerView` in both modes (Showcase's
+`viewFor`). This is what fixes the window / blinds mismatch: there is one window model, built from the object's props.
+
+**Camera-aware walls.** Each frame the app asks `WallVisibility.update(room, camera, target)` for clip heights
+(it keeps the loop alive while walls ease); Planner writes them to the per-wall `uClipY` uniform, Showcase to the
+per-wall clipping plane; both move a footprint cap strip to the clip height, and `ObjectLayer.setWallClips` hides
+wall-bound objects above a lowered wall. No geometry is rebuilt while orbiting.
 
 ## 6. Integrating with IR Manager (PHP / MySQL) — proposed plan
 

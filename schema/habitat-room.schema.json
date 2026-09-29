@@ -17,8 +17,8 @@
     "version": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 2,
-      "description": "1 = room + catalogue objects; 2 adds the project library (enclosures, instances, assemblies). v1 files load unchanged."
+      "maximum": 3,
+      "description": "1 = room + catalogue objects; 2 adds the project library (enclosures, instances, assemblies); 3 (Habitat Studio 4.2) adds per-wall surfaces / profile, floor, details and the technical network. Older files load unchanged with safe defaults."
     },
     "room": {
       "type": "object",
@@ -51,7 +51,7 @@
           "type": "number",
           "minimum": 2.1,
           "maximum": 6,
-          "description": "Clear ceiling height (m)"
+          "description": "Wall height (m). 4.2: no ceiling is rendered; the height defines the walls."
         },
         "wallThickness": {
           "type": "number",
@@ -75,6 +75,305 @@
                 "south",
                 "west"
               ]
+            }
+          },
+          "description": "4.1 finishes (read for migration; accentWall → paint_anthracite on that wall)"
+        },
+        "walls": {
+          "type": "object",
+          "properties": {
+            "north": {
+              "type": "object",
+              "properties": {
+                "surface": {
+                  "enum": [
+                    "paint_white",
+                    "paint_light_grey",
+                    "paint_warm_grey",
+                    "paint_dark_grey",
+                    "paint_anthracite",
+                    "paint_beige",
+                    "paint_custom",
+                    "laminate_black",
+                    "oak",
+                    "light_oak",
+                    "dark_wood",
+                    "walnut",
+                    "wood_slats",
+                    "deco_panel",
+                    "tech_panel"
+                  ]
+                },
+                "color": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "custom paint colour / colour of the painted wall above a wainscot"
+                },
+                "finish": {
+                  "enum": [
+                    "smooth",
+                    "plaster"
+                  ]
+                },
+                "coverHeight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "cladding height (m); 0 = full height"
+                },
+                "profile": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "enum": [
+                        "full",
+                        "low",
+                        "sloped"
+                      ]
+                    },
+                    "hStart": {
+                      "type": "number"
+                    },
+                    "hEnd": {
+                      "type": "number"
+                    }
+                  },
+                  "description": "attic wall profile: full height, low knee wall (hStart) or sloped top hStart → hEnd along the wall"
+                }
+              }
+            },
+            "east": {
+              "type": "object",
+              "properties": {
+                "surface": {
+                  "enum": [
+                    "paint_white",
+                    "paint_light_grey",
+                    "paint_warm_grey",
+                    "paint_dark_grey",
+                    "paint_anthracite",
+                    "paint_beige",
+                    "paint_custom",
+                    "laminate_black",
+                    "oak",
+                    "light_oak",
+                    "dark_wood",
+                    "walnut",
+                    "wood_slats",
+                    "deco_panel",
+                    "tech_panel"
+                  ]
+                },
+                "color": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "custom paint colour / colour of the painted wall above a wainscot"
+                },
+                "finish": {
+                  "enum": [
+                    "smooth",
+                    "plaster"
+                  ]
+                },
+                "coverHeight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "cladding height (m); 0 = full height"
+                },
+                "profile": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "enum": [
+                        "full",
+                        "low",
+                        "sloped"
+                      ]
+                    },
+                    "hStart": {
+                      "type": "number"
+                    },
+                    "hEnd": {
+                      "type": "number"
+                    }
+                  },
+                  "description": "attic wall profile: full height, low knee wall (hStart) or sloped top hStart → hEnd along the wall"
+                }
+              }
+            },
+            "south": {
+              "type": "object",
+              "properties": {
+                "surface": {
+                  "enum": [
+                    "paint_white",
+                    "paint_light_grey",
+                    "paint_warm_grey",
+                    "paint_dark_grey",
+                    "paint_anthracite",
+                    "paint_beige",
+                    "paint_custom",
+                    "laminate_black",
+                    "oak",
+                    "light_oak",
+                    "dark_wood",
+                    "walnut",
+                    "wood_slats",
+                    "deco_panel",
+                    "tech_panel"
+                  ]
+                },
+                "color": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "custom paint colour / colour of the painted wall above a wainscot"
+                },
+                "finish": {
+                  "enum": [
+                    "smooth",
+                    "plaster"
+                  ]
+                },
+                "coverHeight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "cladding height (m); 0 = full height"
+                },
+                "profile": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "enum": [
+                        "full",
+                        "low",
+                        "sloped"
+                      ]
+                    },
+                    "hStart": {
+                      "type": "number"
+                    },
+                    "hEnd": {
+                      "type": "number"
+                    }
+                  },
+                  "description": "attic wall profile: full height, low knee wall (hStart) or sloped top hStart → hEnd along the wall"
+                }
+              }
+            },
+            "west": {
+              "type": "object",
+              "properties": {
+                "surface": {
+                  "enum": [
+                    "paint_white",
+                    "paint_light_grey",
+                    "paint_warm_grey",
+                    "paint_dark_grey",
+                    "paint_anthracite",
+                    "paint_beige",
+                    "paint_custom",
+                    "laminate_black",
+                    "oak",
+                    "light_oak",
+                    "dark_wood",
+                    "walnut",
+                    "wood_slats",
+                    "deco_panel",
+                    "tech_panel"
+                  ]
+                },
+                "color": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "custom paint colour / colour of the painted wall above a wainscot"
+                },
+                "finish": {
+                  "enum": [
+                    "smooth",
+                    "plaster"
+                  ]
+                },
+                "coverHeight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "cladding height (m); 0 = full height"
+                },
+                "profile": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "enum": [
+                        "full",
+                        "low",
+                        "sloped"
+                      ]
+                    },
+                    "hStart": {
+                      "type": "number"
+                    },
+                    "hEnd": {
+                      "type": "number"
+                    }
+                  },
+                  "description": "attic wall profile: full height, low knee wall (hStart) or sloped top hStart → hEnd along the wall"
+                }
+              }
+            }
+          },
+          "description": "4.2 per-wall surfaces"
+        },
+        "floor": {
+          "type": "object",
+          "properties": {
+            "surface": {
+              "enum": [
+                "concrete",
+                "tile_grey",
+                "tile_dark",
+                "wood_light",
+                "oak",
+                "vinyl",
+                "anthracite",
+                "technical"
+              ]
+            },
+            "color": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "details": {
+          "type": "object",
+          "properties": {
+            "skirting": {
+              "enum": [
+                "none",
+                "black",
+                "white",
+                "wood",
+                "steel"
+              ]
+            },
+            "corners": {
+              "type": "boolean"
             }
           }
         }
@@ -105,6 +404,175 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/Assembly"
+      }
+    },
+    "network": {
+      "type": "object",
+      "description": "4.2 technical network — a separate layer linked to devices and enclosures by id",
+      "properties": {
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "water",
+                  "mist",
+                  "drain",
+                  "power",
+                  "signal"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "from": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "owner",
+                  "port"
+                ],
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "description": "room object id (catalogue devices / enclosures) or enclosure instance id"
+                  },
+                  "port": {
+                    "type": "string"
+                  }
+                }
+              },
+              "to": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "owner",
+                  "port"
+                ],
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "description": "room object id (catalogue devices / enclosures) or enclosure instance id"
+                  },
+                  "port": {
+                    "type": "string"
+                  }
+                }
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    },
+                    "z": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "description": "waypoints in plan metres (x from west, z from north, y up)"
+              },
+              "mode": {
+                "enum": [
+                  "visible",
+                  "in_wall",
+                  "hidden"
+                ]
+              },
+              "circuitId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "note": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "circuits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "water",
+                  "mist",
+                  "drain",
+                  "power",
+                  "signal"
+                ]
+              },
+              "source": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "owner",
+                  "port"
+                ],
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "description": "room object id (catalogue devices / enclosures) or enclosure instance id"
+                  },
+                  "port": {
+                    "type": "string"
+                  }
+                }
+              },
+              "destinations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "enclosure owner ids"
+              },
+              "note": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -275,6 +743,54 @@
             }
           },
           "additionalProperties": false
+        },
+        "tech": {
+          "type": "object",
+          "description": "4.2 technical device: stable deviceId (portId = deviceId:PORT) + user-created ports; catalogue ports come from the type",
+          "properties": {
+            "deviceId": {
+              "type": "string"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_]+$"
+                  },
+                  "kind": {
+                    "enum": [
+                      "water",
+                      "mist",
+                      "drain",
+                      "power",
+                      "signal"
+                    ]
+                  },
+                  "dir": {
+                    "enum": [
+                      "in",
+                      "out",
+                      "both"
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "at": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

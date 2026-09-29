@@ -60,7 +60,7 @@ export class WallVisibility {
       if (this.current[w] === undefined || this._roomKey !== `${W}|${D}|${H}`) this.current[w] = t;
     }
     this._roomKey = `${W}|${D}|${H}`;
-    const dt = this.last ? Math.min(100, now - this.last) : 16; this.last = now;
+    const dt = this.last ? Math.min(1000, now - this.last) : 16; this.last = now; // real time: slow frames converge as fast
     const k = 1 - Math.exp(-dt / 70); // ~220 ms to settle
     let animating = false, changed = false;
     for (const w of WALLS) {

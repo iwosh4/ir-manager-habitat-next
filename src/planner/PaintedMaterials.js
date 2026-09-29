@@ -42,8 +42,17 @@ uniform vec3 uKeyDir, uKey, uShade, uSky, uGround;
 uniform float uEmissive, uRim, uGlow, uGlass, uRoomLight, uTech;
 varying vec2 vUv; varying float vTile; varying vec3 vN; varying vec3 vWP;
 #ifdef CLIP_Y
-uniform float uClipY;
-#define CLIP_TEST if (vWP.y > uClipY) discard;
+// camera-aware walls: ONE clipped material set for all four walls; the wall of a fragment is found from its
+// world position (inside a wall body → that wall; claddings / trims in front of a face → the nearest face)
+uniform vec4 uClip4; uniform vec2 uHalf; // clip heights N,E,S,W · room half width / depth
+float wallClip() {
+  float dN = vWP.z + uHalf.y, dS = uHalf.y - vWP.z, dW = vWP.x + uHalf.x, dE = uHalf.x - vWP.x;
+  if (dN < 0.0) return uClip4.x; if (dS < 0.0) return uClip4.z;
+  if (dW < 0.0) return uClip4.w; if (dE < 0.0) return uClip4.y;
+  float m = min(min(dN, dS), min(dW, dE));
+  return m == dN ? uClip4.x : m == dS ? uClip4.z : m == dW ? uClip4.w : uClip4.y;
+}
+#define CLIP_TEST if (vWP.y > wallClip()) discard;
 #else
 #define CLIP_TEST
 #endif
@@ -144,7 +153,7 @@ export class PaintedMaterials {
       uSky: { value: new THREE.Color(0.32, 0.34, 0.4) }, uGround: { value: new THREE.Color(0.2, 0.16, 0.13) },
       uEmissive: { value: 1.0 }, uRim: { value: 0.24 }, uGlow: { value: 1.0 }, uGlass: { value: 0.3 }, uRoomLight: { value: 1.0 }, uTech: { value: 0 },
     };
-    this.clipSets = new Map();
+    this.clipSet = null;
     this.tiles = {};
     this.materials = {};
     this.selected = {};
@@ -211,30 +220,29 @@ export class PaintedMaterials {
   }
 
   /**
-   * Material set clipped above a height (camera-aware walls: footprint / lowered walls). One set per
-   * wall; all uniforms except uClipY are SHARED with the base materials (presets, atlas, tech grade).
+   * Material set clipped above per-wall heights (camera-aware walls). ONE set for the whole room, created
+   * lazily per bucket (walls use only a couple of buckets); all other uniforms are SHARED with the base
+   * materials (presets, atlas, tech grade). `set.clip4` = Vector4(N, E, S, W), `set.half` = room half size.
    */
-  clipped(key) {
-    let set = this.clipSets.get(key);
-    if (set) return set;
-    const clip = { value: 1e6 };
-    const make = (name, frag, extra, defines) => {
-      const m = new THREE.ShaderMaterial({ name: `painted_${name}_clip_${key}`, uniforms: { ...this.uniforms, uClipY: clip }, vertexShader: VERT, fragmentShader: frag, vertexColors: true, defines: { ...defines, CLIP_Y: 1 }, ...extra });
-      return m;
+  clipped() {
+    if (this.clipSet) return this.clipSet;
+    const clip4 = { value: new THREE.Vector4(1e6, 1e6, 1e6, 1e6) }, half = { value: new THREE.Vector2(1, 1) };
+    const make = (name, frag, extra, defines) => new THREE.ShaderMaterial({ name: `painted_${name}_clip`, uniforms: { ...this.uniforms, uClip4: clip4, uHalf: half }, vertexShader: VERT, fragmentShader: frag, vertexColors: true, defines: { ...defines, CLIP_Y: 1 }, ...extra });
+    const defs = {
+      opaque: () => make('opaque', FRAG_SOLID, { side: THREE.DoubleSide }, {}),
+      cutout: () => make('cutout', FRAG_SOLID, { side: THREE.DoubleSide }, { CUTOUT: 1 }),
+      glass: () => make('glass', FRAG_GLASS, { transparent: true, depthWrite: false, side: THREE.DoubleSide }, {}),
+      decal: () => make('decal', FRAG_DECAL, { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }, {}),
+      glow: () => make('glow', FRAG_GLOW, { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }, {}),
     };
-    set = {
-      clip,
-      opaque: make('opaque', FRAG_SOLID, { side: THREE.DoubleSide }, {}),
-      cutout: make('cutout', FRAG_SOLID, { side: THREE.DoubleSide }, { CUTOUT: 1 }),
-      glass: make('glass', FRAG_GLASS, { transparent: true, depthWrite: false, side: THREE.DoubleSide }, {}),
-      decal: make('decal', FRAG_DECAL, { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }, {}),
-      glow: make('glow', FRAG_GLOW, { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }, {}),
-    };
-    this.clipSets.set(key, set);
+    const built = {};
+    const set = { clip4, half, built };
+    for (const k of Object.keys(defs)) Object.defineProperty(set, k, { get: () => (built[k] ||= defs[k]()), enumerable: true });
+    this.clipSet = set;
     return set;
   }
 
   setTech(v) { this.uniforms.uTech.value = v; }
 
-  count() { return Object.keys(this.materials).length + Object.keys(this.selected).length + this.clipSets.size * 5; }
+  count() { return Object.keys(this.materials).length + Object.keys(this.selected).length + Object.keys(this.clipSet?.built || {}).length; }
 }

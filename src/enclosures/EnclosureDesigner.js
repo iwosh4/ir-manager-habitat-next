@@ -7,6 +7,8 @@ import {
 import { interiorBounds, devicePosition } from './EnclosureGeometry.js';
 import { templateParts, templateSize } from '../preview/parts.js';
 import { icon } from '../ui/icons.js';
+import { ANIMAL_REFS, animalRefPart } from './AnimalReference.js';
+import { Persistence } from '../serialization/Persistence.js';
 import { toast } from '../ui/Toast.js';
 import { formatDims, dimLabel, dimShort, dimsOrderLabel, DIM_ORDER } from '../model/Dimensions.js';
 
@@ -38,6 +40,8 @@ export class EnclosureDesigner {
     this.onSave = onSave; this.instanceId = instanceId;
     this.hist = new History(80); this.hist.reset(JSON.stringify(this.draft));
     this.sel = null; // { type: 'item'|'device', id }
+    // animal reference (scale figure): designer-only view state, never part of the template / collisions
+    this.animalRef = { show: false, category: 'snake', size: ANIMAL_REFS.snake.size, ...(Persistence.prefs().animalRef || {}) };
     this.section = 'construction';
     const el = document.createElement('div');
     el.className = 'studio-modal designer';
@@ -83,6 +87,7 @@ export class EnclosureDesigner {
   close() {
     if (!this.el) return;
     window.removeEventListener('keydown', this._key, true);
+    clearTimeout(this._rt);
     this._unpointer?.();
     this.stage.overlay.clear();
     this.stage.setParts([]);
@@ -104,8 +109,11 @@ export class EnclosureDesigner {
   _rebuild(fit = false) {
     clearTimeout(this._rt);
     this._rt = setTimeout(() => {
+      if (!this.el) return; // closed meanwhile
       const t = normalizeTemplate(this.draft);
-      this.stage.setParts(templateParts(this.app.modes.planner.mats, t));
+      const parts = templateParts(this.app.modes.planner.mats, t);
+      if (this.animalRef.show) parts.push(animalRefPart(this.app.modes.planner.mats, t, this.animalRef, interiorBounds));
+      this.stage.setParts(parts);
       const size = templateSize(t);
       if (fit || !this._framed) { this.stage.frame(size, { dir: [0.5, 0.35, 1] }); this._framed = true; }
       this._handles();
@@ -175,6 +183,7 @@ export class EnclosureDesigner {
         <label class="fld fld-wide"><span>Label</span><input type="text" data-dev="${dv.id}.label" value="${esc(dv.label)}" placeholder="e.g. Basking spot"></label>
         <label class="fld fld-wide"><span>Left ↔ right</span><input type="range" min="0" max="1" step="0.01" data-dev="${dv.id}.x" value="${dv.x}"></label>
         ${TECH_KINDS[dv.kind].mount === 'rear' ? `<label class="fld fld-wide"><span>Height</span><input type="range" min="0" max="1" step="0.01" data-dev="${dv.id}.y" value="${dv.y}"></label>` : `<label class="fld fld-wide"><span>Back ↔ front</span><input type="range" min="0" max="1" step="0.01" data-dev="${dv.id}.z" value="${dv.z}"></label>`}</section>` : ''}
+      ${this.animalRefHTML()}
       <section class="grp"><h4>Physical enclosures</h4>${instances.length ? `<div class="codes">${instances.map((i) => `<span class="code ${i.id === this.instanceId ? 'on' : ''}">${esc(i.code)}</span>`).join('')}</div>` : '<p class="hint">None yet — drag this enclosure into an assembly or the room to create physical enclosures (each gets its own id).</p>'}</section>
       <section class="grp"><h4>Notes</h4><textarea class="notes" data-path="metadata.notes" rows="3" placeholder="Construction notes…">${esc(t.metadata.notes)}</textarea></section>`;
     this.el.querySelector('[data-role=title]').textContent = t.name;
@@ -182,7 +191,24 @@ export class EnclosureDesigner {
     this.el.querySelector('[data-act=redo]').disabled = !this.hist.canRedo();
   }
 
+  animalRefHTML() {
+    const r = this.animalRef, def = ANIMAL_REFS[r.category] || ANIMAL_REFS.snake;
+    return `<section class="grp animal-ref"><h4>Animal reference <em class="unit">scale check</em></h4>
+      <label class="tgl"><input type="checkbox" data-aref="show" ${r.show ? 'checked' : ''}><i></i><span>Show animal</span></label>
+      <div class="chips">${Object.entries(ANIMAL_REFS).map(([k, v]) => `<button class="chip-btn ${r.category === k ? 'on' : ''}" data-arefcat="${k}">${esc(v.label)}</button>`).join('')}</div>
+      <label class="fld fld-wide"><span>Size — ${esc(def.measure)} <b data-role="aref-size">${cm(Math.min(def.max, Math.max(def.min, r.size)))} cm</b></span><input type="range" data-aref="size" min="${def.min}" max="${def.max}" step="${def.max > 1 ? 0.05 : 0.005}" value="${Math.min(def.max, Math.max(def.min, r.size))}"></label>
+      <p class="hint">Visual aid only — not saved in the enclosure, not exported, never collides.</p></section>`;
+  }
+
+  _setAnimalRef(patch) {
+    this.animalRef = { ...this.animalRef, ...patch };
+    Persistence.savePrefs({ animalRef: this.animalRef });
+    this._rebuild();
+  }
+
   _onClick(e) {
+    const ac = e.target.closest('[data-arefcat]');
+    if (ac) { const k = ac.dataset.arefcat; this._setAnimalRef({ category: k, size: ANIMAL_REFS[k].size, show: true }); this.renderPanels(); return; }
     const q = (sel) => e.target.closest(sel);
     let b;
     if ((b = q('[data-act]'))) {
@@ -223,6 +249,12 @@ export class EnclosureDesigner {
 
   _onField(e, final) {
     const el = e.target;
+    if (el.dataset.aref) {
+      if (el.dataset.aref === 'show') { if (final) { this._setAnimalRef({ show: el.checked }); this.renderPanels(); } return; }
+      this._setAnimalRef({ size: Number(el.value) });
+      const lbl = this.el.querySelector('[data-role=aref-size]'); if (lbl) lbl.textContent = `${cm(Number(el.value))} cm`;
+      return;
+    }
     if (el.dataset.path) {
       let v = el.type === 'checkbox' ? el.checked : el.type === 'number' || el.type === 'range' ? Number(el.value) : el.value;
       if (el.type === 'number' && !Number.isFinite(v)) return;
