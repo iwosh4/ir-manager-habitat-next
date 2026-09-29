@@ -15,7 +15,7 @@ function ir_render_record_detail(string $module): void {
   $q=$pdo->prepare('SELECT id,jmeno_kod FROM wp_ir2_zvirata WHERE user_id=? AND ubikace_id=? ORDER BY jmeno_kod');$q->execute([$uid,$id]);$animals=$q->fetchAll();echo '<h3>Obyvatelé</h3>';foreach($animals as $a)echo '<a class="widget-row" href="animal.php?id='.(int)$a['id'].'">'.ir_e($a['jmeno_kod']).'</a>';if(!$animals)echo '<p>Volná ubikace.</p>';
   $q=$pdo->prepare("SELECT p.typ,p.datum FROM wp_ir2_pece p JOIN wp_ir2_zvirata z ON z.id=p.zvire_id AND z.user_id=p.user_id WHERE z.user_id=? AND z.ubikace_id=? ORDER BY p.datum DESC LIMIT 1");$q->execute([$uid,$id]);if($care=$q->fetch())echo '<p>Poslední péče: '.ir_e($care['typ'].' · '.$care['datum']).'</p>';
   $q=$pdo->prepare("SELECT p.id,p.nazev_ukolu,p.datum_termin FROM wp_ir2_planovac p JOIN wp_ir2_zvirata z ON z.id=p.zvire_id AND z.user_id=p.user_id WHERE z.user_id=? AND z.ubikace_id=? AND p.stav='Aktivní' ORDER BY p.datum_termin,p.id LIMIT 1");$q->execute([$uid,$id]);if($task=$q->fetch())echo '<a class="widget-row" href="tasks.php?task='.(int)$task['id'].'">Nejbližší úkol: '.ir_e($task['nazev_ukolu'].' · '.$task['datum_termin']).'</a>';
-  echo '<a class="btn" href="habitat-studio.php?mode=habitat">Otevřít v Habitat Studiu</a>';
+  echo '<a class="btn" href="habitat-studio.php?return=habitats.php">Otevřít v Habitat Studiu</a>';
  }elseif(!empty($row['zvire_id']))echo '<a class="btn" href="animal.php?id='.(int)$row['zvire_id'].'">Otevřít zvíře</a>';
  echo '</section>';
 }

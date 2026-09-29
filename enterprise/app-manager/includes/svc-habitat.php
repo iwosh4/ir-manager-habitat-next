@@ -64,19 +64,27 @@ function ir_habitat_manager_library(PDO $pdo, int $uid): array {
     $templates = []; $instances = []; $map = [];
     foreach ($q->fetchAll() ?: [] as $u) {
         [$instId, $tplId] = ir_habitat_ids_for($pdo, $uid, $u);
-        $dims = ir_enclosure_dims($u) ?? [60, 45, 60];
-        $stored = json_decode((string)($u['habitat_json'] ?? ''), true);
-        $tpl = is_array($stored) ? $stored : ['type' => ir_habitat_type_for((string)($u['typ'] ?? '')), 'construction' => ['type' => ir_habitat_type_for((string)($u['typ'] ?? ''))], 'interior' => ['preset' => ir_habitat_type_for((string)($u['typ'] ?? '')) === 'rack' ? 'none' : 'tropical']];
-        $tpl['id'] = $tplId;
-        $tpl['name'] = (string)$u['nazev'];
-        // Manager dimensions are authoritative (W × D × H cm → metres)
-        $tpl['dimensions'] = ['width' => round($dims[0] / 100, 4), 'depth' => round($dims[1] / 100, 4), 'height' => round($dims[2] / 100, 4)];
-        $tpl['metadata'] = array_merge((array)($tpl['metadata'] ?? []), ['source' => 'ir-manager', 'managerId' => (int)$u['id']]);
+        $fromManager = str_starts_with($tplId, 'mgr_enc_');
+        $stamp = !empty($u['vytvoreno']) ? date('c', strtotime((string)$u['vytvoreno'])) : '2026-01-01T00:00:00+00:00'; // stable, so reloads never look like edits
+        if (!isset($templates[$tplId])) {
+            // one Habitat design (template) may be built several times — emit it once
+            $dims = ir_enclosure_dims($u) ?? [60, 45, 60];
+            $stored = json_decode((string)($u['habitat_json'] ?? ''), true);
+            $tpl = is_array($stored) ? $stored : ['type' => ir_habitat_type_for((string)($u['typ'] ?? '')), 'construction' => ['type' => ir_habitat_type_for((string)($u['typ'] ?? ''))], 'interior' => ['preset' => ir_habitat_type_for((string)($u['typ'] ?? '')) === 'rack' ? 'none' : 'tropical']];
+            $tpl['id'] = $tplId;
+            // Manager-born enclosures: the Manager name is the design name; Habitat-born: keep the design's own name
+            $tpl['name'] = $fromManager ? (string)$u['nazev'] : (string)($tpl['name'] ?? preg_replace('~ · [^·]+$~u', '', (string)$u['nazev']));
+            // Manager dimensions are authoritative (W × D × H cm → metres)
+            $tpl['dimensions'] = ['width' => round($dims[0] / 100, 4), 'depth' => round($dims[1] / 100, 4), 'height' => round($dims[2] / 100, 4)];
+            $tpl['metadata'] = array_merge(['created' => $stamp, 'modified' => $stamp], (array)($tpl['metadata'] ?? []), ['source' => 'ir-manager']);
+            $templates[$tplId] = $tpl;
+        }
         $first = $animals[(int)$u['id']][0] ?? null;
-        $templates[] = $tpl;
-        $instances[] = ['id' => $instId, 'templateId' => $tplId, 'code' => mb_substr((string)$u['nazev'], 0, 24), 'props' => ['occupied' => (bool)$first, 'lighting' => true, 'animal' => ['species' => $first ? (string)($first['latinsky_nazev'] ?: $first['druh']) : '', 'code' => $first ? mb_substr((string)($first['animal_id'] ?: $first['jmeno_kod']), 0, 24) : ''], 'notes' => ''], 'devices' => [], 'metadata' => ['externalId' => 'ir-manager:ubikace:'.(int)$u['id'], 'created' => (string)($u['vytvoreno'] ?? date('c'))]];
+        $code = $fromManager ? mb_substr((string)$u['nazev'], 0, 24) : (preg_match('~ · ([^·]{1,24})$~u', (string)$u['nazev'], $cm) ? $cm[1] : mb_substr((string)$u['nazev'], 0, 24));
+        $instances[] = ['id' => $instId, 'templateId' => $tplId, 'code' => $code, 'props' => ['occupied' => (bool)$first, 'lighting' => true, 'animal' => ['species' => $first ? (string)($first['latinsky_nazev'] ?: $first['druh']) : '', 'code' => $first ? mb_substr((string)($first['animal_id'] ?: $first['jmeno_kod']), 0, 24) : ''], 'notes' => ''], 'devices' => [], 'metadata' => ['externalId' => 'ir-manager:ubikace:'.(int)$u['id'], 'created' => $stamp]];
         $map[$instId] = (int)$u['id'];
     }
+    $templates = array_values($templates);
     return ['templates' => $templates, 'instances' => $instances, 'map' => $map];
 }
 
@@ -101,9 +109,46 @@ function ir_habitat_legacy_assemblies(PDO $pdo, int $uid, array $instByManagerId
             $y = 0.0;
             foreach ($u->fetchAll(PDO::FETCH_COLUMN) ?: [] as $mid) { $inst = $instByManagerId[(int)$mid] ?? null; if (!$inst) continue; $members[] = ['id' => 'm'.(int)$mid, 'kind' => 'enclosure', 'instanceId' => $inst['id'], 'enclosureId' => $inst['templateId'], 'position' => ['x' => 0, 'y' => round($y, 4), 'z' => 0]]; $y += (float)($inst['_h'] ?? 0.5); }
         }
-        $out[] = ['id' => 'mgr_asm_'.(int)$rack['id'], 'name' => (string)$rack['nazev'], 'members' => $members, 'reserved' => [], 'frame' => ['mode' => 'none'], 'alignment' => 'front', 'metadata' => ['notes' => (string)($rack['poznamka'] ?? ''), 'managerRackId' => (int)$rack['id']]];
+        $st = !empty($rack['created_at']) ? date('c', strtotime((string)$rack['created_at'])) : '2026-01-01T00:00:00+00:00';
+        $out[] = ['id' => 'mgr_asm_'.(int)$rack['id'], 'name' => (string)$rack['nazev'], 'members' => $members, 'reserved' => [], 'frame' => ['mode' => 'none'], 'alignment' => 'front', 'metadata' => ['notes' => (string)($rack['poznamka'] ?? ''), 'managerRackId' => (int)$rack['id'], 'created' => $st, 'modified' => $st]];
     }
     return $out;
+}
+
+/**
+ * First open of the 4.2 studio for an account that used the previous in-house studio: convert its latest
+ * room (wp_ir2_habitat_rooms_71 + room_items_71 + room_meta_130) into a RoomDocument. Old tables are only read.
+ */
+function ir_habitat_legacy_room(PDO $pdo, int $uid): ?array {
+    if (!ir_table_exists($pdo, 'wp_ir2_habitat_rooms_71') || !ir_table_exists($pdo, 'wp_ir2_habitat_room_items_71')) return null;
+    $q = $pdo->prepare('SELECT * FROM wp_ir2_habitat_rooms_71 WHERE user_id=? ORDER BY updated_at DESC, id DESC LIMIT 1'); $q->execute([$uid]);
+    $r = $q->fetch(); if (!$r) return null;
+    $W = max(1.0, (float)$r['width_cm'] / 100); $D = max(1.0, (float)$r['depth_cm'] / 100); $H = 2.7;
+    if (ir_table_exists($pdo, 'wp_ir2_habitat_room_meta_130')) { $m = $pdo->prepare('SELECT height_cm FROM wp_ir2_habitat_room_meta_130 WHERE user_id=? AND room_id=?'); $m->execute([$uid, (int)$r['id']]); $h = (float)$m->fetchColumn(); if ($h > 150) $H = $h / 100; }
+    $it = $pdo->prepare('SELECT * FROM wp_ir2_habitat_room_items_71 WHERE user_id=? AND room_id=? ORDER BY z_index, id'); $it->execute([$uid, (int)$r['id']]);
+    $objects = []; $n = 0;
+    $mountOffset = static function (string $wall, float $cx, float $cz) use ($W, $D): float {
+        return match ($wall) { 'north' => $cx, 'south' => $W - $cx, 'west' => $D - $cz, 'east' => $cz, default => $cx };
+    };
+    foreach ($it->fetchAll() ?: [] as $i) {
+        $w = (float)$i['width_cm'] / 100; $d = (float)$i['depth_cm'] / 100; $h = (float)($i['height_cm'] ?? 0) / 100;
+        $rot = ((int)$i['rotation'] % 360 + 360) % 360; $swap = $rot === 90 || $rot === 270;
+        $cx = (float)$i['x_cm'] / 100 + ($swap ? $d : $w) / 2; $cz = (float)$i['y_cm'] / 100 + ($swap ? $w : $d) / 2;
+        $cx = min($W, max(0, $cx)); $cz = min($D, max(0, $cz));
+        $base = ['id' => 'mgr_obj_'.(int)$i['id'], 'name' => (string)($i['label'] ?: 'Prvek'), 'position' => ['x' => round($cx, 3), 'z' => round($cz, 3)], 'rotation' => $rot, 'elevation' => round((float)($i['elevation_cm'] ?? 0) / 100, 3), 'mount' => null];
+        $type = (string)$i['item_type'];
+        if ($type === 'rack' && (int)$i['rack_id'] > 0) { $objects[] = $base + ['type' => 'assembly', 'ref' => ['assemblyId' => 'mgr_asm_'.(int)$i['rack_id']], 'size' => ['w' => max(0.2, $w), 'd' => max(0.2, $d), 'h' => max(0.3, $h ?: 1)], 'props' => []]; $n++; continue; }
+        $wall = in_array((string)($i['wall_side'] ?? ''), ['north', 'south', 'east', 'west'], true) ? (string)$i['wall_side'] : null;
+        $map = ['door' => 'door_interior', 'door-technical' => 'door_solid', 'window' => 'window_clear', 'plant' => 'plant_fern', 'table-small' => 'table_straight', 'table' => 'table_straight', 'desk' => 'table_straight', 'cabinet' => 'cabinet_low', 'shelf' => 'shelving'];
+        if (!isset($map[$type])) continue; // unknown custom shapes are not guessed
+        $o = $base + ['type' => $map[$type], 'size' => ['w' => max(0.2, $w), 'd' => max(0.1, $d), 'h' => max(0.2, $h ?: 1)], 'props' => []];
+        if ($wall && in_array($type, ['door', 'door-technical', 'window'], true)) { $o['mount'] = ['wall' => $wall, 'offset' => round($mountOffset($wall, $cx, $cz), 3)]; unset($o['elevation']); }
+        $objects[] = $o; $n++;
+    }
+    return ['schema' => 'ir-manager/habitat-room', 'version' => 3,
+        'room' => ['name' => (string)$r['nazev'] ?: 'Chovatelská místnost', 'width' => round($W, 3), 'depth' => round($D, 3), 'height' => round($H, 3), 'wallThickness' => 0.14],
+        'objects' => $objects, 'enclosures' => [], 'instances' => [], 'assemblies' => [], 'network' => ['routes' => [], 'circuits' => []],
+        'meta' => ['migratedFrom' => 'habitat_rooms_71:'.(int)$r['id'], 'migratedObjects' => $n, 'generator' => 'IR Manager']];
 }
 
 /**
@@ -115,13 +160,14 @@ function ir_habitat_load(PDO $pdo, int $uid, string $roomKey = 'main'): array {
     $q = $pdo->prepare('SELECT * FROM wp_ir2_habitat_docs WHERE user_id=? AND room_key=? LIMIT 1'); $q->execute([$uid, $roomKey]);
     $row = $q->fetch();
     $doc = $row ? json_decode((string)$row['doc_json'], true) : null;
+    if (!is_array($doc) && $roomKey === 'main' && !$row) $doc = ir_habitat_legacy_room($pdo, $uid);
     if (!is_array($doc)) $doc = ['schema' => 'ir-manager/habitat-room', 'version' => 3, 'room' => ['name' => $roomKey === 'main' ? 'Chovatelská místnost' : $roomKey, 'width' => 5, 'depth' => 4, 'height' => 2.7, 'wallThickness' => 0.14], 'objects' => [], 'enclosures' => [], 'instances' => [], 'assemblies' => [], 'network' => ['routes' => [], 'circuits' => []]];
     $lib = ir_habitat_manager_library($pdo, $uid);
     // merge: Manager-mapped entries are refreshed from Manager; Habitat-only entries (not yet saved) stay
     $mgrTpl = array_column($lib['templates'], null, 'id');
     $mgrInst = array_column($lib['instances'], null, 'id');
-    $tpls = []; foreach ((array)($doc['enclosures'] ?? []) as $t) if (!isset($mgrTpl[$t['id'] ?? ''])) $tpls[] = $t; else { $m = $mgrTpl[$t['id']]; unset($mgrTpl[$t['id']]); $tpls[] = array_merge($t, ['name' => $m['name'], 'dimensions' => $m['dimensions'], 'metadata' => $m['metadata']]); }
-    $insts = []; foreach ((array)($doc['instances'] ?? []) as $i) if (!isset($mgrInst[$i['id'] ?? ''])) $insts[] = $i; else { $m = $mgrInst[$i['id']]; unset($mgrInst[$i['id']]); $insts[] = array_merge($i, ['code' => $m['code'], 'props' => array_merge((array)($i['props'] ?? []), ['animal' => $m['props']['animal']]), 'metadata' => $m['metadata']]); }
+    $tpls = []; foreach ((array)($doc['enclosures'] ?? []) as $t) if (!isset($mgrTpl[$t['id'] ?? ''])) $tpls[] = $t; else { $m = $mgrTpl[$t['id']]; unset($mgrTpl[$t['id']]); $tpls[] = array_merge($t, ['name' => $m['name'], 'dimensions' => $m['dimensions'], 'metadata' => array_merge((array)($m['metadata'] ?? []), (array)($t['metadata'] ?? []))]); }
+    $insts = []; foreach ((array)($doc['instances'] ?? []) as $i) if (!isset($mgrInst[$i['id'] ?? ''])) $insts[] = $i; else { $m = $mgrInst[$i['id']]; unset($mgrInst[$i['id']]); $insts[] = array_merge($i, ['code' => $m['code'], 'props' => array_merge((array)($i['props'] ?? []), ['animal' => $m['props']['animal'], 'occupied' => $m['props']['occupied']]), 'metadata' => array_merge((array)($i['metadata'] ?? []), ['externalId' => $m['metadata']['externalId']])]); }
     $doc['enclosures'] = array_merge($tpls, array_values($mgrTpl));
     $doc['instances'] = array_merge($insts, array_values($mgrInst));
     // assemblies: Habitat-saved ones + legacy Manager racks not yet converted
@@ -190,6 +236,7 @@ function ir_habitat_save(PDO $pdo, int $uid, string $roomKey, array $doc, int $b
             $x = $pdo->prepare('SELECT id, rack_id FROM wp_ir2_habitat_assemblies WHERE user_id=? AND asm_key=? LIMIT 1'); $x->execute([$uid, $aid]);
             $ex = $x->fetch();
             $rackId = $ex ? (int)$ex['rack_id'] : (int)($a['metadata']['managerRackId'] ?? 0);
+            if (!$rackId && preg_match('~^mgr_asm_(\d+)$~', $aid, $mm)) $rackId = (int)$mm[1]; // legacy Manager rack converted on load
             if ($rackId && !ir_scalar($pdo, 'SELECT COUNT(*) FROM wp_ir2_racky WHERE id=? AND user_id=?', [$rackId, $uid], 0)) $rackId = 0;
             if (!$rackId) { $pdo->prepare('INSERT INTO wp_ir2_racky(user_id,nazev,umisteni,pocet_radku,pocet_sloupcu,poznamka) VALUES(?,?,?,1,1,?)')->execute([$uid, $name, 'Habitat Studio', 'Sestava z Habitat Studia']); $rackId = (int)$pdo->lastInsertId(); }
             else $pdo->prepare('UPDATE wp_ir2_racky SET nazev=? WHERE id=? AND user_id=?')->execute([$name, $rackId, $uid]);

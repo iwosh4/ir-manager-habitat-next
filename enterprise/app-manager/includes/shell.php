@@ -33,7 +33,7 @@ function ir_nav_items(): array {
             ['Přehled','habitats.php?view=overview','habitat'],
             ['Nová ubikace','habitats.php?view=new','add'],
             ['Sestavy','habitats.php?view=assemblies','inventory'],
-            ['Habitat Studio','habitat-studio.php','habitat'],
+            ['Habitat Studio 3D','habitat-studio.php?return=habitats.php','habitat'],
         ]],
         ['inventory','Sklad','inventory','inventory.php',[
             ['Přehled','inventory.php','inventory'],

@@ -271,7 +271,9 @@ t('HABITAT save: new instance → Manager enclosure; assembly → Sestava; revis
     // Manager edit is visible in Habitat
     $pdo->prepare("UPDATE wp_ir2_ubikace SET nazev='Box přejmenovaný v Manageru' WHERE id=?")->execute([$mid]);
     $r3 = ir_habitat_load($pdo, $uid, 'main');
-    ok(in_array('Box přejmenovaný v Manageru', array_column($r3['doc']['enclosures'], 'name'), true) || in_array('Box přejmenovaný v Manageru', array_map(fn($t) => $t['name'] ?? '', $r3['doc']['enclosures']), true), 'Manager rename visible in Habitat');
+    $inst = array_values(array_filter($r3['doc']['instances'], fn($i) => $i['id'] === 'inst_new1'))[0] ?? null;
+    ok($inst && str_starts_with('Box přejmenovaný v Manageru', $inst['code']), 'Manager rename visible in Habitat (physical enclosure label): '.($inst['code'] ?? '-'));
+    ok(count(array_unique(array_column($r3['doc']['enclosures'], 'id'))) === count($r3['doc']['enclosures']), 'no duplicate template ids');
 });
 // ---------------------------------------------------------------- billing (no fake success)
 t('BILLING: webhook signature verified, duplicate ignored, order paid only after server re-fetch', function () use ($pdo, $uid) {

@@ -1,0 +1,137 @@
+import { icon } from './icons.js';
+import { getType } from '../objects/catalog.js';
+
+/** In-viewport overlays: view controls, compass, status/hover line, render stats, loading. */
+export class Hud {
+  constructor(app, viewport) {
+    this.app = app;
+    const el = document.createElement('div'); el.className = 'hud';
+    el.innerHTML = `
+      <div class="hud-views">
+        <button data-view="hero" title="Reset camera (0)">${icon('home')}</button>
+        <button data-act="fit-room" title="Fit room (9)">${icon('fit')}</button>
+        <button data-act="focus" title="Fit selection (F)">${icon('focus')}</button>
+        <span class="hud-sep"></span>
+        <button data-view="top" title="Top (1)">${icon('top')}</button>
+        <button data-view="front" title="Front (2)">${icon('front')}</button>
+        <button data-view="left" title="Left (3)">${icon('left')}</button>
+        <button data-view="right" title="Right (4)">${icon('right')}</button>
+        <button data-view="corner_left" title="Left corner (7)">${icon('cornerl')}</button>
+        <button data-view="corner_right" title="Right corner (8)">${icon('cornerr')}</button>
+        <button data-view="iso" title="Isometric (5)">${icon('cube')}</button>
+        <button data-act="asm-view" title="Selected assembly — frontal view">${icon('layers')}</button>
+        <button data-view="interior" title="Eye level, inside the room (6)">${icon('interior')}</button>
+        <span class="hud-sep"></span>
+        <button data-act="walls" class="hud-walls" title="Walls: camera-aware (V)">${icon('walls')}<b></b></button>
+        <button data-act="full" title="Fullscreen (F11)">${icon('full')}</button>
+      </div>
+      <div class="hud-wallmenu" hidden>${[['auto', 'AUTO — camera-aware'], ['all', 'ALL WALLS'], ['cutaway', 'CUTAWAY'], ['footprint', 'WALL FOOTPRINT'], ['hide', 'HIDE WALLS']].map(([k, l]) => `<button data-wall="${k}">${l}</button>`).join('')}</div>
+      <div class="hud-compass" title="North"><div class="needle"><span>N</span></div></div>
+      <div class="hud-status"><span class="st-main"></span><span class="st-hover"></span></div>
+      <div class="hud-stats" title="Renderer diagnostics — click (or press I) for details"><span class="mode-dot"></span><span class="stats-line"></span></div>
+      <div class="hud-diag" hidden></div>
+      <div class="hud-context" hidden><span class="ctx-path"></span><button data-act="exit-asm" title="Exit assembly (Esc)">Exit assembly</button></div>
+      <div class="hud-loading" hidden><div class="hl-text"></div><div class="hl-bar"><i></i></div></div>`;
+    viewport.appendChild(el);
+    this.el = el;
+    el.addEventListener('click', (e) => {
+      const v = e.target.closest('[data-view]'); if (v) { app.setView(v.dataset.view); return; }
+      const wm = e.target.closest('[data-wall]'); if (wm) { app.setWallMode(wm.dataset.wall); this.wallMenu.hidden = true; return; }
+      const a = e.target.closest('[data-act]'); if (!a) return;
+      if (a.dataset.act === 'focus') app.focusSelected();
+      if (a.dataset.act === 'fit-room') app.fitRoom();
+      if (a.dataset.act === 'asm-view') app.viewAssembly();
+      if (a.dataset.act === 'walls') { this.wallMenu.hidden = !this.wallMenu.hidden; return; }
+      if (a.dataset.act === 'full') app.toggleFullscreen();
+      if (a.dataset.act === 'compare') app.openComparison();
+      if (a.dataset.act === 'exit-asm') app.exitAssembly();
+    });
+    this.wallMenu = el.querySelector('.hud-wallmenu');
+    this.updateWallMode();
+    this.needle = el.querySelector('.needle');
+    this.main = el.querySelector('.st-main'); this.hover = el.querySelector('.st-hover');
+    this.stats = el.querySelector('.hud-stats'); this.statsLine = el.querySelector('.stats-line'); this.diag = el.querySelector('.hud-diag');
+    this.stats.addEventListener('click', () => this.toggleDiag());
+    this.loading = el.querySelector('.hud-loading');
+    window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'i' && !/input|textarea|select/i.test(e.target.tagName)) this.toggleDiag(); });
+    app.rig.controls.addEventListener('change', () => this.updateCompass());
+    this.updateCompass();
+    this.refresh();
+  }
+
+  updateWallMode() {
+    const m = this.app.walls?.mode || 'auto';
+    const b = this.el.querySelector('.hud-walls b'); if (b) b.textContent = { auto: 'A', all: '■', cutaway: 'C', footprint: 'F', hide: '–' }[m];
+    this.el.querySelectorAll('[data-wall]').forEach((x) => x.classList.toggle('on', x.dataset.wall === m));
+    this.el.querySelector('.hud-walls')?.setAttribute('title', `Walls: ${m.toUpperCase()} (V to cycle)`);
+  }
+
+  updateCompass() {
+    const az = this.app.rig.controls.getAzimuthalAngle();
+    this.needle.style.transform = `rotate(${az}rad)`;
+  }
+
+  setStatus(t) { this.statusText = t; this.refresh(); }
+  setHover(o) {
+    if (o === this.hovered) return; this.hovered = o;
+    this.hover.textContent = o ? `${o.name} · ${getType(o.type).label}` : '';
+  }
+  refresh() {
+    const sel = this.app.editor.selected;
+    this.main.textContent = this.statusText || (sel ? `${sel.name} selected — drag to move, ring to rotate, Del to delete` : 'Click an object to select · drag empty space to orbit · right-drag to pan · wheel to zoom');
+  }
+  /** Selection context banner: ROOM › ASSEMBLY › ENCLOSURE. */
+  setContext(assemblyObj, member) {
+    const el = this.el.querySelector('.hud-context');
+    el.hidden = !assemblyObj;
+    if (!assemblyObj) return;
+    const m = member ? ` <i>›</i> <b>${member.instance?.code || member.template?.name || member.reserved?.label || 'Module'}</b>` : ' <i>›</i> <em>click an enclosure</em>';
+    el.querySelector('.ctx-path').innerHTML = `ROOM <i>›</i> ASSEMBLY <b>${assemblyObj.name.replace(/</g, '&lt;')}</b>${m}`;
+  }
+
+  showLoading(text, p = 0) {
+    this.loading.hidden = false;
+    this.loading.querySelector('.hl-text').textContent = text;
+    this.loading.querySelector('i').style.width = `${Math.round(p * 100)}%`;
+  }
+  hideLoading() { this.loading.hidden = true; }
+
+  toggleDiag() { this.diag.hidden = !this.diag.hidden; this.refreshStats(); }
+
+  /** Called every animation frame while idle: flip the mode badge back to "final" once settled. */
+  tick() { if (this.stats.dataset.mode !== 'final') this.refreshStats(); }
+
+  /** "60 fps · 16.6 ms" while rendering; "IDLE · last 60 fps · 16.6 ms" while render-on-demand is idle. */
+  fpsText(d) {
+    const st = this.app.engine.stats, last = st.fps ? `${st.fps} fps · ${st.fpsMs ? st.fpsMs.toFixed(1) : '–'} ms` : '– fps';
+    return st.idle ? `IDLE · last ${last}` : last;
+  }
+
+  refreshStats() {
+    const app = this.app, d = app.engine.diagnostics();
+    const mode = app.engine.isInteractive ? 'interactive' : 'final';
+    this.stats.dataset.mode = mode;
+    const q = d.quality === 'Auto' ? `AUTO→${d.finalProfile}` : d.quality;
+    const rm = { planner: 'PLANNER', showcase: 'SHOWCASE', techplan: 'TECH PLAN' }[app.renderMode] || 'PLANNER';
+    this.stats.dataset.renderer = app.renderMode;
+    this.statsLine.textContent = `${rm} · ${mode === 'interactive' ? 'INTERACTIVE' : 'FINAL'} · ${q} · ${this.fpsText(d)} · ${d.drawCalls} draws · ${(d.triangles / 1000).toFixed(0)}k tris · scale ${Math.round(d.renderScale * 100)}%`;
+    if (this.diag.hidden) return;
+    const r = app.renderer.info, planner = app.renderMode !== 'showcase';
+    const rows = [
+      ['Renderer', planner ? 'PLANNER — stylised hand-painted (1 pass + grade)' : 'SHOWCASE — realistic (PBR, shadows, GTAO, bloom)'],
+      ['Mode', mode === 'interactive' ? (planner ? 'Interactive (adaptive scale, same pass)' : 'Interactive (reduced resolution, no AO/bloom/MSAA)') : 'Final (full quality)'],
+      ['Quality', d.quality === 'Auto' ? `Auto — final profile ${d.finalProfile}` : d.quality],
+      ['FPS / frame', `${this.fpsText(d)}${d.frameMs ? ` · ${d.frameMs.toFixed(1)} ms interactive EMA` : ''}`],
+      ['Last final frame', d.finalMs ? `${d.finalMs.toFixed(0)} ms` : '–'],
+      ['CPU submit', `${d.cpuMs.toFixed(1)} ms`],
+      ['Draw calls', d.drawCalls], ['Triangles', d.triangles.toLocaleString()],
+      ['Render scale', `${Math.round(d.renderScale * 100)}% (interactive) · pixel ratio ${d.pixelRatio}`],
+      ['Shadow map updates', d.shadowUpdates],
+      ...app.mode.diagRows(),
+      ['Programs / geometries / textures', `${d.programs} / ${r.memory.geometries} / ${r.memory.textures} (shared context)`],
+      ['Shader pre-compile', app.engine.stats.compileMs != null ? `${app.engine.stats.compileMs} ms` : '–'],
+      ['GPU', d.gpu || 'n/a'],
+    ];
+    this.diag.innerHTML = `<div class="diag-head">Renderer diagnostics <em>I</em><button data-act="compare" title="Render this camera with both renderers and compare">Compare Showcase ↔ Planner</button></div>` + rows.map(([k, v]) => `<div class="diag-row"><span>${k}</span><b>${v}</b></div>`).join('');
+  }
+}

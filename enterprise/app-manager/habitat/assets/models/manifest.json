@@ -1,0 +1,715 @@
+{
+  "animal_frog": {
+    "file": "assets/models/animal_frog.glb",
+    "triangles": 1208,
+    "bytes": 36156,
+    "nativeSize": [
+      0.038,
+      0.0275,
+      0.0461
+    ],
+    "bounds": {
+      "min": [
+        -0.01899999938905239,
+        0,
+        -0.020363735035061836
+      ],
+      "max": [
+        0.01899999938905239,
+        0.027499999850988388,
+        0.02574927918612957
+      ]
+    },
+    "category": "animal"
+  },
+  "animal_gecko": {
+    "file": "assets/models/animal_gecko.glb",
+    "triangles": 2272,
+    "bytes": 60096,
+    "nativeSize": [
+      0.2308,
+      0.038,
+      0.0723
+    ],
+    "bounds": {
+      "min": [
+        -0.11178924143314362,
+        -0.0010768059873953462,
+        -0.036149345338344574
+      ],
+      "max": [
+        0.11900000274181366,
+        0.03696352615952492,
+        0.036149345338344574
+      ]
+    },
+    "category": "animal"
+  },
+  "animal_python": {
+    "file": "assets/models/animal_python.glb",
+    "triangles": 6836,
+    "bytes": 164432,
+    "nativeSize": [
+      0.2384,
+      0.0976,
+      0.2231
+    ],
+    "bounds": {
+      "min": [
+        -0.11315762996673584,
+        -0.0019681614357978106,
+        -0.1078602597117424
+      ],
+      "max": [
+        0.12528902292251587,
+        0.09561377763748169,
+        0.11526982486248016
+      ]
+    },
+    "category": "animal"
+  },
+  "incubator": {
+    "file": "assets/models/incubator.glb",
+    "triangles": 23552,
+    "bytes": 681036,
+    "nativeSize": [
+      0.62,
+      1.25,
+      0.6
+    ],
+    "bounds": {
+      "min": [
+        -0.3100000023841858,
+        4.4703482582342247e-10,
+        -0.30000001192092896
+      ],
+      "max": [
+        0.3100000023841858,
+        1.2510000467300415,
+        0.35199999809265137
+      ]
+    },
+    "category": "enclosure"
+  },
+  "paludarium": {
+    "file": "assets/models/paludarium.glb",
+    "triangles": 20920,
+    "bytes": 577788,
+    "nativeSize": [
+      1.2,
+      1.4,
+      0.5
+    ],
+    "bounds": {
+      "min": [
+        -0.6169999837875366,
+        6.705522803684971e-10,
+        -0.2504083514213562
+      ],
+      "max": [
+        0.6000000238418579,
+        1.562548279762268,
+        0.2770000100135803
+      ]
+    },
+    "category": "enclosure"
+  },
+  "quarantine": {
+    "file": "assets/models/quarantine.glb",
+    "triangles": 6386,
+    "bytes": 198340,
+    "nativeSize": [
+      0.9,
+      1.14,
+      0.5
+    ],
+    "bounds": {
+      "min": [
+        -0.45080000162124634,
+        -8.642673243741683e-10,
+        -0.25
+      ],
+      "max": [
+        0.4620000123977661,
+        1.1399999856948853,
+        0.25200000405311584
+      ]
+    },
+    "category": "enclosure"
+  },
+  "rack_glass": {
+    "file": "assets/models/rack_glass.glb",
+    "triangles": 83198,
+    "bytes": 3375192,
+    "nativeSize": [
+      1.2,
+      1.9,
+      0.5
+    ],
+    "bounds": {
+      "min": [
+        -0.6025000214576721,
+        -5.215406578829018e-11,
+        -0.2524999976158142
+      ],
+      "max": [
+        0.6629999876022339,
+        1.899999976158142,
+        0.2524999976158142
+      ]
+    },
+    "category": "enclosure"
+  },
+  "rack_tubs": {
+    "file": "assets/models/rack_tubs.glb",
+    "triangles": 22892,
+    "bytes": 570504,
+    "nativeSize": [
+      1.22,
+      1.78,
+      0.62
+    ],
+    "bounds": {
+      "min": [
+        -0.6100000143051147,
+        4.4703482582342247e-10,
+        -0.32085758447647095
+      ],
+      "max": [
+        0.6100000143051147,
+        1.8799999952316284,
+        0.3179999887943268
+      ]
+    },
+    "category": "enclosure"
+  },
+  "stand_cabinet": {
+    "file": "assets/models/stand_cabinet.glb",
+    "triangles": 1740,
+    "bytes": 49624,
+    "nativeSize": [
+      1,
+      0.8,
+      0.5
+    ],
+    "bounds": {
+      "min": [
+        -0.5,
+        6.705522803684971e-10,
+        -0.25
+      ],
+      "max": [
+        0.5,
+        0.800000011920929,
+        0.2770000100135803
+      ]
+    },
+    "category": "furniture"
+  },
+  "terrarium_arid": {
+    "file": "assets/models/terrarium_arid.glb",
+    "triangles": 24520,
+    "bytes": 732344,
+    "nativeSize": [
+      1,
+      0.5,
+      0.5
+    ],
+    "bounds": {
+      "min": [
+        -0.5,
+        -0.004999999888241291,
+        -0.25
+      ],
+      "max": [
+        0.5,
+        0.6209999918937683,
+        0.25949999690055847
+      ]
+    },
+    "category": "enclosure"
+  },
+  "terrarium_tropical": {
+    "file": "assets/models/terrarium_tropical.glb",
+    "triangles": 29720,
+    "bytes": 1582952,
+    "nativeSize": [
+      0.6,
+      0.9,
+      0.45
+    ],
+    "bounds": {
+      "min": [
+        -0.30000001192092896,
+        -0.004999999888241291,
+        -0.22499999403953552
+      ],
+      "max": [
+        0.30000001192092896,
+        0.9235482811927795,
+        0.2460000067949295
+      ]
+    },
+    "category": "enclosure"
+  },
+  "shelving": {
+    "file": "assets/models/shelving.glb",
+    "triangles": 9330,
+    "bytes": 286112,
+    "nativeSize": [
+      1.2,
+      1.9,
+      0.45
+    ],
+    "bounds": {
+      "min": [
+        -0.6025000214576721,
+        0,
+        -0.22499999403953552
+      ],
+      "max": [
+        0.6025000214576721,
+        1.9459999799728394,
+        0.22499999403953552
+      ]
+    },
+    "category": "furniture"
+  },
+  "sink_unit": {
+    "file": "assets/models/sink_unit.glb",
+    "triangles": 5106,
+    "bytes": 168876,
+    "nativeSize": [
+      0.9,
+      0.9,
+      0.6
+    ],
+    "bounds": {
+      "min": [
+        -0.453000009059906,
+        8.940696516468449e-10,
+        -0.30300000309944153
+      ],
+      "max": [
+        0.453000009059906,
+        1.899999976158142,
+        0.30300000309944153
+      ]
+    },
+    "category": "furniture"
+  },
+  "storage_cabinet": {
+    "file": "assets/models/storage_cabinet.glb",
+    "triangles": 3568,
+    "bytes": 91744,
+    "nativeSize": [
+      0.9,
+      2,
+      0.5
+    ],
+    "bounds": {
+      "min": [
+        -0.44999998807907104,
+        -3.7252903539730653e-10,
+        -0.25
+      ],
+      "max": [
+        0.44999998807907104,
+        2,
+        0.2750000059604645
+      ]
+    },
+    "category": "furniture"
+  },
+  "workbench": {
+    "file": "assets/models/workbench.glb",
+    "triangles": 10836,
+    "bytes": 323776,
+    "nativeSize": [
+      1.8,
+      1.95,
+      0.75
+    ],
+    "bounds": {
+      "min": [
+        -0.8999999761581421,
+        -5.215406578829018e-11,
+        -0.375
+      ],
+      "max": [
+        0.8999999761581421,
+        1.9500000476837158,
+        0.375
+      ]
+    },
+    "category": "furniture"
+  },
+  "ac_unit": {
+    "file": "assets/models/ac_unit.glb",
+    "triangles": 644,
+    "bytes": 37608,
+    "nativeSize": [
+      0.9,
+      0.3,
+      0.22
+    ],
+    "bounds": {
+      "min": [
+        -0.44999998807907104,
+        -0.01978325843811035,
+        -0.006000000052154064
+      ],
+      "max": [
+        0.44999998807907104,
+        1.5,
+        0.22600194811820984
+      ]
+    },
+    "category": "technical"
+  },
+  "ceiling_panel": {
+    "file": "assets/models/ceiling_panel.glb",
+    "triangles": 674,
+    "bytes": 59056,
+    "nativeSize": [
+      1.234,
+      0.012,
+      0.634
+    ],
+    "bounds": {
+      "min": [
+        -0.6169999837875366,
+        -0.009999999776482582,
+        -0.31700000166893005
+      ],
+      "max": [
+        0.6169999837875366,
+        0.0020000000949949026,
+        0.31700000166893005
+      ]
+    },
+    "category": "fixture"
+  },
+  "control_panel": {
+    "file": "assets/models/control_panel.glb",
+    "triangles": 4644,
+    "bytes": 128704,
+    "nativeSize": [
+      0.5,
+      0.6,
+      0.16
+    ],
+    "bounds": {
+      "min": [
+        -0.25,
+        -0.800000011920929,
+        -2.98023217215615e-10
+      ],
+      "max": [
+        0.25,
+        1.8000000715255737,
+        0.15700000524520874
+      ]
+    },
+    "category": "technical"
+  },
+  "dehumidifier": {
+    "file": "assets/models/dehumidifier.glb",
+    "triangles": 4286,
+    "bytes": 123652,
+    "nativeSize": [
+      0.4,
+      0.62,
+      0.3
+    ],
+    "bounds": {
+      "min": [
+        -0.20399999618530273,
+        -0.005231938790529966,
+        -0.2729414105415344
+      ],
+      "max": [
+        0.30058813095092773,
+        0.625,
+        0.15700000524520874
+      ]
+    },
+    "category": "technical"
+  },
+  "door": {
+    "file": "assets/models/door.glb",
+    "triangles": 4798,
+    "bytes": 166600,
+    "nativeSize": [
+      1,
+      2.1,
+      0.14
+    ],
+    "bounds": {
+      "min": [
+        -0.5649999976158142,
+        -4.7683716530855236e-8,
+        -0.0820000022649765
+      ],
+      "max": [
+        0.5649999976158142,
+        2.1700000762939453,
+        0.16517230868339539
+      ]
+    },
+    "category": "opening"
+  },
+  "outlet": {
+    "file": "assets/models/outlet.glb",
+    "triangles": 620,
+    "bytes": 27124,
+    "nativeSize": [
+      0.16,
+      0.085,
+      0.015
+    ],
+    "bounds": {
+      "min": [
+        -0.07999999821186066,
+        -0.042500000447034836,
+        -5.215406578829018e-11
+      ],
+      "max": [
+        0.07999999821186066,
+        0.042500000447034836,
+        0.014999999664723873
+      ]
+    },
+    "category": "technical"
+  },
+  "plant_fern": {
+    "file": "assets/models/plant_fern.glb",
+    "triangles": 1040,
+    "bytes": 34280,
+    "nativeSize": [
+      0.81,
+      0.6267,
+      0.9197
+    ],
+    "bounds": {
+      "min": [
+        -0.42999735474586487,
+        -0.18747422099113464,
+        -0.4304487109184265
+      ],
+      "max": [
+        0.37997832894325256,
+        0.4392474293708801,
+        0.4892517924308777
+      ]
+    },
+    "category": "plant"
+  },
+  "plant_large": {
+    "file": "assets/models/plant_large.glb",
+    "triangles": 3184,
+    "bytes": 90132,
+    "nativeSize": [
+      0.9963,
+      1.3261,
+      1.027
+    ],
+    "bounds": {
+      "min": [
+        -0.4837580621242523,
+        0,
+        -0.6107454299926758
+      ],
+      "max": [
+        0.5125038623809814,
+        1.3261252641677856,
+        0.4162602126598358
+      ]
+    },
+    "category": "plant"
+  },
+  "plant_snake": {
+    "file": "assets/models/plant_snake.glb",
+    "triangles": 856,
+    "bytes": 28480,
+    "nativeSize": [
+      0.5118,
+      1.0059,
+      0.5661
+    ],
+    "bounds": {
+      "min": [
+        -0.20275381207466125,
+        0,
+        -0.3273930847644806
+      ],
+      "max": [
+        0.3090924620628357,
+        1.0058919191360474,
+        0.23866906762123108
+      ]
+    },
+    "category": "plant"
+  },
+  "sensor": {
+    "file": "assets/models/sensor.glb",
+    "triangles": 324,
+    "bytes": 12900,
+    "nativeSize": [
+      0.1,
+      0.1,
+      0.027
+    ],
+    "bounds": {
+      "min": [
+        -0.05000000074505806,
+        -0.05000000074505806,
+        -1.8626451769865326e-10
+      ],
+      "max": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.027000000700354576
+      ]
+    },
+    "category": "technical"
+  },
+  "window_unit": {
+    "file": "assets/models/window_unit.glb",
+    "triangles": 4032,
+    "bytes": 115596,
+    "nativeSize": [
+      1.4,
+      1.2,
+      0.14
+    ],
+    "bounds": {
+      "min": [
+        -0.7599999904632568,
+        -0.04609442129731178,
+        -0.1798117309808731
+      ],
+      "max": [
+        0.7599999904632568,
+        1.2120000123977661,
+        0.20000000298023224
+      ]
+    },
+    "category": "opening"
+  },
+  "cable_tray": {
+    "file": "assets/models/cable_tray.glb",
+    "triangles": 3698,
+    "bytes": 101192,
+    "nativeSize": [
+      3.8,
+      0.06,
+      0.18
+    ],
+    "bounds": {
+      "min": [
+        -1.899999976158142,
+        -0.8002429604530334,
+        -0.006406474392861128
+      ],
+      "max": [
+        1.899999976158142,
+        0.05999999865889549,
+        0.1850000023841858
+      ]
+    },
+    "category": "technical"
+  },
+  "ceiling_diffuser": {
+    "file": "assets/models/ceiling_diffuser.glb",
+    "triangles": 1016,
+    "bytes": 54352,
+    "nativeSize": [
+      0.58,
+      0.065,
+      0.58
+    ],
+    "bounds": {
+      "min": [
+        -0.28999999165534973,
+        -0.052000001072883606,
+        -0.28999999165534973
+      ],
+      "max": [
+        0.28999999165534973,
+        0.013000000268220901,
+        0.28999999165534973
+      ]
+    },
+    "category": "fixture"
+  },
+  "exit_sign": {
+    "file": "assets/models/exit_sign.glb",
+    "triangles": 312,
+    "bytes": 10676,
+    "nativeSize": [
+      0.36,
+      0.16,
+      0.05
+    ],
+    "bounds": {
+      "min": [
+        -0.18000000715255737,
+        1.7881393032936899e-9,
+        -3.7252903539730653e-10
+      ],
+      "max": [
+        0.18000000715255737,
+        0.1599999964237213,
+        0.052000001072883606
+      ]
+    },
+    "category": "technical"
+  },
+  "fire_extinguisher": {
+    "file": "assets/models/fire_extinguisher.glb",
+    "triangles": 1380,
+    "bytes": 43448,
+    "nativeSize": [
+      0.16,
+      0.6,
+      0.18
+    ],
+    "bounds": {
+      "min": [
+        -0.07800000160932541,
+        0,
+        2.2351741291171123e-10
+      ],
+      "max": [
+        0.11538399010896683,
+        0.603277325630188,
+        0.18000000715255737
+      ]
+    },
+    "category": "technical"
+  },
+  "info_board": {
+    "file": "assets/models/info_board.glb",
+    "triangles": 998,
+    "bytes": 39688,
+    "nativeSize": [
+      1.2,
+      0.8,
+      0.02
+    ],
+    "bounds": {
+      "min": [
+        -0.6000000238418579,
+        -5.9604645663569045e-9,
+        2.2351741291171123e-10
+      ],
+      "max": [
+        0.6000000238418579,
+        0.800000011920929,
+        0.05999999865889549
+      ]
+    },
+    "category": "technical"
+  }
+}
