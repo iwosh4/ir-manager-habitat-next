@@ -65,8 +65,8 @@ export const macroFor = (key) => `assets/img/species/${SPECIES[key]?.img || key}
 export function hash(s) { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 export const SUPPLEMENTS = {
-  'Dendrocare': { color: '#d9822f', img: 'jar-dendrocare', kind: 'vitamin · mineral' },
-  'Calcium + D3': { color: '#2f6fb3', img: 'jar-calcium', kind: 'calcium' },
-  'Multivit': { color: '#6b4fa3', img: 'jar-multivit', kind: 'multivitamin' },
-  'Včelí pyl': { color: '#c9a227', img: 'jar-pollen', kind: 'carotenoids' },
+  'Dendrocare': { color: '#d9822f', img: 'jar-dendrocare', kind: 'vitamíny · minerály' },
+  'Calcium + D3': { color: '#2f6fb3', img: 'jar-calcium', kind: 'vápník' },
+  'Multivit': { color: '#6b4fa3', img: 'jar-multivit', kind: 'multivitamín' },
+  'Včelí pyl': { color: '#c9a227', img: 'jar-pollen', kind: 'karotenoidy' },
 };
