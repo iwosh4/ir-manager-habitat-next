@@ -1,0 +1,81 @@
+/* =====================================================================================================
+   IR MANAGER · OBSIDIAN EVOLUTION — design tokens
+   Derived from the real /app-manager/ tokens (core.css, lock064.css): obsidian #070a0c, panel #0d1317,
+   line #25313a, amber #f28b28 / #ff9d3f, text #f2f4f6, muted #8d99a3, Segoe UI Variable.
+   Evolution: one surface ladder, one amber scale, one motion scale.
+   ===================================================================================================== */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('../assets/fonts/inter-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('../assets/fonts/inter-latin-ext-wght-normal.woff2') format('woff2'); unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF; }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('../assets/fonts/jetbrains-mono-latin-ext-400-normal.woff2') format('woff2'); unicode-range: U+0100-02AF; }
+
+:root {
+  /* surface ladder: obsidian → graphite */
+  --ob-0: #030506;      /* deepest (behind header) */
+  --ob-1: #05080a;      /* page */
+  --ob-2: #080c0f;      /* sidebar */
+  --sf-1: #0b1115;      /* panel */
+  --sf-2: #0f171c;      /* raised panel / hover */
+  --sf-3: #141e24;      /* control */
+  --sf-4: #1a262e;      /* control hover */
+  --line: #1e2a32;      /* hairline */
+  --line-2: #2a3a44;    /* control border */
+  --line-3: #3a4c57;    /* strong border */
+
+  /* text */
+  --tx: #f2f4f6;
+  --tx-2: #c3ccd2;
+  --tx-3: #8d99a3;
+  --tx-4: #66737d;
+
+  /* amber identity (from IR_ACCENT #f28b28 and lock064 #ff8b17 / #ffb54f) */
+  --am: #f28b28;
+  --am-2: #ff9d3f;
+  --am-3: #ffb54f;
+  --am-ink: #1a0f06;
+  --am-line: rgba(242, 139, 40, .34);
+  --am-edge: rgba(242, 139, 40, .52);
+  --am-bg: rgba(242, 139, 40, .09);
+  --am-bg-2: rgba(242, 139, 40, .15);
+  --am-glow: 0 0 0 1px rgba(242, 139, 40, .22), 0 0 22px rgba(242, 139, 40, .12);
+
+  /* status */
+  --ok: #51d77a;   --ok-bg: rgba(81, 215, 122, .1);
+  --warn: #ffb54f; --warn-bg: rgba(255, 181, 79, .1);
+  --bad: #ff5d5d;  --bad-bg: rgba(255, 93, 93, .1);
+  --info: #4aa8ff; --info-bg: rgba(74, 168, 255, .1);
+  --male: #31baff; --female: #ff53a7;
+
+  /* activity families (muted so orange keeps priority) */
+  --c-feed: #f2a03c; --c-water: #4aa8ff; --c-mist: #45c8c0; --c-clean: #c7a77a; --c-weight: #a8b3bc;
+  --c-shed: #d8b98a; --c-health: #ff6b6b; --c-med: #ff7fb0; --c-repro: #b692ff; --c-incub: #ff9d3f;
+  --c-encl: #7fcf8a; --c-inv: #d9a15b; --c-note: #8d99a3; --c-task: #c3ccd2; --c-fin: #51d77a;
+
+  /* widget accents (controlled saturation) */
+  --acc-amber: #f28b28; --acc-blue: #4aa8ff; --acc-violet: #a78bfa; --acc-red: #ff6b6b; --acc-green: #51d77a; --acc-neutral: #5b6b76;
+
+  /* type */
+  --font: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --fs-meta: 11px; --fs-sm: 12.5px; --fs: 14px; --fs-md: 15px; --fs-lg: 18px; --fs-xl: 22px; --fs-2xl: 28px;
+
+  /* geometry */
+  --r-xs: 7px; --r-sm: 10px; --r: 14px; --r-lg: 18px; --r-pill: 999px;
+  --sb-w: 256px; --sb-w-c: 76px; --hd-h: 72px; --live-h: 36px; --gut: 22px; --bn-h: 76px;
+
+  /* depth */
+  --sh-1: 0 1px 0 rgba(255, 255, 255, .025) inset, 0 10px 30px rgba(0, 0, 0, .28);
+  --sh-2: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 18px 50px rgba(0, 0, 0, .45);
+  --sh-pop: 0 24px 60px rgba(0, 0, 0, .6), 0 0 0 1px rgba(255, 255, 255, .04);
+
+  /* motion system — FAST / NORMAL / STATE */
+  --t-fast: 130ms; --t: 190ms; --t-state: 300ms;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+
+html[data-motion='off'] { --t-fast: 0ms; --t: 0ms; --t-state: 0ms; }
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 1ms; --t: 1ms; --t-state: 1ms; }
+}
