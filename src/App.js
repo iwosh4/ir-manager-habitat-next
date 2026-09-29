@@ -3,6 +3,7 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { createRenderer } from './renderer/quality.js';
 import { syncReferencedSizes } from './model/RoomDocument.js';
 import { CameraRig } from './camera/CameraRig.js';
+import { WallVisibility } from './scene/WallVisibility.js';
 import { Editor } from './editor/Editor.js';
 import { SelectionOverlay } from './interaction/SelectionOverlay.js';
 import { PointerController } from './interaction/PointerController.js';
@@ -76,6 +77,8 @@ export class App {
     this.viewportEl.appendChild(this.labels.domElement);
     this.labels.setSize(this.viewportEl.clientWidth, this.viewportEl.clientHeight);
     this.editor = new Editor();
+    this.walls = new WallVisibility();
+    this.walls.setMode(this.prefs.wallMode || 'auto');
     // camera gestures drive the interactive render profile
     this.rig.controls.addEventListener('start', () => { this._controlsActive = true; });
     this.rig.controls.addEventListener('end', () => { this._controlsActive = false; this.engine?.interact(); });
@@ -160,8 +163,15 @@ export class App {
   invalidate(ms = 0) { this.engine?.invalidate(ms); }
 
   _updateCutaway(force = false) {
-    const { ceilingVisible } = this.mode.updateCutaway(force);
+    const { ceilingVisible, animating } = this.mode.updateCutaway(force);
     this.overlay.setRoomDimsVisible(!ceilingVisible);
+    return !!animating;
+  }
+
+  /** Camera-aware walls: auto | all | cutaway | footprint | hide. */
+  setWallMode(m) {
+    this.walls.setMode(m); this.prefs.wallMode = m; Persistence.savePrefs({ wallMode: m });
+    this._updateCutaway(true); this.hud?.updateWallMode?.(); this.engine.invalidate();
   }
 
   /** The selected object (or the one being dragged / edited) is drawn from its own meshes. */
@@ -239,8 +249,9 @@ export class App {
         if (!st.idle && now - lastFrame > IDLE_AFTER) { st.idle = true; this.hud?.refreshStats(); }
         this.hud?.tick(now); return;
       }
-      this._updateCutaway();
+      const wallsMoving = this._updateCutaway();
       const rendered = this.mode.frame(now);
+      if (wallsMoving) this.engine.invalidate(); // walls still easing towards their camera-aware height
       if (rendered) {
         this.labels.render(this.scene, this.rig.camera);
         const dt = now - lastFrame; lastFrame = now;
@@ -318,6 +329,24 @@ export class App {
   }
 
   setView(name) { this.rig.goTo(name); }
+  fitRoom() { this.rig.fitRoom(); }
+
+  /** Selected assembly (or the one containing the selection): straight frontal view onto its face. */
+  viewAssembly() {
+    const o = this.editor.selected;
+    if (!o) { this.rig.goTo('front'); return; }
+    const v = this.objects.get(o.id); if (!v) return;
+    const box = new THREE.Box3().setFromObject(v.proxy);
+    const a = (o.rotation * Math.PI) / 180;
+    const dir = new THREE.Vector3(Math.sin(a), 0.12, Math.cos(a)).normalize();
+    this.rig.focusBox(box, { direction: dir });
+  }
+
+  cycleWallMode() {
+    const order = ['auto', 'all', 'cutaway', 'footprint', 'hide'];
+    this.setWallMode(order[(order.indexOf(this.walls.mode) + 1) % order.length]);
+    toast(`Walls: ${this.walls.mode.toUpperCase()}`);
+  }
 
   setQuality(q) { for (const m of Object.values(this.modes)) m.setQuality(q); this.prefs.quality = q; Persistence.savePrefs({ quality: q }); }
   setLighting(key) {

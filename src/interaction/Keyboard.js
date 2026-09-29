@@ -15,6 +15,7 @@ export class Keyboard {
     const app = this.app, ed = app.editor, ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
     const step = e.shiftKey ? 0.1 : ed.snap.enabled ? ed.snap.grid || 0.01 : 0.01;
     let handled = true;
+    if (app.tech?.onKey?.(e)) { e.preventDefault(); return; }
     if (ctrl && k === 'z' && !e.shiftKey) ed.undo();
     else if ((ctrl && k === 'y') || (ctrl && e.shiftKey && k === 'z')) ed.redo();
     else if (ctrl && k === 'd') app.duplicateSelected();
@@ -43,6 +44,17 @@ export class Keyboard {
     else if (k === '5') app.setView('iso');
     else if (k === '6') app.setView('interior');
     else if (k === '0' || k === 'home') app.setView('hero');
+    else if (k === '7') app.setView('corner_left');
+    else if (k === '8') app.setView('corner_right');
+    else if (k === '9') app.fitRoom();
+    else if (k === 'w' && !ctrl) app.rig.pan(0, 1);
+    else if (k === 's' && !ctrl) app.rig.pan(0, -1);
+    else if (k === 'a' && !ctrl) app.rig.pan(-1, 0);
+    else if (k === 'd' && !ctrl) app.rig.pan(1, 0);
+    else if (k === 'q' && !ctrl) app.rig.orbit(0.26);
+    else if (k === 'e' && !ctrl) app.rig.orbit(-0.26);
+    else if (k === 't' && !ctrl) app.setRenderMode(app.renderMode === 'techplan' ? (app.prefs.lastVisualMode || 'planner') : 'techplan');
+    else if (k === 'v' && !ctrl) app.cycleWallMode();
     else if (k === '[') app.setPanel('library', !app.prefs.library);
     else if (k === ']') app.setPanel('inspector', !app.prefs.inspector);
     else if (k === 'f11' || (k === 'enter' && e.altKey)) app.toggleFullscreen();

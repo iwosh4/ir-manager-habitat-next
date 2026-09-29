@@ -78,6 +78,7 @@ export class PlannerMode {
     const t0 = performance.now();
     this.objects.syncAll();
     this.shell.build(ed.room, ed.objects);
+    this.shell.setClips(this.app.walls.current, ed.room);
     this.stale = false;
     this.buildMs = Math.round(performance.now() - t0);
     this._applySelection();
@@ -90,6 +91,7 @@ export class PlannerMode {
     else if (c.kind === 'remove') for (const id of c.ids) this.objects.remove(id);
     else for (const id of c.ids || []) { const o = ed.get(id); if (o) this.objects.sync(o); }
     const rebuilt = this.shell.build(ed.room, ed.objects);
+    if (rebuilt) this.shell.setClips(this.app.walls.current, ed.room);
     this._applySelection();
     this.engine.invalidate();
     return rebuilt;
@@ -108,14 +110,16 @@ export class PlannerMode {
     this.brackets.show(v && v.root.visible ? v : null);
   }
 
+  /** Camera-aware walls (shared WallVisibility of the app) → clipped walls + wall-bound objects. */
   updateCutaway(force = false) {
-    const app = this.app, cam = app.rig.camera.position;
-    const { hiddenWalls, ceilingVisible } = this.shell.updateVisibility(app.editor.room, cam);
+    const app = this.app, cam = app.rig.camera.position, room = app.editor.room;
+    const r = app.walls.update(room, cam, app.rig.controls.target);
+    if (r.changed || force) this.shell.setClips(r.clips, room);
     const dir = app.rig.controls.target.clone().sub(cam).normalize();
-    const changed = this.objects.setHiddenWalls(hiddenWalls, Math.abs(dir.y) < 0.55);
+    const changed = this.objects.setWallClips(r.clips, room, Math.abs(dir.y) < 0.55);
     if (changed) this._applySelection();
-    if (changed || force) this.engine.invalidate();
-    return { ceilingVisible };
+    if (changed || force || r.changed) this.engine.invalidate();
+    return { ceilingVisible: cam.y < room.height, animating: r.animating };
   }
 
   activate() {

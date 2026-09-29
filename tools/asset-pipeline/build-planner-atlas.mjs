@@ -345,6 +345,56 @@ T.tools = () => { const p = P(101, { wrap: false, alpha: true }); p.x.clearRect(
   p.x.lineWidth = 7; p.x.strokeStyle = css(hex(0xb23a2e)); p.x.beginPath(); p.x.arc(160, 60, 13, 0, 7); p.x.stroke(); p.x.beginPath(); p.x.arc(190, 60, 13, 0, 7); p.x.stroke(); p.rect(166, 72, 6, 90, hex(0xd0d3d5)); p.rect(180, 72, 6, 90, hex(0xbfc2c4));
   return p; };
 
+// --- Habitat Studio 4.2: room surfaces & plants (appended → existing tile indices are unchanged)
+// neutral mid-value tiles: the colour comes from the vertex tint (paint colour, wood species, floor tone)
+T.plaster = () => P(110).fill(hex(0x8a8987)).mottle([[0, 0x7f7e7c], [0.5, 0x8a8987], [1, 0x979694]], { freq: 5, oct: 5, seed: 1101 })
+  .dabs(420, { r: [0.6, 1.8], color: warm(0x9d9c99, 0x74736f), alpha: [0.25, 0.5], blur: 0.3 })
+  .strokes(40, { len: [20, 70], width: [6, 14], ang: 0.6, jitter: 1.2, alpha: [0.04, 0.08], color: warm(0xa3a29f, 0x6e6d6a), blur: 3 }).grain(7);
+T.planks = () => { const p = P(111).fill(hex(0x96918a)); const n = 5;
+  for (let i = 0; i < n; i++) { const y0 = (i / n) * S, h = S / n; p.rect(0, y0, S, h, mix(hex(0x8d887f), hex(0xa29c93), p.rnd()), 1);
+    const joint = p.rnd(0.2, 0.8) * S; p.line(joint, y0, joint, y0 + h, hex(0x4a4640), 2, 0.55); }
+  p.strokes(200, { len: [50, 180], width: [1, 2.5], ang: 0, jitter: 0.025, alpha: [0.1, 0.24], color: warm(0x6b665e, 0xc4beb4), blur: 0.35 });
+  for (let i = 0; i < 7; i++) { const x0 = p.rnd(0, S), y0 = p.rnd(0, S); p.dab(x0, y0, p.rnd(3, 6), hex(0x5d5850), 0.45, 1.2); }
+  for (let i = 0; i < n; i++) { const y = (i / n) * S; p.line(0, y, S, y, hex(0x3e3a35), 2, 0.8); p.line(0, y + 2, S, y + 2, hex(0xd2ccc2), 1, 0.3); }
+  return p.grain(5); };
+T.slats = () => { const p = P(112).fill(hex(0x1a1b1d)); const n = 6; // vertical lamellas on a dark acoustic felt
+  for (let i = 0; i < n; i++) { const x0 = (i / n) * S + 5, w = S / n - 10; p.rect(x0, 0, w, S, mix(hex(0x928d85), hex(0xa8a298), p.rnd()), 1);
+    p.strokes(24, { len: [60, 200], width: [1, 2], ang: Math.PI / 2, jitter: 0.02, alpha: [0.1, 0.22], color: warm(0x6b665e, 0xcfc9bf), blur: 0.3, area: [x0, 0, x0 + w, S] });
+    p.line(x0 + 1, 0, x0 + 1, S, hex(0xd7d1c7), 1, 0.35); p.line(x0 + w - 1, 0, x0 + w - 1, S, hex(0x3a3631), 2, 0.6); }
+  return p.grain(4); };
+T.floor_tile = () => { const p = P(113).fill(hex(0x6d6d6b)); // two 60 cm tiles per repeat (tile uvScale 1/1.2)
+  for (const [x0, y0] of [[0, 0], [S / 2, 0], [0, S / 2], [S / 2, S / 2]]) { p.rect(x0 + 1.5, y0 + 1.5, S / 2 - 3, S / 2 - 3, mix(hex(0x959593), hex(0xa3a3a0), p.rnd()), 1);
+    p.x.save(); p.x.beginPath(); p.x.rect(x0 + 2, y0 + 2, S / 2 - 4, S / 2 - 4); p.x.clip();
+    p.strokes(10, { len: [30, 90], width: [8, 18], ang: p.rnd(0, 3), jitter: 0.6, alpha: [0.04, 0.08], color: warm(0xb2b2af, 0x80807d), blur: 4, area: [x0, y0, x0 + S / 2, y0 + S / 2] });
+    p.dabs(60, { r: [0.5, 1.4], color: warm(0x7c7c79, 0xb9b9b6), alpha: [0.2, 0.45], blur: 0.2, area: [x0, y0, x0 + S / 2, y0 + S / 2] }); p.x.restore(); }
+  for (const t of [0, S / 2]) { p.line(t, 0, t, S, hex(0x4a4a48), 2.2, 1); p.line(0, t, S, t, hex(0x4a4a48), 2.2, 1); }
+  return p.grain(4); };
+T.panel_deco = () => { const p = P(114).fill(hex(0x7c7a76)); const n = 4; // routed decorative panel: raised squares with bevels
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x0 = i * S / n + 6, y0 = j * S / n + 6, w = S / n - 12;
+    p.rect(x0, y0, w, w, hex(0x8f8d88), 1, 3); p.line(x0, y0, x0 + w, y0, hex(0xb3b0aa), 2, 0.8); p.line(x0, y0, x0, y0 + w, hex(0xa9a6a0), 2, 0.6);
+    p.line(x0, y0 + w, x0 + w, y0 + w, hex(0x55534f), 2, 0.8); p.line(x0 + w, y0, x0 + w, y0 + w, hex(0x5c5a56), 2, 0.7); }
+  return p.grain(4); };
+function splitLeaf(seed, { c0, c1, vein = 0xbfdc8a, cuts = 7, holes = true }) {
+  const p = P(seed, { wrap: false, alpha: true }); const x = p.x; x.clearRect(0, 0, S, S);
+  const body = () => { x.beginPath(); x.moveTo(S / 2, S * 0.98); x.bezierCurveTo(S * 0.0, S * 0.75, S * 0.02, S * 0.1, S * 0.45, S * 0.04); x.bezierCurveTo(S * 0.98, S * 0.1, S * 1.0, S * 0.75, S / 2, S * 0.98); x.closePath(); };
+  body(); const g = x.createLinearGradient(0, 0, S, S); g.addColorStop(0, css(hex(c1))); g.addColorStop(1, css(hex(c0))); x.fillStyle = g; x.fill();
+  x.save(); body(); x.clip();
+  for (let i = 0; i < 30; i++) p.stroke(p.rnd(0, S), p.rnd(0, S), p.rnd(20, 60), p.rnd(6, 14), p.rnd(-2, 2), p.rnd() < 0.5 ? hex(c1) : hex(c0), p.rnd(0.1, 0.22), { blur: 3 });
+  x.strokeStyle = css(hex(vein), 0.7); x.lineWidth = 4; x.beginPath(); x.moveTo(S / 2, S); x.lineTo(S * 0.47, S * 0.06); x.stroke();
+  x.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < cuts; i++) { const y0 = S * (0.16 + i * 0.11); for (const sd of [-1, 1]) { x.beginPath(); x.moveTo(S / 2 + sd * S * 0.62, y0 - S * 0.05); x.quadraticCurveTo(S / 2 + sd * S * 0.3, y0 + S * 0.01, S / 2 + sd * S * 0.1, y0 + S * 0.035); x.lineWidth = 7; x.stroke(); } }
+  if (holes) for (let i = 0; i < 4; i++) { const y0 = S * (0.3 + i * 0.13); for (const sd of [-1, 1]) { x.beginPath(); x.ellipse(S / 2 + sd * S * 0.17, y0, 9, 5, sd * 0.4, 0, 7); x.fill(); } }
+  x.restore(); x.globalCompositeOperation = 'source-over';
+  return p;
+}
+T.leaf_monstera = () => splitLeaf(115, { c0: 0x1c4417, c1: 0x4f8f2f });
+T.leaf_palm = () => { const p = P(116, { wrap: false, alpha: true }); const x = p.x; x.clearRect(0, 0, S, S);
+  x.strokeStyle = css(hex(0x6f7f3a)); x.lineWidth = 4; x.beginPath(); x.moveTo(S / 2, S); x.quadraticCurveTo(S * 0.5, S * 0.5, S * 0.52, 2); x.stroke();
+  for (let i = 0; i < 18; i++) { const t = i / 18, y = S * (0.96 - t * 0.92), len = S * 0.47 * (0.35 + 0.65 * Math.sin((1 - t) * Math.PI * 0.9 + 0.1));
+    for (const sd of [-1, 1]) { const g = x.createLinearGradient(S / 2, y, S / 2 + sd * len, y); g.addColorStop(0, css(hex(0x2f5a1f))); g.addColorStop(1, css(hex(0x8cbf4f))); x.fillStyle = g;
+      x.beginPath(); x.moveTo(S / 2, y); x.quadraticCurveTo(S / 2 + sd * len * 0.55, y - len * 0.25, S / 2 + sd * len, y - len * 0.55); x.quadraticCurveTo(S / 2 + sd * len * 0.5, y - len * 0.12, S / 2, y + 5); x.fill(); } }
+  return p; };
+
 // ---------------------------------------------------------------- assemble
 const names = Object.keys(T);
 if (names.length > GRID * GRID) throw new Error(`too many tiles: ${names.length}`);
@@ -367,5 +417,6 @@ names.forEach((name, i) => {
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'atlas.webp'), atlas.toBuffer('image/webp', 92));
 fs.writeFileSync(path.join(OUT, 'atlas.json'), JSON.stringify(meta, null, 1));
+fs.mkdirSync('/tmp/claude-0/pw', { recursive: true });
 fs.writeFileSync('/tmp/claude-0/pw/atlas_preview.png', createCanvas(1024, 1024).getContext('2d') ? (() => { const c = createCanvas(1024, 1024); c.getContext('2d').drawImage(atlas, 0, 0, 1024, 1024); return c.toBuffer('image/png'); })() : Buffer.alloc(0));
 console.log(`atlas: ${names.length} tiles, ${(fs.statSync(path.join(OUT, 'atlas.webp')).size / 1024).toFixed(0)} KB`);

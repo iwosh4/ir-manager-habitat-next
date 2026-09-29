@@ -25,7 +25,10 @@ export class CameraRig {
     this.room = { width: 5, depth: 4, height: 2.7 };
   }
 
-  setRoom(room) { this.room = room; }
+  setRoom(room) {
+    this.room = room;
+    this.controls.maxDistance = Math.max(28, Math.max(room.width, room.depth) * 4);
+  }
 
   /** View presets expressed relative to the room size. */
   /** Distance at which a w x h rectangle fills the view (with margin), for the current aspect. */
@@ -46,6 +49,9 @@ export class CameraRig {
       case 'back': return { pos: new THREE.Vector3(0, H * 0.5, -D / 2 - this.fitDistance(W + T, H + T, 1.12)), target: new THREE.Vector3(0, H * 0.45, 0), fov: 38 };
       case 'left': return { pos: new THREE.Vector3(-W / 2 - this.fitDistance(D + T, H + T, 1.12), H * 0.5, 0), target: new THREE.Vector3(0, H * 0.45, 0), fov: 38 };
       case 'right': return { pos: new THREE.Vector3(W / 2 + this.fitDistance(D + T, H + T, 1.12), H * 0.5, 0), target: new THREE.Vector3(0, H * 0.45, 0), fov: 38 };
+      // corner views from outside the room (camera-aware walls lower the two near walls)
+      case 'corner_left': return { pos: new THREE.Vector3(-W / 2 - R * 0.55 - 0.6, H + R * 0.42, D / 2 + R * 0.55 + 0.6), target: new THREE.Vector3(0, H * 0.28, 0), fov: 40 };
+      case 'corner_right': return { pos: new THREE.Vector3(W / 2 + R * 0.55 + 0.6, H + R * 0.42, D / 2 + R * 0.55 + 0.6), target: new THREE.Vector3(0, H * 0.28, 0), fov: 40 };
       case 'iso': return { pos: new THREE.Vector3(W * 0.95 + 1.2, H + R * 0.95, D * 1.05 + 1.6), target: tgt.clone().setY(H * 0.2), fov: 38 };
       case 'interior': return { pos: new THREE.Vector3(W * 0.36, 1.62, D * 0.43), target: new THREE.Vector3(-W * 0.12, 1.05, -D * 0.35), fov: 58 };
       case 'overview': return { pos: new THREE.Vector3(W * 0.62 + 0.8, H + R * 0.55, D * 0.62 + 1.4), target: new THREE.Vector3(-W * 0.05, H * 0.15, -D * 0.1), fov: 40 };
@@ -84,6 +90,33 @@ export class CameraRig {
     const fov = THREE.MathUtils.degToRad(Math.min(cam.fov, 50));
     const dist = Math.max(0.6, (sphere.radius * padding) / Math.sin(fov / 2));
     this.animateTo(sphere.center.clone().addScaledVector(dir, dist), sphere.center, THREE.MathUtils.radToDeg(fov), duration);
+  }
+
+  /** Frame the whole room from the current viewing direction (Fit room). */
+  fitRoom({ duration = 700 } = {}) {
+    const { width: W, depth: D, height: H } = this.room;
+    const box = new THREE.Box3(new THREE.Vector3(-W / 2, 0, -D / 2), new THREE.Vector3(W / 2, H, D / 2));
+    this.focusBox(box, { duration, padding: 1.08 });
+    this.view = 'fit';
+  }
+
+  /** Keyboard / button pan in the horizontal view frame (metres, smooth). */
+  pan(right, forward) {
+    const c = this.controls, cam = this.camera;
+    const f = c.target.clone().sub(cam.position).setY(0);
+    if (f.lengthSq() < 1e-6) f.set(0, 0, -1);
+    f.normalize();
+    const r = new THREE.Vector3(-f.z, 0, f.x);
+    const k = Math.max(0.15, cam.position.distanceTo(c.target) * 0.08);
+    const d = r.multiplyScalar(right * k).add(f.multiplyScalar(forward * k));
+    this.animateTo(cam.position.clone().add(d), c.target.clone().add(d), cam.fov, 180);
+  }
+
+  /** Orbit by an angle (radians) around the target (Q / E). */
+  orbit(yaw) {
+    const c = this.controls, cam = this.camera;
+    const off = cam.position.clone().sub(c.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    this.animateTo(c.target.clone().add(off), c.target.clone(), cam.fov, 220);
   }
 
   get animating() { return !!this.anim; }

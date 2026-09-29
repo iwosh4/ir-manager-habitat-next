@@ -8,18 +8,24 @@ export class Hud {
     const el = document.createElement('div'); el.className = 'hud';
     el.innerHTML = `
       <div class="hud-views">
-        <button data-view="hero" title="Reset view (0)">${icon('home')}</button>
+        <button data-view="hero" title="Reset camera (0)">${icon('home')}</button>
+        <button data-act="fit-room" title="Fit room (9)">${icon('fit')}</button>
+        <button data-act="focus" title="Fit selection (F)">${icon('focus')}</button>
         <span class="hud-sep"></span>
         <button data-view="top" title="Top (1)">${icon('top')}</button>
         <button data-view="front" title="Front (2)">${icon('front')}</button>
         <button data-view="left" title="Left (3)">${icon('left')}</button>
         <button data-view="right" title="Right (4)">${icon('right')}</button>
+        <button data-view="corner_left" title="Left corner (7)">${icon('cornerl')}</button>
+        <button data-view="corner_right" title="Right corner (8)">${icon('cornerr')}</button>
         <button data-view="iso" title="Isometric (5)">${icon('cube')}</button>
+        <button data-act="asm-view" title="Selected assembly — frontal view">${icon('layers')}</button>
         <button data-view="interior" title="Eye level, inside the room (6)">${icon('interior')}</button>
         <span class="hud-sep"></span>
-        <button data-act="focus" title="Focus selection (F)">${icon('focus')}</button>
+        <button data-act="walls" class="hud-walls" title="Walls: camera-aware (V)">${icon('walls')}<b></b></button>
         <button data-act="full" title="Fullscreen (F11)">${icon('full')}</button>
       </div>
+      <div class="hud-wallmenu" hidden>${[['auto', 'AUTO — camera-aware'], ['all', 'ALL WALLS'], ['cutaway', 'CUTAWAY'], ['footprint', 'WALL FOOTPRINT'], ['hide', 'HIDE WALLS']].map(([k, l]) => `<button data-wall="${k}">${l}</button>`).join('')}</div>
       <div class="hud-compass" title="North"><div class="needle"><span>N</span></div></div>
       <div class="hud-status"><span class="st-main"></span><span class="st-hover"></span></div>
       <div class="hud-stats" title="Renderer diagnostics — click (or press I) for details"><span class="mode-dot"></span><span class="stats-line"></span></div>
@@ -30,12 +36,18 @@ export class Hud {
     this.el = el;
     el.addEventListener('click', (e) => {
       const v = e.target.closest('[data-view]'); if (v) { app.setView(v.dataset.view); return; }
+      const wm = e.target.closest('[data-wall]'); if (wm) { app.setWallMode(wm.dataset.wall); this.wallMenu.hidden = true; return; }
       const a = e.target.closest('[data-act]'); if (!a) return;
       if (a.dataset.act === 'focus') app.focusSelected();
+      if (a.dataset.act === 'fit-room') app.fitRoom();
+      if (a.dataset.act === 'asm-view') app.viewAssembly();
+      if (a.dataset.act === 'walls') { this.wallMenu.hidden = !this.wallMenu.hidden; return; }
       if (a.dataset.act === 'full') app.toggleFullscreen();
       if (a.dataset.act === 'compare') app.openComparison();
       if (a.dataset.act === 'exit-asm') app.exitAssembly();
     });
+    this.wallMenu = el.querySelector('.hud-wallmenu');
+    this.updateWallMode();
     this.needle = el.querySelector('.needle');
     this.main = el.querySelector('.st-main'); this.hover = el.querySelector('.st-hover');
     this.stats = el.querySelector('.hud-stats'); this.statsLine = el.querySelector('.stats-line'); this.diag = el.querySelector('.hud-diag');
@@ -45,6 +57,13 @@ export class Hud {
     app.rig.controls.addEventListener('change', () => this.updateCompass());
     this.updateCompass();
     this.refresh();
+  }
+
+  updateWallMode() {
+    const m = this.app.walls?.mode || 'auto';
+    const b = this.el.querySelector('.hud-walls b'); if (b) b.textContent = { auto: 'A', all: '■', cutaway: 'C', footprint: 'F', hide: '–' }[m];
+    this.el.querySelectorAll('[data-wall]').forEach((x) => x.classList.toggle('on', x.dataset.wall === m));
+    this.el.querySelector('.hud-walls')?.setAttribute('title', `Walls: ${m.toUpperCase()} (V to cycle)`);
   }
 
   updateCompass() {

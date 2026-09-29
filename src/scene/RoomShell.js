@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { LAYER_SHADOW_ONLY } from '../renderer/layers.js';
-import { getType } from '../objects/catalog.js';
 import { WALLS, wallFrame } from '../model/RoomDocument.js';
+import { WALL_SURFACES, FLOOR_SURFACES, SKIRTING_COLOR, wallColor } from '../model/Surfaces.js';
+import { roomOpenings, wallTopFn, wallShapeGeometry, freeSegments } from './WallGeometry.js';
 
 /**
  * Procedural architecture: floor slab, walls with real openings, cove skirting, suspended ceiling,
@@ -15,19 +15,48 @@ export class RoomShell {
     this.materials = materials;
     this.assets = assets;
     this.group = new THREE.Group(); this.group.name = 'room-shell';
-    this.walls = {};         // wall -> Mesh
-    this.wallAttached = {};  // wall -> [Object3D] (skirting pieces) hidden with the wall
-    this.ceiling = null;
-    this.panels = [];        // panel descriptors {x, z, w, d} (world)
+    this.walls = {};         // wall -> Group (body + cladding + trims), clipped by the camera-aware wall system
+    this.wallAttached = {};
+    this.caps = {};
+    this.ceiling = null;     // 4.2: no ceiling is rendered (lights keep their panel positions)
+    this.panels = [];        // light panel descriptors {x, z, w, d, y} (world) — used by Lighting only
+    this.surfaceMats = new Map();
     this.key = '';
   }
 
   toWorld(room, x, z) { return new THREE.Vector3(x - room.width / 2, 0, z - room.depth / 2); }
 
+  /** Physical material of a surface, cached; `clipKey` gives a per-wall clone with its own clip plane. */
+  _surface(kind, spec, clipKey = null) {
+    const key = `${kind}|${JSON.stringify(spec)}|${clipKey || ''}`;
+    let m = this.surfaceMats.get(key);
+    if (m) return m;
+    const L = this.materials;
+    const C = (hex) => new THREE.Color(hex);
+    if (kind === 'paint') m = new THREE.MeshStandardMaterial({ ...L.set('plaster', 3.0, { normalScale: spec.finish === 'plaster' ? 0.45 : 0.1 }), color: C(spec.color), roughness: 1 });
+    else if (kind === 'floor') {
+      const f = FLOOR_SURFACES[spec.surface] || FLOOR_SURFACES.concrete;
+      if (f.showcase) m = L.get(f.showcase);
+      else if (f.tile === 'floor_tile') m = new THREE.MeshPhysicalMaterial({ ...L.set('tiles', spec.surface === 'technical' ? 0.6 : 1.2, { normalScale: 0.8 }), color: C(spec.color || f.color).multiplyScalar(1.6), roughness: 0.8, clearcoat: 0.25, clearcoatRoughness: 0.35 });
+      else if (f.wood) m = new THREE.MeshStandardMaterial({ ...L.set('oak', [1.2, 0.6]), color: C(spec.color || f.color).multiplyScalar(1.7), roughness: 0.9 });
+      else if (spec.surface === 'vinyl') m = new THREE.MeshStandardMaterial({ ...L.set('oak', [1.2, 0.6], { albedo: false }), color: C(spec.color || f.color), roughness: 0.7 });
+      else m = new THREE.MeshStandardMaterial({ ...L.set('concrete_floor', 2.5, { normalScale: 0.6 }), color: C(spec.color || f.color).multiplyScalar(1.4), roughness: 0.95 });
+    } else if (kind === 'cladding') {
+      const s = WALL_SURFACES[spec.surface];
+      if (s.wood) m = new THREE.MeshStandardMaterial({ ...L.set('oak', [1.2, 0.6]), color: C(s.color).multiplyScalar(1.6), roughness: 0.85 });
+      else if (spec.surface === 'deco_panel') m = new THREE.MeshStandardMaterial({ ...L.set('tiles', [0.3, 0.3], { albedo: false, normalScale: 1.4 }), color: C(s.color), roughness: 0.8 });
+      else m = new THREE.MeshStandardMaterial({ color: C(s.color), roughness: s.roughness ?? 0.6, metalness: spec.surface === 'tech_panel' ? 0.3 : 0 });
+    } else if (kind === 'trim') m = new THREE.MeshStandardMaterial({ color: C(spec.color), roughness: spec.color === SKIRTING_COLOR.steel ? 0.35 : 0.55, metalness: spec.color === SKIRTING_COLOR.steel ? 0.8 : 0 });
+    else if (kind === 'backing') m = new THREE.MeshStandardMaterial({ color: C('#1a1b1d'), roughness: 0.95 });
+    if (clipKey) { m = m.clone(); m.clippingPlanes = [this._clipPlane(clipKey)]; m.clipShadows = false; }
+    this.surfaceMats.set(key, m);
+    return m;
+  }
+  _clipPlane(wall) { return ((this._planes ||= {})[wall] ||= new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6)); }
+
   build(room, objects) {
-    const openings = objects.filter((o) => getType(o.type)?.placement === 'opening' && o.mount)
-      .map((o) => ({ wall: o.mount.wall, offset: o.mount.offset, w: o.size.w, h: o.size.h, sill: o.elevation, type: o.type }));
-    const key = JSON.stringify([room.width, room.depth, room.height, room.wallThickness, room.finishes, openings]);
+    const openings = roomOpenings(objects);
+    const key = JSON.stringify([room.width, room.depth, room.height, room.wallThickness, room.walls, room.floor, room.details, openings.map((o) => [o.wall, o.offset, o.w, o.h, o.sill])]);
     if (key === this.key) return false;
     this.key = key;
     this.dispose();
@@ -36,139 +65,108 @@ export class RoomShell {
 
     // --- floor slab & finished floor ---
     const slab = new THREE.Mesh(new THREE.BoxGeometry(W + 2 * T, 0.16, D + 2 * T), M('wall_cap'));
-    slab.position.y = -0.081; slab.receiveShadow = true; // top face 2 mm below the finished floor (no z-fighting)
+    slab.position.y = -0.081; slab.receiveShadow = true;
     this.group.add(slab);
-    // subdivided: avoids huge near-plane-clipped triangles (precision issues on some software/mobile rasterizers)
     const floorGeo = new THREE.PlaneGeometry(W, D, Math.ceil(W * 4), Math.ceil(D * 4)).rotateX(-Math.PI / 2);
     metreUV(floorGeo, 'xz');
-    const floor = new THREE.Mesh(floorGeo, M('floor_concrete'));
+    const floor = new THREE.Mesh(floorGeo, this._surface('floor', { surface: room.floor?.surface || 'concrete', color: room.floor?.color || null }));
     floor.receiveShadow = true; floor.name = 'floor'; floor.userData.pickable = 'floor';
     this.group.add(floor);
     this.floor = floor;
-    // floor drain (stainless grate) in the centre
-    const drain = new THREE.Group();
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.004, 0.2), M('drain')); rim.position.y = 0.002;
-    drain.add(rim);
-    const slotGeo = new THREE.BoxGeometry(0.15, 0.0045, 0.008);
-    const slots = new THREE.InstancedMesh(slotGeo, M('rubber_black'), 7);
-    for (let i = 0; i < 7; i++) slots.setMatrixAt(i, new THREE.Matrix4().makeTranslation(0, 0.0025, -0.06 + i * 0.02));
-    drain.add(slots);
-    drain.position.set(0, 0, 0.35);
-    drain.children.forEach((c) => (c.receiveShadow = true));
-    this.group.add(drain);
 
     // --- walls ---
+    const sk = room.details?.skirting || 'black';
     for (const wall of WALLS) {
       const f = wallFrame(room, wall);
       const isNS = wall === 'north' || wall === 'south';
       const len = isNS ? W + 2 * T : D;
-      const x0 = isNS ? -T : 0; // shape starts T before the interior corner for N/S walls (covers corners)
-      const geo = notchedWall(len, x0, H, T, openings.filter((p) => p.wall === wall));
-      metreUV(geo, 'xy');
-      // local frame: x along wall, y up, extrusion -> +z ; interior face must be at z = T facing +z? we want interior face at local z=0 facing +z
-      geo.translate(0, 0, -T);
-      const mesh = new THREE.Mesh(geo, [wall === room.finishes.accentWall ? M('wall_accent') : M('wall_paint'), M('wall_cap')]);
-      mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = `wall-${wall}`;
-      // place: wall start at plan f.start, x axis along f.dir, local +z = inward normal
+      const x0 = isNS ? -T : 0;
+      const ops = openings.filter((p) => p.wall === wall);
+      const wd = room.walls?.[wall] || {};
+      const surf = WALL_SURFACES[wd.surface] || WALL_SURFACES.paint_light_grey;
+      const top = wallTopFn(room, wall, f.length);
+      const g = new THREE.Group(); g.name = `wall-${wall}`;
       const start = this.toWorld(room, f.start.x, f.start.z);
-      mesh.position.copy(start);
-      mesh.rotation.y = Math.atan2(-f.dir.z, f.dir.x);
-      this.group.add(mesh);
-      this.walls[wall] = mesh;
+      g.position.copy(start); g.rotation.y = Math.atan2(-f.dir.z, f.dir.x);
+      const geo = wallShapeGeometry(x0, len, top, ops, T);
+      metreUV(geo, 'xy');
+      geo.translate(0, 0, -T);
+      const paintCol = surf.family === 'paint' ? wallColor(wd) : (/^#/.test(wd.color || '') ? wd.color : '#e9e6df');
+      const body = new THREE.Mesh(geo, [this._surface('paint', { color: paintCol, finish: wd.finish }, wall), this._capMat(wall)]);
+      body.castShadow = true; body.receiveShadow = true; body.name = `wall-${wall}`;
+      g.add(body);
+      if (surf.family === 'cladding') this._cladding(g, wd, surf, f.length, top, ops, wall);
+      // skirting
+      if (sk !== 'none') {
+        const pieces = [];
+        for (const [a, b] of freeSegments(f.length, ops, 0.1, 0.05)) pieces.push(coveGeometry(b - a).translate(a, 0, surf.family === 'cladding' ? 0.018 : 0));
+        if (pieces.length) { const m = new THREE.Mesh(pieces.length > 1 ? mergeGeometries(pieces) : pieces[0], this._surface('trim', { color: SKIRTING_COLOR[sk] }, wall)); m.receiveShadow = true; g.add(m); }
+      }
+      if (room.details?.corners !== false) {
+        const trims = [0, f.length].map((c) => new THREE.BoxGeometry(0.018, top(c) - 0.1, 0.018).translate(c + (c ? -0.009 : 0.009), 0.1 + (top(c) - 0.1) / 2, 0.009));
+        g.add(new THREE.Mesh(mergeGeometries(trims), this._surface('trim', { color: SKIRTING_COLOR[sk === 'none' ? 'black' : sk] }, wall)));
+      }
+      this.group.add(g);
+      this.walls[wall] = g;
       this.wallAttached[wall] = [];
-
-      // cove skirting along the interior face, interrupted at door openings
-      const segs = [[0, f.length]];
-      for (const op of openings.filter((p) => p.wall === wall && p.sill < 0.1)) splitSegments(segs, op.offset - op.w / 2 - 0.05, op.offset + op.w / 2 + 0.05);
-      const pieces = [];
-      for (const [a, b] of segs) { if (b - a >= 0.02) pieces.push(coveGeometry(b - a).translate(a, 0, 0)); }
-      if (pieces.length) {
-        const sk = new THREE.Mesh(pieces.length > 1 ? mergeGeometries(pieces) : pieces[0], M('skirting')); // one draw per wall
-        sk.position.copy(start); sk.rotation.y = mesh.rotation.y;
-        sk.receiveShadow = true;
-        this.group.add(sk);
-        this.wallAttached[wall].push(sk);
+      // footprint cap (moved to the clip height)
+      const capGeos = freeSegments(len, ops.map((o) => ({ ...o, offset: o.offset - x0 })), 0.1, 0).map(([a, b]) => new THREE.BoxGeometry(b - a, 0.02, T + 0.004).translate(x0 + (a + b) / 2, -0.01, -T / 2));
+      if (capGeos.length) {
+        const cap = new THREE.Mesh(mergeGeometries(capGeos), this._surface('trim', { color: '#3b3d42' }));
+        cap.position.copy(g.position); cap.rotation.y = g.rotation.y; cap.visible = false; cap.receiveShadow = true;
+        this.caps[wall] = cap; this.group.add(cap);
       }
     }
 
-    // --- suspended ceiling with perimeter trim ---
-    const ceilGeo = new THREE.PlaneGeometry(W, D, Math.ceil(W * 2), Math.ceil(D * 2)).rotateX(Math.PI / 2);
-    metreUV(ceilGeo, 'xz');
-    const ceiling = new THREE.Mesh(ceilGeo, M('ceiling'));
-    ceiling.position.y = H; ceiling.receiveShadow = true; ceiling.name = 'ceiling';
-    this.group.add(ceiling);
-    this.ceiling = ceiling;
-    this.ceilingParts = [ceiling];
-
-    // --- LED panels (instanced) ---
+    // --- no ceiling (4.2): only the light positions remain for the lighting rig ---
     const nx = Math.max(1, Math.round(W / 2.5)), nz = Math.max(1, Math.round(D / 2.2));
     this.panels = [];
-    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
-      this.panels.push({ x: -W / 2 + (i + 0.5) * (W / nx), z: -D / 2 + (j + 0.5) * (D / nz), w: 1.2, d: 0.6, y: H });
-    }
-    this._buildPanels(H);
-    this.diffusers = [];
-    const nd = Math.max(1, Math.round(D / 2.2));
-    for (let j = 0; j < nd; j++) this.diffusers.push({ x: nx > 1 ? 0 : W * 0.3, z: -D / 2 + (j + 0.5) * (D / nd) });
-    this._buildInstanced('assets/models/ceiling_diffuser.glb', this.diffusers, H, 'diffuserGroup');
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) this.panels.push({ x: -W / 2 + (i + 0.5) * (W / nx), z: -D / 2 + (j + 0.5) * (D / nz), w: 1.2, d: 0.6, y: H });
+    this.ceilingParts = [];
     return true;
   }
 
-  async _buildPanels(H) {
-    const res = await this.assets.load('assets/models/ceiling_panel.glb');
-    if (!res) return;
-    const panels = this.panels;
-    const group = new THREE.Group(); group.name = 'ceiling-panels';
-    res.scene.traverse((o) => {
-      if (!o.isMesh) return;
-      const inst = new THREE.InstancedMesh(o.geometry, o.material, panels.length);
-      panels.forEach((p, i) => inst.setMatrixAt(i, new THREE.Matrix4().makeTranslation(p.x, H, p.z)));
-      inst.castShadow = false; inst.receiveShadow = false;
-      if (o.material.name === 'panel_led') { inst.material = o.material.clone(); this.panelMaterial = inst.material; }
-      group.add(inst);
-    });
-    if (this.panelGroup) this.group.remove(this.panelGroup);
-    this.panelGroup = group;
-    this.group.add(group);
-    this.ceilingParts.push(group);
-    this.onPanelsReady && this.onPanelsReady();
-  }
+  _capMat(wall) { return this._surface('trim', { color: '#2a2b2e' }, wall); }
 
-  async _buildInstanced(url, items, H, key) {
-    const res = await this.assets.load(url);
-    if (!res || !items.length) return;
-    const group = new THREE.Group();
-    res.scene.traverse((o) => {
-      if (!o.isMesh) return;
-      const inst = new THREE.InstancedMesh(o.geometry, o.material, items.length);
-      items.forEach((p, i) => inst.setMatrixAt(i, new THREE.Matrix4().makeTranslation(p.x, H, p.z)));
-      group.add(inst);
-    });
-    if (this[key]) this.group.remove(this[key]);
-    this[key] = group; this.group.add(group); this.ceilingParts.push(group);
-    this.onPanelsReady && this.onPanelsReady();
-  }
-
-  /** Cut-away: hide walls whose exterior side faces the camera and the ceiling when looking from above. */
-  updateVisibility(room, cameraPos) {
-    const W = room.width, D = room.depth, H = room.height;
-    const outside = { north: cameraPos.z < -D / 2, south: cameraPos.z > D / 2, west: cameraPos.x < -W / 2, east: cameraPos.x > W / 2 };
-    const hidden = new Set();
-    for (const w of WALLS) {
-      const vis = !outside[w];
-      if (this.walls[w]) this.walls[w].layers.set(vis ? 0 : LAYER_SHADOW_ONLY); // hidden from the camera, still casting
-      for (const o of this.wallAttached[w] || []) o.visible = vis;
-      if (!vis) hidden.add(w);
+  _cladding(g, wd, surf, length, top, ops, wall) {
+    const maxY = wd.coverHeight > 0 ? wd.coverHeight : Infinity;
+    const mat = this._surface('cladding', { surface: wd.surface }, wall);
+    if (surf.relief === 'slats') {
+      const back = wallShapeGeometry(0, length, top, ops, 0.008, { maxY }); metreUV(back, 'xy');
+      g.add(new THREE.Mesh(back, this._surface('backing', {}, wall)));
+      const slats = [];
+      for (let x = 0.035; x < length - 0.02; x += 0.07) {
+        const hTop = Math.min(maxY, top(x)) - 0.005;
+        const cuts = ops.filter((o) => x > o.offset - o.w / 2 - 0.03 && x < o.offset + o.w / 2 + 0.03).sort((a, b) => a.sill - b.sill);
+        let y = 0.1;
+        for (const o of cuts) { if (o.sill > y + 0.02) slats.push(new THREE.BoxGeometry(0.045, o.sill - y, 0.02).translate(x, y + (o.sill - y) / 2, 0.018)); y = Math.max(y, o.sill + o.h); }
+        if (hTop > y + 0.02) slats.push(new THREE.BoxGeometry(0.045, hTop - y, 0.02).translate(x, y + (hTop - y) / 2, 0.018));
+      }
+      if (slats.length) { const merged = mergeGeometries(slats); metreUV(merged, 'xy'); const m = new THREE.Mesh(merged, mat); m.castShadow = true; m.receiveShadow = true; g.add(m); }
+      return;
     }
-    const ceilingVisible = cameraPos.y < H;
-    for (const p of this.ceilingParts || []) p.visible = ceilingVisible;
-    return { hiddenWalls: hidden, ceilingVisible };
+    const geo = wallShapeGeometry(0, length, top, ops, 0.016, { maxY }); metreUV(geo, 'xy');
+    const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; g.add(m);
   }
+
+  /** Camera-aware walls: clip heights per wall (world metres). */
+  setClips(clips, room) {
+    for (const w of WALLS) {
+      const g = this.walls[w]; if (!g) continue;
+      const h = clips[w] ?? room.height;
+      this._clipPlane(w).constant = h >= room.height - 0.004 ? 1e6 : h;
+      g.visible = h > 0.004;
+      const cap = this.caps[w]; if (cap) { cap.visible = h < room.height - 0.02; cap.position.y = Math.max(0.006, h); }
+    }
+  }
+
+  /** 4.1 API kept for callers; the ceiling no longer exists. */
+  updateVisibility() { return { hiddenWalls: new Set(), ceilingVisible: false }; }
 
   dispose() {
     this.group.traverse((o) => { if (o.isMesh && o.geometry && !o.isInstancedMesh) o.geometry.dispose(); });
     this.group.clear();
-    this.walls = {}; this.wallAttached = {}; this.panelGroup = null;
+    this.walls = {}; this.wallAttached = {}; this.caps = {}; this.panelGroup = null;
   }
 }
 

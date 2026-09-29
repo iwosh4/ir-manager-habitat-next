@@ -32,6 +32,7 @@ export class ShowcaseMode {
     this.engine.attach(this.scene, app.rig.camera);
     this.engine.onResize = (w, h) => app.labels.setSize(w, h);
     const renderer = app.renderer;
+    renderer.localClippingEnabled = true; // camera-aware walls (per-wall clip planes)
     this.materials = new MaterialLibrary(renderer, { onError: (url) => app._assetError(url, 'texture') });
     this.assets = new AssetManager(this.materials, { onError: (url, msg) => app._assetError(url, msg) });
     this.env = new EnvironmentSystem(renderer, this.scene);
@@ -77,6 +78,7 @@ export class ShowcaseMode {
     const ed = this.app.editor;
     this.objects.syncAll();
     if (this.shell.build(ed.room, ed.objects)) this.lighting.build(ed.room, this.shell.panels);
+    this.shell.setClips(this.app.walls.current, ed.room);
     this.stale = false;
     this.engine.markShadowsDirty();
   }
@@ -87,7 +89,7 @@ export class ShowcaseMode {
     else if (c.kind === 'remove') for (const id of c.ids) this.objects.remove(id);
     else for (const id of c.ids || []) { const o = ed.get(id); if (o) this.objects.sync(o); }
     const rebuilt = this.shell.build(ed.room, ed.objects);
-    if (rebuilt) this.lighting.build(ed.room, this.shell.panels);
+    if (rebuilt) { this.lighting.build(ed.room, this.shell.panels); this.shell.setClips(this.app.walls.current, ed.room); }
     this.engine.markShadowsDirty();
     return rebuilt;
   }
@@ -100,13 +102,14 @@ export class ShowcaseMode {
   }
 
   updateCutaway(force = false) {
-    const app = this.app, cam = app.rig.camera.position;
-    const { hiddenWalls, ceilingVisible } = this.shell.updateVisibility(app.editor.room, cam);
+    const app = this.app, cam = app.rig.camera.position, room = app.editor.room;
+    const r = app.walls.update(room, cam, app.rig.controls.target);
+    if (r.changed || force) this.shell.setClips(r.clips, room);
     const dir = app.rig.controls.target.clone().sub(cam).normalize();
-    const changed = this.objects.setHiddenWalls(hiddenWalls, Math.abs(dir.y) < 0.55);
-    this.env.update(cam, app.editor.room);
-    if (changed || force) this.engine.invalidate();
-    return { ceilingVisible };
+    const changed = this.objects.setWallClips(r.clips, room, Math.abs(dir.y) < 0.55);
+    this.env.update(cam, room);
+    if (changed || force || r.changed) this.engine.invalidate();
+    return { ceilingVisible: cam.y < room.height, animating: r.animating };
   }
 
   activate() {

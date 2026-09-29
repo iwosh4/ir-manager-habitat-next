@@ -1,5 +1,7 @@
 import { TYPES, getType } from '../objects/catalog.js';
 import { normalizeTemplate, normalizeInstance, normalizeAssembly, libraryIndex, assemblyStats } from './Library.js';
+import { WALL_SURFACES, FLOOR_SURFACES, PAINT_FINISHES, SKIRTINGS } from './Surfaces.js';
+import { normalizeNetwork, normalizeTech } from '../tech/Network.js';
 
 /**
  * Logical room document — the single source of truth, serialised 1:1 to JSON.
@@ -12,9 +14,15 @@ import { normalizeTemplate, normalizeInstance, normalizeAssembly, libraryIndex, 
  * Version 2 adds the project library (see Library.js / DATA_MODEL.md): enclosures (templates),
  * instances (physical enclosures) and assemblies. Room objects of type 'custom_enclosure' / 'assembly'
  * reference them through `ref`. Version 1 files load unchanged (empty library).
+ *
+ * Version 3 (Habitat Studio 4.2) adds — all optional, with safe defaults, older files load unchanged:
+ *   room.walls[wall]  per-wall surface { surface, color, finish, coverHeight, profile }
+ *   room.floor        { surface, color }        room.details { skirting, corners }
+ *   objects[].tech    { deviceId, ports[] }      stable device id + user-created ports of technical objects
+ *   network           { routes[], circuits[] }  technical infrastructure (see src/tech/Network.js)
  */
 export const SCHEMA = 'ir-manager/habitat-room';
-export const VERSION = 2;
+export const VERSION = 3;
 export const WALLS = ['north', 'east', 'south', 'west'];
 
 let seq = 0;
@@ -24,14 +32,46 @@ export function newId(prefix = 'obj') {
 }
 
 export function defaultRoom() {
-  return {
+  const room = {
     id: newId('room'), name: 'Reptile room A', width: 5.0, depth: 4.0, height: 2.7, wallThickness: 0.14,
     finishes: { floor: 'concrete_polished', walls: 'warm_grey', accentWall: 'north' },
   };
+  return normalizeRoomSurfaces(room, room);
 }
 
 export function createDocument(room = defaultRoom(), objects = []) {
-  return { schema: SCHEMA, version: VERSION, room, objects, enclosures: [], instances: [], assemblies: [], meta: { created: new Date().toISOString(), modified: new Date().toISOString(), generator: 'Habitat Studio Next' } };
+  return { schema: SCHEMA, version: VERSION, room, objects, enclosures: [], instances: [], assemblies: [], network: { routes: [], circuits: [] }, meta: { created: new Date().toISOString(), modified: new Date().toISOString(), generator: 'Habitat Studio Next' } };
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+/**
+ * v3 surfaces with migration: a v1/v2 room (finishes.accentWall = graphite feature wall, warm grey paint,
+ * polished concrete) maps to exactly the same look: accent wall → anthracite, others → warm grey.
+ */
+export function normalizeRoomSurfaces(src, room) {
+  const legacyAccent = src.finishes?.accentWall;
+  const walls = {};
+  for (const w of WALLS) {
+    const s = src.walls?.[w] || {};
+    const legacy = legacyAccent === w ? 'paint_anthracite' : 'paint_warm_grey';
+    const surface = WALL_SURFACES[s.surface] ? s.surface : legacy;
+    const p = s.profile || {};
+    const mode = ['full', 'low', 'sloped'].includes(p.mode) ? p.mode : 'full';
+    walls[w] = {
+      surface,
+      color: HEX.test(s.color || '') ? s.color : null,
+      finish: PAINT_FINISHES[s.finish] ? s.finish : 'smooth',
+      coverHeight: num(s.coverHeight, 0, 0, 6),        // 0 = the surface covers the whole wall; >0 = wainscot height (paint above)
+      profile: { mode, hStart: num(p.hStart, room.height, 0.6, room.height), hEnd: num(p.hEnd, room.height, 0.6, room.height) },
+    };
+  }
+  const fl = src.floor || {};
+  const legacyFloor = src.finishes?.floor === 'concrete_polished' || !src.finishes?.floor ? 'concrete' : src.finishes.floor;
+  room.walls = walls;
+  room.floor = { surface: FLOOR_SURFACES[fl.surface] ? fl.surface : FLOOR_SURFACES[legacyFloor] ? legacyFloor : 'concrete', color: HEX.test(fl.color || '') ? fl.color : null };
+  const d = src.details || {};
+  room.details = { skirting: SKIRTINGS[d.skirting] ? d.skirting : 'black', corners: d.corners !== false };
+  return room;
 }
 
 const num = (v, d, lo = -Infinity, hi = Infinity) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
@@ -62,6 +102,8 @@ export function normalizeObject(o) {
     props: o.props && typeof o.props === 'object' ? deepClone(o.props) : {},
   };
   if (o.locked) out.locked = true;
+  // technical devices: stable device id (+ user ports). Catalogue ports are defined by the type.
+  if (t && (t.ports || t.device || o.tech)) out.tech = normalizeTech(o.tech, out.id);
   if (o.ref && typeof o.ref === 'object') {
     const ref = {};
     if (typeof o.ref.assemblyId === 'string') ref.assemblyId = o.ref.assemblyId;
@@ -86,13 +128,17 @@ export function normalizeDocument(json) {
     wallThickness: num(r.wallThickness, d.wallThickness, 0.06, 0.6),
     finishes: { ...d.finishes, ...(r.finishes || {}) },
   };
+  normalizeRoomSurfaces(r, room);
   const unknown = [];
   const objects = (Array.isArray(json.objects) ? json.objects : []).filter((o) => {
     if (!o || !TYPES[o.type]) { unknown.push(o?.type); return false; }
     return true;
   }).map(normalizeObject);
-  const ids = new Set();
-  for (const o of objects) { if (ids.has(o.id)) o.id = newId(); ids.add(o.id); }
+  const ids = new Set(), devs = new Set();
+  for (const o of objects) {
+    if (ids.has(o.id)) o.id = newId(); ids.add(o.id);
+    if (o.tech) { if (devs.has(o.tech.deviceId)) o.tech.deviceId = `dev_${o.id}`; devs.add(o.tech.deviceId); }
+  }
   // ---- project library (v2)
   const uniq = (arr) => { const seen = new Set(); return arr.filter((x) => { if (seen.has(x.id)) return false; seen.add(x.id); return true; }); };
   const enclosures = uniq((Array.isArray(json.enclosures) ? json.enclosures : []).map(normalizeTemplate));
@@ -113,6 +159,7 @@ export function normalizeDocument(json) {
   });
   const doc = createDocument(room, placed);
   doc.enclosures = enclosures; doc.instances = instances; doc.assemblies = assemblies;
+  doc.network = normalizeNetwork(json.network);
   syncReferencedSizes(doc);
   doc.meta = { ...doc.meta, ...(json.meta || {}), modified: new Date().toISOString() };
   if (unknown.length) doc.meta.skippedTypes = unknown;

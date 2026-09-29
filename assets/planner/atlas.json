@@ -76,6 +76,13 @@
   "extinguisher": 69,
   "sack": 70,
   "bin": 71,
-  "tools": 72
+  "tools": 72,
+  "plaster": 73,
+  "planks": 74,
+  "slats": 75,
+  "floor_tile": 76,
+  "panel_deco": 77,
+  "leaf_monstera": 78,
+  "leaf_palm": 79
  }
 }

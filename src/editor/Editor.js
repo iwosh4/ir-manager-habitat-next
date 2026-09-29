@@ -4,6 +4,7 @@ import { createDocument, createObject, normalizeDocument, normalizeObject, newId
 import { libraryIndex, normalizeTemplate, normalizeAssembly, normalizeInstance, createInstance, normalizeOrigin, cloneData, assemblyBoxes, boxesOverlap, assemblyStats } from '../model/Library.js';
 import { getType } from '../objects/catalog.js';
 import { Snapper } from './Snapping.js';
+import { normalizeRoute, normalizeCircuit, normalizeTech, netId } from '../tech/Network.js';
 
 /**
  * Editor state: the logical document, the selection and all mutating commands.
@@ -113,6 +114,7 @@ export class Editor extends Emitter {
     const o = this.get(id); if (!o) return null;
     const copy = normalizeObject(JSON.parse(JSON.stringify(o)));
     copy.id = newId();
+    if (copy.tech) copy.tech.deviceId = `dev_${copy.id}`; // a copy is a new physical device
     // a copy of a physical structure is a NEW physical structure: new assembly / instance ids
     if (o.type === 'assembly') { const a = this._cloneAssemblyData(o.ref.assemblyId); if (!a) return null; copy.ref = { assemblyId: a.id }; copy.name = a.name; }
     if (o.type === 'custom_enclosure') { const inst = this.lib.instances.get(o.ref.instanceId); const t = inst && this.lib.templates.get(inst.templateId); if (!t) return null; const ni = createInstance(t, this.doc, { props: cloneData(inst.props) }); this.doc.instances.push(ni); copy.ref = { instanceId: ni.id }; copy.name = `${t.name} · ${ni.code}`; }
@@ -296,6 +298,62 @@ export class Editor extends Emitter {
     return false;
   }
 
+  // ---------- technical network (routes, circuits, device ports) ----------
+  get network() { return (this.doc.network ||= { routes: [], circuits: [] }); }
+  getRoute(id) { return this.network.routes.find((r) => r.id === id) || null; }
+  getCircuit(id) { return this.network.circuits.find((c) => c.id === id) || null; }
+  _netChanged(label, record = true) { this.emit('change', { kind: 'network', ids: [] }); if (record) this._record(label); }
+
+  addRoute(r) {
+    const n = normalizeRoute({ ...r, id: r.id || netId('rt') });
+    this.network.routes.push(n);
+    this._netChanged(`Add ${n.kind} route`);
+    return n;
+  }
+  updateRoute(id, patch, { record = true } = {}) {
+    const i = this.network.routes.findIndex((r) => r.id === id); if (i < 0) return null;
+    const n = normalizeRoute({ ...this.network.routes[i], ...patch, id });
+    const cids = new Set(this.network.circuits.map((c) => c.id));
+    if (n.circuitId && !cids.has(n.circuitId)) n.circuitId = null;
+    this.network.routes[i] = n;
+    this._netChanged('Edit route', record);
+    return n;
+  }
+  removeRoute(id) {
+    const n = this.network.routes.length;
+    this.network.routes = this.network.routes.filter((r) => r.id !== id);
+    if (this.network.routes.length !== n) this._netChanged('Delete route');
+  }
+  addCircuit(c) {
+    const used = new Set(this.network.circuits.map((x) => x.code));
+    let k = this.network.circuits.length + 1; while (used.has(`C${k}`)) k++;
+    const n = normalizeCircuit({ code: `C${k}`, name: `Circuit ${k}`, ...c, id: c.id || netId('cir') });
+    this.network.circuits.push(n);
+    this._netChanged(`Add circuit ${n.code}`);
+    return n;
+  }
+  updateCircuit(id, patch, { record = true } = {}) {
+    const i = this.network.circuits.findIndex((c) => c.id === id); if (i < 0) return null;
+    const n = normalizeCircuit({ ...this.network.circuits[i], ...patch, id });
+    this.network.circuits[i] = n;
+    this._netChanged('Edit circuit', record);
+    return n;
+  }
+  /** Delete a circuit; its routes stay (unassigned) unless `withRoutes`. */
+  removeCircuit(id, { withRoutes = false } = {}) {
+    this.network.circuits = this.network.circuits.filter((c) => c.id !== id);
+    this.network.routes = withRoutes ? this.network.routes.filter((r) => r.circuitId !== id) : this.network.routes.map((r) => (r.circuitId === id ? { ...r, circuitId: null } : r));
+    this._netChanged('Delete circuit');
+  }
+  /** Replace a technical object's user-defined ports (catalogue ports are fixed by its type). */
+  setDevicePorts(objectId, ports) {
+    const o = this.get(objectId); if (!o) return null;
+    o.tech = normalizeTech({ ...(o.tech || {}), ports }, o.id);
+    this.emit('change', { kind: 'update', ids: [o.id] });
+    this._netChanged('Edit device ports');
+    return o.tech;
+  }
+
   rotateBy(id, deg) {
     const o = this.get(id); if (!o) return;
     const t = getType(o.type);
@@ -307,7 +365,9 @@ export class Editor extends Emitter {
   // ---------- room ----------
   setRoom(patch) {
     const r = this.doc.room;
-    const next = normalizeDocument({ ...this.doc, room: { ...r, ...patch, finishes: { ...r.finishes, ...(patch.finishes || {}) } } }).room;
+    const walls = { ...r.walls };
+    for (const [w, v] of Object.entries(patch.walls || {})) walls[w] = { ...r.walls?.[w], ...v, profile: { ...r.walls?.[w]?.profile, ...(v.profile || {}) } };
+    const next = normalizeDocument({ ...this.doc, room: { ...r, ...patch, walls, floor: { ...r.floor, ...(patch.floor || {}) }, details: { ...r.details, ...(patch.details || {}) }, finishes: { ...r.finishes, ...(patch.finishes || {}) } } }).room;
     next.id = r.id;
     this.doc.room = next;
     for (const o of this.doc.objects) this._clampObject(o);

@@ -57,11 +57,32 @@ export class ObjectLayer {
     return true;
   }
 
+  /**
+   * Camera-aware walls (4.2): `clips` = wall → current height. Wall-bound items taller than their wall's
+   * clip are hidden (a window on a lowered wall, a door in a footprint line); furniture backed against a
+   * wall lowered below 0.5 m is hidden in low elevation views, as before.
+   */
+  setWallClips(clips, room, hideBacked = false) {
+    const q = (v) => Math.round(v * 20) / 20;
+    const key = WALLS.map((w) => q(clips[w] ?? room.height)).join() + (hideBacked ? '|b' : '');
+    if (key === this._hwKey) return false;
+    this._hwKey = key; this.clips = { ...clips }; this.hideBacked = hideBacked;
+    this.hiddenWalls = new Set(WALLS.filter((w) => (clips[w] ?? room.height) < 0.5));
+    for (const o of this.editor.objects) { const v = this.views.get(o.id); if (v) this._applyWallVisibility(v, o); }
+    return true;
+  }
+
+  /** Extra visibility rule (TECH PLAN layers): fn(obj) → false hides the object. */
+  setFilter(fn) { this.filter = fn || null; for (const o of this.editor.objects) { const v = this.views.get(o.id); if (v) this._applyWallVisibility(v, o); } }
+
   _applyWallVisibility(v, obj) {
     const t = getType(obj.type);
     const wallBound = obj.mount && (t.placement === 'mounted' || t.placement === 'opening');
-    let hidden = !!(wallBound && this.hiddenWalls.has(obj.mount.wall));
+    let hidden;
+    if (this.clips && wallBound) hidden = obj.elevation + obj.size.h > (this.clips[obj.mount.wall] ?? Infinity) + 0.02;
+    else hidden = !!(wallBound && this.hiddenWalls.has(obj.mount.wall));
     if (!hidden && this.hideBacked && !wallBound) { const w = backedWall(this.editor.room, obj); hidden = !!(w && this.hiddenWalls.has(w)); }
+    if (!hidden && this.filter && !this.filter(obj)) hidden = true;
     v.setHidden(hidden);
   }
 
