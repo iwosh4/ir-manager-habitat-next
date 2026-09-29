@@ -318,3 +318,45 @@
       <div class="b1-wide b1-sheet-actions"><button type="button" class="btn" data-close>Zrušit</button><button class="btn primary">Vytvořit kopie</button></div></form>`, { title: 'Klonovat · ' + b.dataset.name });
   });
 })();
+
+/* Group feeding session (BETA1-01): every member gets its own result in ONE batch (all-or-nothing). */
+(() => {
+  const R = [['eaten', 'Snědlo'], ['refused', 'Odmítlo'], ['in_shed', 'Ve svleku'], ['not_fed', 'Nekrmeno'], ['skip', 'Vynechat']];
+  async function groupSession(gid, taskId = 0) {
+    const { api, sheet, esc, toast, ICON } = window.IR;
+    let data; try { data = await api('groups.members', { group_id: gid }); } catch (e) { toast(e.message, 'bad'); return; }
+    const m = data.members;
+    const now = new Date(); now.setSeconds(0, 0); const local = new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const s = sheet(`
+      <div class="b1-gs-top b1-form-grid" style="padding:0 0 10px">
+        <label>Krmivo<input class="input" name="feed" value="${esc(m[0]?.feed || '')}"></label>
+        <label>Kusů / jedinec<input class="input" name="qty" inputmode="decimal" placeholder="1"></label>
+        <label>Kdy<input class="input" type="datetime-local" name="when" value="${local}" max="${local}"></label>
+        <div class="b1-gs-all"><span class="muted">Všem:</span>${R.slice(0, 4).map(([k, l]) => `<button type="button" class="btn small" data-all="${k}">${l}</button>`).join('')}</div>
+      </div>
+      <div class="b1-gs-list">${m.map((a) => `<div class="b1-gs-row ${a.locked ? 'is-locked' : ''}" data-id="${a.id}">
+          <span class="b1-gs-photo">${a.photo ? `<img src="${esc(a.photo)}" alt="">` : ICON('animals')}</span>
+          <span class="b1-gs-name"><b>${esc(a.name)}</b><small>${esc([a.code, a.sex].filter(Boolean).join(' · '))}${a.alert ? ` · <em class="warn">${a.refusals}× odmítnutí</em>` : ''}${['window', 'observed'].includes(a.shed) ? ' · <em class="info">svlékání</em>' : ''}</small></span>
+          <span class="b1-seg" role="radiogroup" aria-label="Výsledek ${esc(a.name)}">${R.map(([k, l]) => `<button type="button" data-r="${k}" role="radio" aria-checked="${(a.locked ? 'skip' : (['window', 'observed'].includes(a.shed) ? 'in_shed' : 'eaten')) === k}" ${a.locked && k !== 'skip' ? 'disabled' : ''}>${l}</button>`).join('')}</span>
+        </div>`).join('') || '<p class="muted">Skupina nemá aktivní jedince.</p>'}</div>
+      <div class="b1-sheet-actions"><span class="b1-gs-sum muted" data-sum></span><button type="button" class="btn" data-close>Zrušit</button><button type="button" class="btn primary" data-save>Uložit krmení skupiny</button></div>`, { title: 'Krmení skupiny · ' + data.group.name, wide: true });
+    const el = s.el;
+    const sum = () => { const c = {}; el.querySelectorAll('.b1-gs-row').forEach((r) => { const v = r.querySelector('[aria-checked=true]')?.dataset.r; c[v] = (c[v] || 0) + 1; }); el.querySelector('[data-sum]').textContent = R.filter(([k]) => c[k]).map(([k, l]) => `${l} ${c[k]}`).join(' · '); };
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-r]'); if (b && !b.disabled) { b.parentElement.querySelectorAll('[data-r]').forEach((x) => x.setAttribute('aria-checked', String(x === b))); sum(); }
+      const all = e.target.closest('[data-all]'); if (all) { el.querySelectorAll('.b1-gs-row:not(.is-locked) [data-r="' + all.dataset.all + '"]').forEach((x) => x.click()); }
+    });
+    sum();
+    el.querySelector('[data-save]').addEventListener('click', async (ev) => {
+      const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Ukládám…';
+      const results = {}; el.querySelectorAll('.b1-gs-row').forEach((r) => { results[r.dataset.id] = r.querySelector('[aria-checked=true]')?.dataset.r || 'skip'; });
+      const f = (n) => el.querySelector(`[name=${n}]`).value.trim();
+      try {
+        const r = await api('events.group', { group_id: gid, result: 'eaten', results, feed: f('feed'), qty_each: f('qty'), performed_at: f('when').replace('T', ' '), source: taskId ? 'planner' : 'manual' }, { post: true });
+        s.close(); toast('Uloženo jednou dávkou: ' + r.text, 'ok', 5000); setTimeout(() => location.reload(), 900);
+      } catch (e) { btn.disabled = false; btn.textContent = 'Uložit krmení skupiny'; toast(e.message, 'bad', 7000); }
+    });
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-group-feed]'); if (!b) return; e.preventDefault(); groupSession(+b.dataset.groupFeed, +b.dataset.taskId || 0); });
+  window.IR && (window.IR.groupSession = groupSession);
+})();

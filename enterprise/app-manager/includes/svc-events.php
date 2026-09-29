@@ -22,8 +22,8 @@ declare(strict_types=1);
  */
 
 const IR_FEED_RESULTS = [
-    'eaten' => ['label' => 'Sežráno', 'label_en' => 'Eaten', 'icon' => '✓', 'typ' => 'Krmení', 'tone' => 'ok'],
-    'refused' => ['label' => 'Nesežral', 'label_en' => 'Refused', 'icon' => '✕', 'typ' => 'Odmítnutí potravy', 'tone' => 'bad'],
+    'eaten' => ['label' => 'Snědlo', 'label_en' => 'Eaten', 'icon' => '✓', 'typ' => 'Krmení', 'tone' => 'ok'],
+    'refused' => ['label' => 'Odmítlo', 'label_en' => 'Refused', 'icon' => '✕', 'typ' => 'Odmítnutí potravy', 'tone' => 'bad'],
     'in_shed' => ['label' => 'Ve svleku', 'label_en' => 'In shed', 'icon' => '◆', 'typ' => 'Nekrmeno', 'tone' => 'info'],
     'not_fed' => ['label' => 'Nekrmeno', 'label_en' => 'Not fed', 'icon' => '○', 'typ' => 'Nekrmeno', 'tone' => 'muted'],
 ];
@@ -227,7 +227,9 @@ function ir_event_group(PDO $pdo, int $uid, int $groupId, string $typeOrResult, 
     $isFeed = isset(IR_FEED_RESULTS[$typeOrResult]) || $typeOrResult === 'Krmení';
     $default = $isFeed ? ($typeOrResult === 'Krmení' ? 'eaten' : $typeOrResult) : $typeOrResult;
     $items = [];
+    $rep = (int)ir_scalar($pdo, 'SELECT main_animal_id FROM wp_ir2_skupiny WHERE user_id=? AND id=?', [$uid, $groupId], 0);
     foreach ($members as $m) {
+        if ($rep && (int)$m['id'] === $rep) continue; // the representative card is the group itself, not an individual
         $r = (string)($results[(int)$m['id']] ?? $default);
         if ($r === 'skip') continue;
         $items[] = $isFeed ? ['animal_id' => (int)$m['id'], 'result' => $r, 'feed' => $meta['feed'] ?? '', 'qty' => $meta['qty_each'] ?? null, 'note' => $meta['notes'][(int)$m['id']] ?? ($meta['note'] ?? '')]

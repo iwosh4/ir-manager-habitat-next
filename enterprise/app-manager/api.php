@@ -55,6 +55,20 @@ try {
             $out = ir_event_group($pdo, $uid, (int)$req('group_id', 0), (string)$req('result', 'eaten'), array_map('strval', (array)$req('results', [])), ['source' => (string)$req('source', 'manual'), 'feed' => (string)$req('feed', ''), 'qty_each' => $req('qty_each'), 'performed_at' => (string)$req('performed_at', ''), 'note' => (string)$req('note', ''), 'notes' => (array)$req('notes', [])]);
             ir_json(['ok' => true] + $out + ['text' => ir_batch_summary_text($out['summary'])]);
         }
+        case 'groups.members': {
+            ir_require_perm('read');
+            $gid = (int)$req('group_id', 0);
+            $g = $pdo->prepare('SELECT id, nazev, main_animal_id FROM wp_ir2_skupiny WHERE user_id=? AND id=?'); $g->execute([$uid, $gid]); $g = $g->fetch();
+            if (!$g) throw new RuntimeException('Skupina nebyla nalezena.');
+            $out = [];
+            foreach (ir_group_members($pdo, $uid, $gid) as $m) {
+                if ((int)$m['id'] === (int)$g['main_animal_id']) continue; // the representative card is not an individual
+                $ap = ir_appetite($pdo, $uid, $m); $sh = ir_shed_estimate($pdo, $uid, $m);
+                $out[] = ['id' => (int)$m['id'], 'name' => (string)$m['jmeno_kod'], 'code' => (string)($m['animal_id'] ?? ''), 'sex' => (string)($m['pohlavi'] ?? ''), 'latin' => (string)$m['latinsky_nazev'], 'photo' => ir_asset_photo_url((string)($m['foto'] ?? '')), 'feed' => (string)($m['potrava'] ?? ''),
+                    'refusals' => (int)$ap['consecutive_refusals'], 'alert' => (bool)$ap['alert'], 'shed' => (string)($sh['state'] ?? ''), 'locked' => ir_animal_is_locked($pdo, $uid, (int)$m['id'])];
+            }
+            ir_json(['ok' => true, 'group' => ['id' => (int)$g['id'], 'name' => (string)$g['nazev']], 'members' => $out]);
+        }
         case 'events.update': {
             $mut();
             $patch = array_intersect_key((array)$req('patch', []), array_flip(['result', 'type', 'performed_at', 'feed', 'qty', 'value', 'note', 'supplement']));
