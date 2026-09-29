@@ -63,7 +63,7 @@ export function parseCommand(text) {
 }
 function openVoice() {
   const btn = $('[data-role=voice]'); const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const setState = (s) => { btn?.classList.remove('listening', 'processing'); if (s) btn?.classList.add(s); const el = h?.el.querySelector('[data-role=v-state]'); if (el) { el.className = `v-state ${s || ''}`; el.innerHTML = s === 'listening' ? `<i class="wave big"><b></b><b></b><b></b><b></b><b></b></i><span>Poslouchám…</span>` : s === 'processing' ? `${gl('sync')}<span>Zpracovávám…</span>` : `${gl('mic')}<span>Klepněte a mluvte, nebo napište příkaz</span>`; } };
+  const setState = (s) => { btn?.classList.remove('listening', 'processing'); if (s) btn?.classList.add(s); const vb = h?.el.querySelector('.voice'); if (vb) { vb.classList.remove('listening', 'processing'); if (s) vb.classList.add(s); } const el = h?.el.querySelector('[data-role=v-state]'); if (el) { el.className = `v-state ${s || ''}`; el.innerHTML = s === 'listening' ? `<i class="wave big"><b></b><b></b><b></b><b></b><b></b></i><span>Poslouchám…</span>` : s === 'processing' ? `${gl('sync')}<span>Zpracovávám…</span>` : `${gl('mic')}<span>Klepněte a mluvte, nebo napište příkaz</span>`; } };
   let rec = null;
   const h = panel({ title: 'Hlasové zadání', sub: 'Česky: záznam, vyhledání nebo navigace', icon: 'mic', width: 460, kind: isMobile() ? 'sheet' : 'auto', onClose: () => { try { rec?.stop(); } catch {} setState(null); },
     body: `<div class="voice"><button class="v-orb" data-v="listen" aria-label="Spustit poslech">${gl('mic')}</button><div class="v-state" data-role="v-state"></div>
@@ -74,7 +74,7 @@ function openVoice() {
     setTimeout(() => {
       const p = parseCommand(text), out = h.el.querySelector('[data-role=v-out]');
       setState(null);
-      if (p.kind === 'record') { out.innerHTML = `<div class="v-res">${avatar(p.subject, 40)}<div><b>${esc(TYPE[p.type].label)} · <span class="code">${esc(p.subject.code)}</span>${p.g ? ` · ${p.g} g` : ''}</b><span class="meta">Rozpoznáno: „${esc(text)}“</span></div><button class="btn primary" data-v-do>${gl('check')}Zapsat</button></div>`; out.querySelector('[data-v-do]').onclick = () => { closeOv(h); if (p.type === 'weight' && p.g) done(A.quickRecord('weight', [p.subject.id], { g: p.g }), { msg: 'Hmotnost uložena' }); else if (p.type === 'weight') openQuickRecord({ type: 'weight', subjects: [p.subject.id] }); else done(A.quickRecord(p.type, [p.subject.id], {}), { msg: `${TYPE[p.type].label} zapsáno · ${p.subject.code}` }); }; }
+      if (p.kind === 'record') { out.innerHTML = `<div class="v-res">${avatar(p.subject, 40)}<div><b>${esc(TYPE[p.type].label)} · <span class="code">${esc(p.subject.code)}</span>${p.g ? ` · ${p.g} g` : ''}</b><span class="meta">Rozpoznáno: „${esc(text)}“</span></div><button class="btn primary" data-v-do>${gl('check')}Zapsat</button></div>`; out.querySelector('[data-v-do]').onclick = () => { closeOv(h); if (p.type === 'weight' && p.g) done(A.quickRecord('weight', [p.subject.id], { g: p.g }), { msg: `Zapsáno: hmotnost ${p.g} g` }); else if (p.type === 'weight') openQuickRecord({ type: 'weight', subjects: [p.subject.id] }); else done(A.quickRecord(p.type, [p.subject.id], {}), { msg: `${TYPE[p.type].label} zapsáno · ${p.subject.code}` }); }; }
       else if (p.kind === 'search') { closeOv(h); openSearch(p.q); }
       else if (p.kind === 'go') { closeOv(h); location.hash = p.href; }
       else if (p.kind === 'open') { closeOv(h); location.hash = `#/zvirata/karta/${p.subject.id}`; }

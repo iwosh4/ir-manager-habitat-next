@@ -181,7 +181,7 @@ function save({ refused = false, incomplete = false } = {}) {
     if (t === 'repro') { d.cycle = S.cycle; d.label = `${REPRO_EV.find((x) => x[0] === d.kind)?.[1]}${d.kind === 'clutch' ? ` — ${d.eggs ?? 2} vajec` : ''}`; }
     if (t === 'weight' && (d.g == null || isNaN(d.g))) return;
     res = A.quickRecord(t, ids, d);
-    const nice = { feeding: refused ? 'Odmítnutí krmení zapsáno' : 'Krmení zapsáno', weight: 'Hmotnost uložena', water: 'Voda zapsána', misting: 'Rosení zapsáno', cleaning: 'Údržba zapsána', shed: 'Svlek zapsán', health: 'Zdravotní záznam uložen', repro: 'Událost zapsána' }[t];
+    const nice = `Zapsáno: ${{ feeding: refused ? 'krmení odmítnuto' : 'krmení', weight: `hmotnost ${d.g} g`, water: 'voda', misting: 'rosení', cleaning: 'údržba', shed: 'svlek', health: 'zdravotní záznam', repro: 'reprodukční událost' }[t]}`;
     if (res) res.label = `${nice}${ids.length > 1 ? ` · ${ids.length}×` : ''}`;
     store.mutate(null, (db) => { db.recent.animals = [...ids, ...db.recent.animals.filter((x) => !ids.includes(x))].slice(0, 12); }, { silent: true });
   }

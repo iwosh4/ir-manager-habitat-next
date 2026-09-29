@@ -6,7 +6,7 @@ import * as A from '../engine/actions.js';
 import { pageHead, block, money } from '../ui/components.js';
 import { done } from '../ui/feedback.js';
 import { INV_CAT } from '../widgets/registry.js';
-import { renderTool, feedDemand, addLowStockToShopping, addItemToShopping } from '../widgets/tools.js';
+import { renderTool, feedDemand, addLowStockToShopping, addItemToShopping, ensureList } from '../widgets/tools.js';
 import { docsOf, newDoc, doc, saveWs } from '../widgets/wsstore.js';
 import { workspaceHTML, mountWorkspace } from '../widgets/workspace.js';
 import { toast, panel, close as closeOv } from '../core/overlay.js';
@@ -57,6 +57,7 @@ function shopping() {
 }
 
 export function render(r) {
+  ensureList();
   const db = store.get(), low = db.inventory.filter((x) => x.qty < x.min).length;
   return `${pageHead({ mod: 'sklad', cur: r.sub, sub: `${db.inventory.length} položek · ${low} pod minimem · krmení se odepisuje automaticky`, tabs: [['prehled', 'Přehled'], ['polozky', 'Položky', db.inventory.length], ['nakup', 'Nákupní seznam', docsOf('shopping').length]], actions: `<button class="btn" data-act="w-shopall">${gl('cart')}Nízký stav do nákupu</button>` })}${r.sub === 'polozky' ? items() : r.sub === 'nakup' ? shopping() : overview()}`;
 }

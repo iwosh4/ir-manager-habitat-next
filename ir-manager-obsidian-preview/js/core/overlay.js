@@ -50,7 +50,7 @@ function open(w, { onClose, mount }) {
   root().append(w);
   const h = { el: w, close: () => close(h), onClose, prev };
   stack.push(h);
-  w.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) { e.preventDefault(); h.close(); } });
+  w.addEventListener('click', (e) => { const c = e.target.closest('[data-close]'); if (c) { if (!(c.tagName === 'A' && c.getAttribute('href'))) e.preventDefault(); h.close(); } });
   requestAnimationFrame(() => { w.classList.add('in'); const f = w.querySelector('[autofocus], .ov-body input:not([type=hidden]), .ov-body button, .ov-body [tabindex]'); (f || w.querySelector('.ov-box')).focus?.({ preventScroll: true }); });
   if (mount) mount(w, h);
   // swipe-down to close bottom sheets

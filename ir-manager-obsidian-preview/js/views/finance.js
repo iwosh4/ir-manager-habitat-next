@@ -22,7 +22,7 @@ function overview() {
   return `<div class="kpis k4">
     <div class="kpi plain"><span class="kpi-l">Příjmy · ${dMonth(Date.now())}</span><b class="kpi-v ok-t">${money(f.inc)}</b><span class="kpi-s">${trend(f.inc, p.inc)}</span>${ico('finance', 'md kpi-ico')}</div>
     <div class="kpi plain"><span class="kpi-l">Výdaje</span><b class="kpi-v">${money(f.exp)}</b><span class="kpi-s">${trend(f.exp, p.exp)}</span>${ico('inventory', 'md kpi-ico')}</div>
-    <div class="kpi plain ${res < 0 ? 'warn' : ''}"><span class="kpi-l">Výsledek</span><b class="kpi-v ${res >= 0 ? 'ok-t' : ''}">${res >= 0 ? '+' : '−'}${money(Math.abs(res))}</b><span class="kpi-s">zálohy ${money(f.dep)} (mimo výsledek)</span>${ico('status-ok', 'md kpi-ico')}</div>
+    <div class="kpi plain ${res < 0 ? 'warn' : ''}"><span class="kpi-l">Výsledek</span><b class="kpi-v ${res >= 0 ? 'ok-t' : ''}">${res >= 0 ? '+' : '−'}${money(Math.abs(res))}</b><span class="kpi-s">zálohy ${money(f.dep)} (mimo výsledek)</span>${ico(res >= 0 ? 'status-ok' : 'status-warning', 'md kpi-ico')}</div>
     <div class="kpi plain"><span class="kpi-l">Náklady chovu</span><b class="kpi-v">${money(care)}</b><span class="kpi-s">≈ ${money(care / Math.max(1, heads))} na zvíře · krmivo, veterina, energie, technika</span>${ico('care', 'md kpi-ico')}</div>
   </div>
   <div class="g-main"><div class="stack">${workspaceHTML('finance', { editLabel: 'UPRAVIT' })}</div>
