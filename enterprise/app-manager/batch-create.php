@@ -7,6 +7,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  try{
   $count=max(1,min(100,(int)($_POST['count']??1)));$prefix=trim((string)($_POST['prefix']??'Odchov'));$druh=trim((string)($_POST['druh']??''));$latin=trim((string)($_POST['latinsky_nazev']??''));$sex=trim((string)($_POST['pohlavi']??'Neurčeno'));$birth=trim((string)($_POST['datum_narozeni']??date('Y-m')));$status=trim((string)($_POST['status_chovu']??'Odchov'));$morph=trim((string)($_POST['morf_linie']??''));$father=ir_int($_POST['otec_id']??0)?:null;$mother=ir_int($_POST['matka_id']??0)?:null;$ub=ir_int($_POST['ubikace_id']??0)?:null;
   if($latin===''&&$druh==='')throw new RuntimeException('Vyplň druh nebo latinský název.');
+  if($qb=ir_animal_quota_block($pdo,$uid,$count))throw new RuntimeException($qb);
   $pdo->beginTransaction();for($i=1;$i<=$count;$i++){$name=$prefix.' '.str_pad((string)$i,2,'0',STR_PAD_LEFT);$pdo->prepare("INSERT INTO wp_ir2_zvirata(user_id,jmeno_kod,druh,latinsky_nazev,pohlavi,datum_narozeni,kategorie,status_chovu,morf_linie,otec_id,matka_id,ubikace_id,vytvoreno,upraveno) VALUES(?,?,?,?,?,?,'Juvenile',?,?,?,?,?,NOW(),NOW())")->execute([$uid,$name,$druh!==''?$druh:$latin,$latin!==''?$latin:null,$sex,$birth,$status,$morph!==''?$morph:null,$father,$mother,$ub]);}$pdo->commit();ir_flash('success','Vytvořeno '.$count.' karet.');ir_redirect('animals.php');
  }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();error_log('IR action: '.$e->getMessage());$error=$e instanceof PDOException?'Změnu se nepodařilo uložit. Zkus to znovu.':$e->getMessage();}
 }

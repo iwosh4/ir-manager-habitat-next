@@ -242,7 +242,11 @@
     const list = document.createElement('div'); list.className = 'b1-ac-list'; list.hidden = true; list.setAttribute('role', 'listbox'); wrap.append(list);
     input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-expanded', 'false'); input.autocomplete = 'off';
     const form = input.form;
-    const set = (name, v) => { const f = form?.querySelector(`[name="${name}"]`); if (f) { f.value = v ?? ''; f.dispatchEvent(new Event('change', { bubbles: true })); } };
+    const set = (name, v) => {
+      const f = form?.querySelector(`[name="${name}"]`); if (!f || v === undefined) return;
+      if (f.tagName === 'SELECT' && v && ![...f.options].some((o) => o.value === String(v))) f.add(new Option(input.value, v));
+      f.value = v ?? ''; f.dispatchEvent(new Event('change', { bubbles: true }));
+    };
     let items = [], act = -1, t = 0, seq = 0;
     const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); act = -1; };
     const choose = async (it) => {
@@ -253,9 +257,11 @@
       } else if (!it.id) {
         try { const r = await api('taxonomy.create', { latin: it.latin, czech: it.czech, english: it.english, group: it.group }, { post: true }); it.id = r.id; } catch (e) { toast(e.message, 'bad'); return; }
       }
-      input.value = it.latin;
+      const prevLatin = input.dataset.prevLatin || '';
+      input.value = it.latin; input.dataset.prevLatin = it.latin;
       set(input.dataset.taxonId || 'druh_id', it.id);
-      set(input.dataset.taxonCzech || 'druh', it.czech || it.latin);
+      const czf = form?.querySelector(`[name="${input.dataset.taxonCzech || 'druh'}"]`);
+      if (czf && (!czf.value.trim() || czf.value === prevLatin)) set(input.dataset.taxonCzech || 'druh', it.czech || it.latin);
       set(input.dataset.taxonLatin || 'latinsky_nazev', it.latin);
       input.dispatchEvent(new CustomEvent('taxon:selected', { detail: it, bubbles: true }));
     };
@@ -294,4 +300,21 @@
   });
 
   window.IR = Object.assign(window.IR || {}, { api, toast, sheet, feedSheet, recordEvent, qrScanner, renderQrs, taxonField, esc, ICON });
+})();
+
+/* Enclosure clone (BETA1-08): N copies of an enclosure's setup (not animals / history). */
+(() => {
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-clone-cage]'); if (!b || !window.IR) return;
+    e.preventDefault();
+    const { sheet, esc } = window.IR;
+    const csrf = document.querySelector('[data-csrf]')?.dataset.csrf || '';
+    const s = sheet(`<form method="post" action="habitats.php" class="b1-form-grid" style="padding:0">
+      <input type="hidden" name="_csrf" value="${esc(csrf)}"><input type="hidden" name="_submission" value="${[...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('')}"><input type="hidden" name="action" value="clone-cage"><input type="hidden" name="id" value="${esc(b.dataset.cloneCage)}">
+      <p class="b1-wide muted" style="margin:0">Zkopíruje se typ, rozměry (Š × H × V), klima, technika, pravidla péče a vybavení z Habitat Studia. Zvířata, historie a QR kód se nekopírují — každá kopie dostane vlastní identitu.</p>
+      <label>Počet kopií<input class="input" type="number" name="count" min="1" max="50" value="1" required></label>
+      <label class="b1-check"><input type="checkbox" name="no_rack" value="1"> mimo sestavu</label>
+      <label class="b1-wide">Názvy kopií (volitelné, každý na nový řádek)<textarea class="input" name="names" rows="3" placeholder="${esc(b.dataset.name)} (2)"></textarea></label>
+      <div class="b1-wide b1-sheet-actions"><button type="button" class="btn" data-close>Zrušit</button><button class="btn primary">Vytvořit kopie</button></div></form>`, { title: 'Klonovat · ' + b.dataset.name });
+  });
 })();

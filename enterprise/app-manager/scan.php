@@ -3,6 +3,13 @@ declare(strict_types=1);
 require __DIR__.'/includes/config.php';require __DIR__.'/includes/live.php';require __DIR__.'/includes/shell.php';require __DIR__.'/includes/reptile_core.php';
 $uid=ir_current_user_id();$code=trim((string)($_GET['code']??''));
 if($code!==''){
+ // tokenised labels (IR:A:… / IR:E:…, optional :FEED/:WATER/…) — resolved only within this account
+ if($r=ir_qr_resolve($pdo,$uid,$code)){
+   $actionTypes0=['FEED'=>'Krmení','WATER'=>'Výměna vody','MIST'=>'Rosení','CLEAN'=>'Čištění','WEIGHT'=>'Vážení','SHED'=>'Svlek'];$act=strtoupper((string)($r['action']??''));
+   if($r['kind']==='animal'){if($act==='HEALTH')ir_redirect('health.php?animal_id='.$r['id']);if(isset($actionTypes0[$act]))ir_redirect('quick.php?animal_id='.$r['id'].'&fast=1&source=qr&type='.rawurlencode($actionTypes0[$act]));ir_redirect('animal.php?id='.$r['id']);}
+   if(isset($actionTypes0[$act]))ir_redirect('quick.php?cage_id='.$r['id'].'&source=qr&type='.rawurlencode($actionTypes0[$act]));
+   $_GET['cage_id']=$r['id'];
+ }
  $actionTypes=['FEED'=>'Krmení','WATER'=>'Výměna vody','MIST'=>'Rosení','CLEAN'=>'Čištění','WEIGHT'=>'Vážení','SHED'=>'Svlek'];
  if(preg_match('/IR:(?:ANIMAL|ZVIRE):(\d+)(?::([A-Z]+))?/i',$code,$m)){
    $aid=(int)$m[1];$action=strtoupper((string)($m[2]??''));

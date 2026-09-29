@@ -233,3 +233,16 @@ form.panel>.btn,.b1-plan>.btn{margin:0 12px 12px}
 .b1-voice-log li{padding:7px 10px;border-radius:9px;font-size:12px;max-width:85%}
 .b1-voice-log li.is-you{justify-self:end;background:rgba(242,139,40,.1);color:#ffd4a8}
 .b1-voice-log li.is-ir{background:#0e171b;color:#b9c3c8;border:1px solid #1f2b32}
+.b1-intel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.b1-archive{position:relative;display:inline-block}.b1-archive>summary{list-style:none;cursor:pointer}.b1-archive>summary::-webkit-details-marker{display:none}
+.b1-archive-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;width:280px;padding:12px;border:1px solid rgba(215,90,85,.35);border-radius:11px;background:#0c151a;box-shadow:0 18px 40px rgba(0,0,0,.45);display:grid;gap:8px}
+.b1-archive-pop label{display:grid;gap:4px;font-size:11px;color:#8a98a1}.b1-archive-pop p{font-size:11px;margin:0}
+/* animal card: basic info grid never wraps letter-by-letter */
+.animal-overview-basic dl{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0 14px!important}
+.animal-overview-basic dl>div{display:grid!important;grid-template-columns:minmax(80px,38%) 1fr!important;gap:8px!important;align-items:baseline;min-width:0}
+.animal-overview-basic dd{word-break:normal!important;overflow-wrap:anywhere;hyphens:auto;min-width:0}
+@media(max-width:1280px){.animal-overview-basic dl{grid-template-columns:1fr!important}}
+.b1-intel .b1-chip img.ir-visual-icon,.b1-voice .b1-chip img.ir-visual-icon{width:18px!important;height:18px!important;max-width:none!important;max-height:none!important}
+.b1-linkbtn{border:0;background:none;color:#f3a153;font:inherit;font-size:inherit;cursor:pointer;padding:0}
+.b1-linkbtn:hover{text-decoration:underline}
+.cage-overview-card.b1-new{border-color:rgba(76,191,121,.6)!important;box-shadow:0 0 0 1px rgba(76,191,121,.25),0 0 22px rgba(76,191,121,.12)}
