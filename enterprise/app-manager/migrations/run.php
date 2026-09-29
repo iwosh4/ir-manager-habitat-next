@@ -24,4 +24,11 @@ function ir_run_migrations(PDO $pdo): void {
         $file=__DIR__.'/065-security-hardening.php';if(!is_file($file))throw new RuntimeException('Chybí povinná migrace 065-security-hardening.php. Aktualizace byla zastavena.');
         require $file;ir_migration_mark($pdo,$m065,'Security hardening: unique email + self-contained contacts/documents schema.');
     } else echo "Migrace 065: již byla aplikována.\n";
+
+    // BETA 1.0 FINAL (070): additive, idempotent — safe to re-run; never drops or rewrites user data
+    require_once dirname(__DIR__).'/includes/schema-beta1.php';
+    $steps=ir_schema_beta1_apply($pdo);
+    echo 'Migrace 070 (BETA 1.0 FINAL): '.(count($steps)?count($steps).' kroků provedeno':'schéma je aktuální')."\n";
+    foreach($steps as $st)echo ' · '.(is_array($st)?json_encode($st,JSON_UNESCAPED_UNICODE):(string)$st)."\n";
+    if(!ir_migration_has($pdo,IR_SCHEMA_VERSION))ir_migration_mark($pdo,IR_SCHEMA_VERSION,'BETA 1.0 FINAL additive schema (events, audit, billing, files, habitat bridge).');
 }

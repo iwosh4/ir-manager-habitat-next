@@ -1,6 +1,6 @@
 {
-    "date": "2026-09-29T17:24:28+02:00",
-    "pass": 25,
+    "date": "2026-09-29T17:32:15+02:00",
+    "pass": 27,
     "fail": 0,
     "results": [
         {
@@ -101,6 +101,14 @@
         },
         {
             "name": "LIVE summary: real counts, appetite alert after 3 refusals",
+            "ok": true
+        },
+        {
+            "name": "ADMIN: owner cannot administrate; admin cannot touch superadmin; suspend revokes sessions; last superadmin protected",
+            "ok": true
+        },
+        {
+            "name": "TEAM: FREE allows only the owner; PRO allows 2 more logins (staff\/readonly) bound to the owner account",
             "ok": true
         }
     ]

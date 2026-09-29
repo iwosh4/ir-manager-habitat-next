@@ -103,8 +103,8 @@ function ir_schema_beta1_steps(): array {
 function ir_default_plans(): array {
     $f = static fn(array $on) => json_encode(array_fill_keys($on, true));
     $core = ['animals', 'enclosures', 'care_history', 'planner_basic', 'qr', 'documents_basic', 'export'];
-    $premium = array_merge($core, ['planner_advanced', 'automation', 'reproduction', 'genetics', 'supplements', 'inventory', 'reports', 'habitat_planner', 'habitat_assembly', 'documents_extended', 'voice']);
-    $pro = array_merge($premium, ['habitat_showcase', 'habitat_techplan', 'automation_advanced', 'finance', 'public_sales', 'exports_advanced', 'backups', 'multi_user', 'priority_support']);
+    $premium = array_merge($core, ['planner_advanced', 'automation', 'reproduction', 'genetics', 'supplements', 'inventory', 'reports', 'habitat_planner', 'habitat_assembly', 'documents_extended', 'voice', 'finance']);
+    $pro = array_merge($premium, ['habitat_showcase', 'habitat_techplan', 'automation_advanced', 'public_sales', 'exports_advanced', 'backups', 'multi_user', 'priority_support']);
     return [
         ['code' => 'free', 'name' => 'Free', 'price_month' => 0, 'price_year' => 0, 'price_lifetime' => null, 'max_animals' => 10, 'max_users' => 1, 'storage_mb' => 200, 'features' => $f($core), 'allow_month' => 1, 'allow_year' => 1, 'allow_lifetime' => 0, 'sort' => 10],
         ['code' => 'premium', 'name' => 'Premium', 'price_month' => 129, 'price_year' => 1290, 'price_lifetime' => null, 'max_animals' => 100, 'max_users' => 1, 'storage_mb' => 2048, 'features' => $f($premium), 'allow_month' => 1, 'allow_year' => 1, 'allow_lifetime' => 0, 'sort' => 20],

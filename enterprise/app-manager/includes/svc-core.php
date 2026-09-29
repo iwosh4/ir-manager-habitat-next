@@ -17,7 +17,7 @@ function ir_account_id(): int { return ir_current_user_id(); }
 
 /** Normalised role of the logged-in actor ('user' of older installs = owner). */
 function ir_role(): string {
-    static $cache = null;
+    $cache = &$GLOBALS['ir_role_cache'][ir_actor_id()];
     if ($cache !== null) return $cache;
     if (!ir_logged_in()) return $cache = 'guest';
     global $pdo;
@@ -94,6 +94,15 @@ function ir_plans(PDO $pdo, bool $activeOnly = false): array {
     return $activeOnly ? array_filter($cache, static fn($p) => (int)$p['active'] === 1) : $cache;
 }
 
+/** Human labels of plan features (plans page, admin). */
+const IR_FEATURE_LABELS = [
+    'animals' => 'Karty zvířat a skupin', 'enclosures' => 'Ubikace a sestavy', 'care_history' => 'Historie péče a krmení', 'planner_basic' => 'Plánovač', 'qr' => 'QR štítky a skener',
+    'documents_basic' => 'Dokumenty a přílohy', 'export' => 'Export dat (JSON / ZIP)', 'planner_advanced' => 'Pokročilý plánovač a biologická osa', 'automation' => 'Automatizace péče',
+    'reproduction' => 'Reprodukce a inkubace', 'genetics' => 'Genetika 2.0', 'supplements' => 'Suplementační rotace', 'inventory' => 'Sklad a nákupní seznam', 'reports' => 'Reporty',
+    'habitat_planner' => 'Habitat Studio 3D', 'habitat_assembly' => 'Sestavy v Habitat Studiu', 'documents_extended' => 'Rozšířené dokumenty', 'voice' => 'Hlasové ovládání', 'finance' => 'Finance',
+    'habitat_showcase' => 'Habitat — prezentační režim', 'habitat_techplan' => 'Habitat — technický plán', 'automation_advanced' => 'Pokročilá automatizace', 'public_sales' => 'Veřejná nabídka zvířat',
+    'exports_advanced' => 'Pokročilé exporty', 'backups' => 'Denní zálohy na serveru', 'multi_user' => 'Tým (více uživatelů)', 'priority_support' => 'Prioritní podpora',
+];
 /** Drop the per-request entitlement cache (after any subscription change). */
 function ir_entitlement_reset(): void { $GLOBALS['ir_entitlement_cache'] = []; }
 /**
@@ -119,6 +128,11 @@ function ir_entitlement(PDO $pdo, ?int $accountId = null): array {
             }
         }
     } catch (Throwable $e) { error_log('IR entitlement: '.$e->getMessage()); }
+    // operator accounts (superadmin/admin) always work with the full product, without a subscription
+    if ($sub === null) {
+        $opRole = (string)ir_scalar($pdo, 'SELECT role FROM '.IR_AUTH_TABLE.' WHERE id=?', [$accountId], '');
+        if (in_array($opRole, ['superadmin', 'admin'], true)) { $all = array_keys($plans); $code = end($all) ?: $code; }
+    }
     $plan = $plans[$code] ?? reset($plans);
     return $cache[$accountId] = ['plan' => $plan, 'code' => $plan['code'], 'subscription' => $sub, 'features' => $plan['features'] ?? [], 'max_animals' => $plan['max_animals'] === null ? null : (int)$plan['max_animals'], 'max_users' => (int)($plan['max_users'] ?? 1)];
 }

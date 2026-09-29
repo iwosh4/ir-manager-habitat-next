@@ -338,6 +338,42 @@ t('LIVE summary: real counts, appetite alert after 3 refusals', function () use 
     ok(in_array($a, array_column($s['appetite_alerts'], 'id'), true), 'appetite alert present');
 });
 
+
+// ---------------------------------------------------------------- admin + team
+t('ADMIN: owner cannot administrate; admin cannot touch superadmin; suspend revokes sessions; last superadmin protected', function () use ($pdo, $uid) {
+    $mkUser = function (string $role, ?int $owner = null) use ($pdo): int { $pdo->prepare('INSERT INTO wp_ir2__uzivatele(jmeno,heslo,email,role,is_active,owner_user_id) VALUES(?,?,?,?,1,?)')->execute(['u_'.bin2hex(random_bytes(3)), password_hash('x', PASSWORD_DEFAULT), 'u'.bin2hex(random_bytes(3)).'@t.local', $role, $owner]); return (int)$pdo->lastInsertId(); };
+    $admin = $mkUser('admin'); $victim = $mkUser('user'); $super = (int)one("SELECT id FROM wp_ir2__uzivatele WHERE role='superadmin' ORDER BY id LIMIT 1");
+    $as = function (int $id) { $_SESSION['actor_id'] = $id; };
+    $as($uid); $denied = false; try { ir_admin_suspend($pdo, $victim, 'x'); } catch (RuntimeException) { $denied = true; } ok($denied, 'owner cannot suspend');
+    $as($admin);
+    $v0 = (int)one('SELECT session_version FROM wp_ir2__uzivatele WHERE id=?', [$victim]);
+    ir_admin_suspend($pdo, $victim, 'Test pozastavení');
+    ok(one('SELECT suspended_at FROM wp_ir2__uzivatele WHERE id=?', [$victim]) !== null && (int)one('SELECT session_version FROM wp_ir2__uzivatele WHERE id=?', [$victim]) === $v0 + 1, 'suspended + sessions revoked');
+    ok((int)one('SELECT COUNT(*) FROM wp_ir2_audit WHERE entity=? AND entity_id=? AND action=?', ['user', (string)$victim, 'suspend']) === 1, 'audited');
+    ir_admin_unsuspend($pdo, $victim);
+    $d = false; try { ir_admin_suspend($pdo, $super, 'x'); } catch (RuntimeException) { $d = true; } ok($d, 'admin cannot suspend superadmin');
+    $d = false; try { ir_admin_set_role($pdo, $victim, 'admin'); } catch (RuntimeException) { $d = true; } ok($d, 'admin cannot grant admin');
+    $as($super);
+    if (ir_admin_superadmins($pdo) === 1) { $d = false; try { ir_admin_set_role($pdo, $super, 'owner'); } catch (RuntimeException) { $d = true; } ok($d, 'last superadmin protected'); }
+    $pw = ir_admin_reset_password($pdo, $victim);
+    ok(strlen($pw) === 14 && password_verify($pw, (string)one('SELECT heslo FROM wp_ir2__uzivatele WHERE id=?', [$victim])), 'temporary password works');
+    $as($uid);
+});
+t('TEAM: FREE allows only the owner; PRO allows 2 more logins (staff/readonly) bound to the owner account', function () use ($pdo, $uid) {
+    $pdo->prepare("UPDATE wp_ir2_subscriptions SET status='canceled', valid_until=NOW() WHERE user_id=?")->execute([$uid]); ir_entitlement_reset();
+    $d = false; try { ir_team_create($pdo, $uid, 'staff_'.bin2hex(random_bytes(2)), 's'.bin2hex(random_bytes(3)).'@t.local', 'staff', 'Heslo-12345'); } catch (RuntimeException) { $d = true; }
+    ok($d, 'FREE: no team');
+    ir_billing_grant($pdo, $uid, 'pro', 'manual', 'admin_manual', null, date('Y-m-d H:i:s', strtotime('+10 days')));
+    $s1 = ir_team_create($pdo, $uid, 'staff_'.bin2hex(random_bytes(2)), 's'.bin2hex(random_bytes(3)).'@t.local', 'staff', 'Heslo-12345');
+    $s2 = ir_team_create($pdo, $uid, 'ro_'.bin2hex(random_bytes(2)), 'r'.bin2hex(random_bytes(3)).'@t.local', 'readonly', 'Heslo-12345');
+    $d = false; try { ir_team_create($pdo, $uid, 'x_'.bin2hex(random_bytes(2)), 'x'.bin2hex(random_bytes(3)).'@t.local', 'staff', 'Heslo-12345'); } catch (RuntimeException) { $d = true; }
+    ok($d, 'PRO: max 3 users');
+    ok((int)one('SELECT owner_user_id FROM wp_ir2__uzivatele WHERE id=?', [$s2]) === $uid, 'bound to owner');
+    $_SESSION['actor_id'] = $s2; ok(!ir_can('write') && ir_can('read') && ir_can('export'), 'readonly: read + export, no write');
+    $_SESSION['actor_id'] = $s1; ok(ir_can('write') && !ir_can('delete') && !ir_can('billing'), 'staff: write, no delete/billing');
+    $_SESSION['actor_id'] = $uid;
+});
+
 echo "\n$pass passed, $fail failed\n";
 @mkdir(__DIR__.'/../results', 0775, true);
 file_put_contents(__DIR__.'/../results/services.json', json_encode(['date' => date('c'), 'pass' => $pass, 'fail' => $fail, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
