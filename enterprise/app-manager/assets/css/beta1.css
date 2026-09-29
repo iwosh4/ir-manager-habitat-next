@@ -370,3 +370,25 @@ input[type=datetime-local].b1-cell{min-width:170px}
 .b1-bio-scale .b1-bio-now{height:18px}
 @media(max-width:1100px){.b1-week{grid-template-columns:repeat(2,1fr)}.b1-rail-day{grid-template-columns:1fr}.b1-hours{grid-row:auto}}
 @media(max-width:760px){.b1-week{grid-template-columns:1fr}.b1-mcell{min-height:56px;padding:4px}.b1-mload i{display:none}.b1-mcell .b1-mload::after{content:"•";color:#ff9d3f}.b1-bio-scale,.b1-bio-row{grid-template-columns:110px 1fr}.b1-bio-scale{top:94px}.b1-rail-views a{padding:8px 8px;font-size:11px}}
+
+/* ================================================================ health + attachments */
+.b1-health{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);gap:12px;align-items:start}
+@media(max-width:1100px){.b1-health{grid-template-columns:1fr}}
+.b1-hlist{display:grid;gap:6px;padding:0 12px 12px}
+.b1-hrec{border:1px solid #1f2b32;border-radius:11px;background:#0a1216}
+.b1-hrec.is-late{border-color:rgba(215,90,85,.45)}.b1-hrec.is-closed{opacity:.8}
+.b1-hrec>summary{display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer;list-style:none}
+.b1-hrec>summary::-webkit-details-marker{display:none}
+.b1-hrec>summary>img.ir-visual-icon{width:26px!important;height:26px!important;max-width:none!important;max-height:none!important;flex:none}
+.b1-hrec>summary>span:first-of-type{flex:1;min-width:0;display:grid}.b1-hrec>summary b{font-size:13px;color:#fff}.b1-hrec>summary small{font-size:11px;color:#8a98a1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b1-hrec-meta{display:flex;gap:8px;align-items:center;flex:none}.b1-hrec-meta time{font-size:11px;color:#8a98a1}
+.b1-hrec-body{border-top:1px solid #1f2b32;padding:4px 4px 10px}
+.b1-files{padding:0 12px}.b1-files h4{margin:6px 0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#8a98a1}
+.b1-files ul{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:6px}
+.b1-files li{display:flex;gap:8px;align-items:center;padding:6px;border:1px solid #1f2b32;border-radius:9px}
+.b1-file-ico{width:42px;height:42px;border-radius:7px;overflow:hidden;display:grid;place-items:center;background:#070c0f;border:1px solid #25333c;flex:none}
+.b1-file-ico img{width:100%;height:100%;object-fit:cover}.b1-file-ico b{font-size:10px;color:#ffc387}
+.b1-file-name{flex:1;min-width:0;display:grid}.b1-file-name b{font-size:12px;color:#e6ebee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.b1-file-name small{font-size:10.5px;color:#7b8992}
+.b1-upload input[type=file]{padding:6px}
+.b1-hrec-body>.b1-inline{padding:6px 12px 0}
+.warn{color:#f3a153}
