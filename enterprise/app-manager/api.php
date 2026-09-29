@@ -52,7 +52,7 @@ try {
         }
         case 'events.group': {
             $mut();
-            $out = ir_event_group($pdo, $uid, (int)$req('group_id', 0), (string)$req('result', 'eaten'), array_map('strval', (array)$req('results', [])), ['source' => (string)$req('source', 'manual'), 'feed' => (string)$req('feed', ''), 'qty_each' => $req('qty_each'), 'performed_at' => (string)$req('performed_at', ''), 'note' => (string)$req('note', ''), 'notes' => (array)$req('notes', [])]);
+            $out = ir_event_group($pdo, $uid, (int)$req('group_id', 0), (string)$req('result', 'eaten'), array_map('strval', (array)$req('results', [])), ['source' => (string)$req('source', 'manual'), 'feed' => (string)$req('feed', ''), 'qty_each' => $req('qty_each'), 'performed_at' => (string)$req('performed_at', ''), 'note' => (string)$req('note', ''), 'notes' => (array)$req('notes', []), 'planner_task_id' => (int)$req('planner_task_id', 0) ?: null]);
             ir_json(['ok' => true] + $out + ['text' => ir_batch_summary_text($out['summary'])]);
         }
         case 'groups.members': {
@@ -75,7 +75,7 @@ try {
             ir_event_update($pdo, $uid, (int)$req('id', 0), $patch);
             ir_json(['ok' => true]);
         }
-        case 'events.delete': { $mut('delete'); ir_event_delete($pdo, $uid, (int)$req('id', 0)); ir_json(['ok' => true]); }
+        case 'events.delete': { $mut('delete'); ir_json(['ok' => true, 'bin_id' => ir_event_delete($pdo, $uid, (int)$req('id', 0))]); }
         case 'events.restore': { $mut(); ir_json(['ok' => true, 'id' => ir_event_restore($pdo, $uid, (int)$req('bin_id', 0))]); }
         case 'events.history': {
             ir_require_perm('read');

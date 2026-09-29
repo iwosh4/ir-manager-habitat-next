@@ -311,16 +311,18 @@ function ir_event_update(PDO $pdo, int $uid, int $id, array $patch): void {
 }
 
 /** Soft delete: row moved to the recycle bin (restorable), effects undone. */
-function ir_event_delete(PDO $pdo, int $uid, int $id): void {
+function ir_event_delete(PDO $pdo, int $uid, int $id): int {
     $own = !$pdo->inTransaction();
     if ($own) $pdo->beginTransaction();
     try {
         $q = $pdo->prepare('SELECT * FROM wp_ir2_pece WHERE user_id=? AND id=? LIMIT 1 FOR UPDATE'); $q->execute([$uid, $id]);
-        $old = $q->fetch(); if (!$old) { if ($own) $pdo->commit(); return; }
-        if (ir_table_exists($pdo, 'wp_ir2_pece_kos')) $pdo->prepare('INSERT INTO wp_ir2_pece_kos(user_id,pece_id,zvire_id,row_json,smazano,smazal_id) VALUES(?,?,?,?,NOW(),?)')->execute([$uid, $id, (int)$old['zvire_id'], json_encode($old, JSON_UNESCAPED_UNICODE), ir_actor_id() ?: null]);
+        $old = $q->fetch(); if (!$old) { if ($own) $pdo->commit(); return 0; }
+        $binId = 0;
+        if (ir_table_exists($pdo, 'wp_ir2_pece_kos')) { $pdo->prepare('INSERT INTO wp_ir2_pece_kos(user_id,pece_id,zvire_id,row_json,smazano,smazal_id) VALUES(?,?,?,?,NOW(),?)')->execute([$uid, $id, (int)$old['zvire_id'], json_encode($old, JSON_UNESCAPED_UNICODE), ir_actor_id() ?: null]); $binId = (int)$pdo->lastInsertId(); }
         ir_delete_activity($pdo, $uid, $id);
         ir_audit($pdo, 'event', $id, 'delete', $old, null);
         if ($own) $pdo->commit();
+        return $binId;
     } catch (Throwable $ex) {
         if ($own && $pdo->inTransaction()) $pdo->rollBack();
         throw $ex;
@@ -332,7 +334,14 @@ function ir_event_restore(PDO $pdo, int $uid, int $binId): int {
     $b = $q->fetch(); if (!$b) throw new RuntimeException('Položka koše nebyla nalezena.');
     $row = json_decode((string)$b['row_json'], true) ?: [];
     $newId = ir_event_record($pdo, $uid, ['animal_id' => (int)$row['zvire_id'], 'type' => (string)$row['typ'], 'result' => $row['vysledek'] ?? ir_event_result($row), 'performed_at' => (string)$row['datum'], 'feed' => (string)($row['krmivo'] ?? ir_activity_base_feed($row)), 'value' => (string)($row['hodnota'] ?? ''), 'qty' => $row['mnozstvi'] ?? null, 'note' => (string)($row['detail'] ?? ''), 'source' => (string)($row['zdroj'] ?? 'manual'), 'batch_id' => $row['davka_id'] ?? null, 'group_id' => $row['skupina_id'] ?? null, 'allow_duplicate' => true]);
+    // keep the record's original identity when it is free (stable links from batches, audit, bookmarks)
+    $orig = (int)($row['id'] ?? 0);
+    if ($orig && $orig !== $newId && !(int)ir_scalar($pdo, 'SELECT COUNT(*) FROM wp_ir2_pece WHERE id=?', [$orig], 0)) {
+        $pdo->prepare('UPDATE wp_ir2_pece SET id=? WHERE id=? AND user_id=?')->execute([$orig, $newId, $uid]);
+        $newId = $orig;
+    }
     $pdo->prepare('UPDATE wp_ir2_pece_kos SET obnoveno=NOW() WHERE id=?')->execute([$binId]);
+    ir_audit($pdo, 'event', $newId, 'restore', null, ['bin' => $binId]);
     return $newId;
 }
 

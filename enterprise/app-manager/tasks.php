@@ -17,9 +17,9 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     else{$reason=trim((string)($_POST['skip_reason']??''));$note=$reason!==''?'Vynecháno: '.$reason:'Vynecháno';foreach($ids as $taskId)$pdo->prepare("UPDATE wp_ir2_planovac SET stav='Vynecháno',poznamka=CASE WHEN COALESCE(poznamka,'')='' THEN ? ELSE CONCAT(poznamka,' · ',?) END WHERE user_id=? AND id=? AND stav='Aktivní'")->execute([$note,$note,$uid,$taskId]);}
    }
   }
-  elseif($action==='delete'&&$id)$pdo->prepare("DELETE FROM wp_ir2_planovac WHERE user_id=? AND id=?")->execute([$uid,$id]);
+  elseif($action==='delete'&&$id){$pdo->prepare("UPDATE wp_ir2_planovac SET stav='Zrušeno' WHERE user_id=? AND id=?")->execute([$uid,$id]);ir_audit($pdo,'task',$id,'cancel');}
   elseif($action==='save'){$animal=ir_int($_POST['zvire_id']??0)?:null;$name=trim((string)($_POST['nazev_ukolu']??''));$date=(string)($_POST['datum_termin']??date('Y-m-d'));$time=trim((string)($_POST['cas_termin']??''))?:null;$cat=trim((string)($_POST['kategorie']??'Péče'));$note=trim((string)($_POST['poznamka']??''));$priority=in_array((string)($_POST['priorita']??''),['Nízká','Normální','Vysoká','Kritická'],true)?(string)$_POST['priorita']:'Normální';if($name==='')throw new RuntimeException('Chybí název úkolu.');if($animal&&!ir_animal($pdo,$uid,(int)$animal))throw new RuntimeException('Zvíře nebylo nalezeno.');if(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$date)||date('Y-m-d',strtotime($date))!==$date)throw new RuntimeException('Neplatné datum.');$pdo->prepare("INSERT INTO wp_ir2_planovac(user_id,zvire_id,nazev_ukolu,kategorie,datum_termin,cas_termin,priorita,stav,opakovani,poznamka) VALUES(?,?,?,?,?,?,?,'Aktivní','none',?)")->execute([$uid,$animal,$name,$cat,$date,$time,$priority,$note]);}
-  $returnTo=(string)($_POST['return_to']??'');if(!preg_match('~^(?:index|tasks)\.php(?:[?#].*)?$~',$returnTo))$returnTo='tasks.php'.(!empty($_GET['view'])?'?view='.urlencode((string)$_GET['view']):'');ir_redirect($returnTo);
+  $returnTo=(string)($_POST['return_to']??'');if(!preg_match('~^(?:index|tasks)\.php(?:[?#][a-zA-Z0-9=&_.#-]*)?$~',$returnTo))$returnTo='tasks.php'.(!empty($_GET['view'])?'?view='.urlencode((string)$_GET['view']):'');ir_redirect($returnTo);
  }catch(Throwable $e){error_log('Planner: '.$e->getMessage());$error='Úkol se nepodařilo uložit. Zkontroluj údaje a zkus to znovu.';}
 }
 $view=preg_replace('/[^a-z\-]/','',(string)($_GET['view']??'active'));$where="p.user_id=?";$params=[$uid];
@@ -40,7 +40,8 @@ $groups=ir_planner_group_tasks($tasks);
 require_once __DIR__.'/includes/planner-agenda.php';
 ir_page_start('Úkoly','tasks');
 try{
-    ir_render_planner_agenda($pdo,$uid);
+    require_once __DIR__.'/includes/planner-rail.php';
+    ir_render_planner_rail($pdo,$uid,(string)($_GET['pv']??'day'),(string)($_GET['d']??date('Y-m-d')));
 }catch(Throwable $e){
     error_log('Planner agenda render 064: '.$e->getMessage());
     echo '<section class="panel glow-panel planner-recovery-064"><header class="panel-head"><div><span class="panel-kicker">PLÁNOVAČ</span><h2>Plánovač se nepodařilo načíst</h2></div></header><div class="empty-state">Seznam úkolů níže zůstává dostupný. Chyba byla zapsána do serverového logu.</div></section>';

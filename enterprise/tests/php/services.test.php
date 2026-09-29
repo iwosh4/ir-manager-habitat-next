@@ -162,6 +162,7 @@ t('SOFT DELETE → recycle bin → restore', function () use ($pdo, $uid, $a2) {
     ok($bin > 0, 'kept in recycle bin');
     $new = ir_event_restore($pdo, $uid, $bin);
     ok((string)one('SELECT typ FROM wp_ir2_pece WHERE id=?', [$new]) === 'Svlek', 'restored');
+    ok($new === $id, 'restored under its original id');
 });
 t('SUPPLEMENT rotation over time: eaten advances, in-shed / not-fed / refused do not', function () use ($pdo, $uid, $a2, $rotState, $d) {
     $r0 = $rotState($a2);

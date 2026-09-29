@@ -352,7 +352,7 @@
       const results = {}; el.querySelectorAll('.b1-gs-row').forEach((r) => { results[r.dataset.id] = r.querySelector('[aria-checked=true]')?.dataset.r || 'skip'; });
       const f = (n) => el.querySelector(`[name=${n}]`).value.trim();
       try {
-        const r = await api('events.group', { group_id: gid, result: 'eaten', results, feed: f('feed'), qty_each: f('qty'), performed_at: f('when').replace('T', ' '), source: taskId ? 'planner' : 'manual' }, { post: true });
+        const r = await api('events.group', { group_id: gid, result: 'eaten', results, feed: f('feed'), qty_each: f('qty'), performed_at: f('when').replace('T', ' '), source: taskId ? 'planner' : 'manual', planner_task_id: taskId || 0 }, { post: true });
         s.close(); toast('Uloženo jednou dávkou: ' + r.text, 'ok', 5000); setTimeout(() => location.reload(), 900);
       } catch (e) { btn.disabled = false; btn.textContent = 'Uložit krmení skupiny'; toast(e.message, 'bad', 7000); }
     });
