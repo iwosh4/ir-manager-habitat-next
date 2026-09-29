@@ -1,0 +1,5 @@
+const CACHE='ir-app-manager-security-065';
+const SHELL=['./offline.html','./assets/css/core.css','./assets/css/premium-ui.css','./assets/css/lock063.css','./assets/css/lock064.css','./assets/css/security065.css','./assets/js/core.js','./assets/js/premium-ui.js','./assets/img/app-icon.webp','./assets/img/caiman-hero.webp','./manifest.webmanifest'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('ir-app-manager-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);if(r.method!=='GET'||u.origin!==location.origin)return;if(r.mode==='navigate'){e.respondWith(fetch(r).catch(()=>caches.match('./offline.html')));return;}if(!u.pathname.includes('/assets/')&&!u.pathname.endsWith('manifest.webmanifest'))return;e.respondWith(fetch(r,{cache:'no-cache'}).then(async res=>{if(res.ok){const c=await caches.open(CACHE);c.put(r,res.clone());}return res;}).catch(()=>caches.match(r)));});

@@ -4,3 +4,10 @@ tests/last-run.json
 .DS_Store
 dist/
 tests/last-assembly-perf.json
+
+# enterprise build: never commit secrets, user uploads or DB dumps
+enterprise/app-manager/config.local.php
+enterprise/app-manager/uploads/**/[0-9]*/
+enterprise/app-manager/storage/
+*.sql.dump
+enterprise/_local/

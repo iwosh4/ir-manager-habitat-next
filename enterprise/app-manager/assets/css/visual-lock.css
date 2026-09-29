@@ -1,0 +1,174 @@
+/* IR Manager · Visual Lock 061
+   Global visual language: dark obsidian + vivid terraristic imagery + amber depth.
+   This layer intentionally overrides older compact/workspace rules without changing business logic. */
+
+:root{
+  --lock-bg:#05090b;
+  --lock-panel:#0b1216;
+  --lock-panel-2:#0f171c;
+  --lock-border:rgba(255,255,255,.10);
+  --lock-border-warm:rgba(242,139,40,.28);
+  --lock-amber:#f28b28;
+  --lock-amber-2:#ffad51;
+  --lock-text:#f3f5f6;
+  --lock-muted:#8d9aa3;
+  --lock-glow:rgba(242,139,40,.11);
+}
+
+/* Global depth – the entire app should read as designed UI, never a black hole with text. */
+body{background:
+  radial-gradient(900px 520px at 76% 0%,rgba(242,139,40,.035),transparent 62%),
+  radial-gradient(720px 520px at 18% 42%,rgba(56,107,90,.025),transparent 68%),
+  var(--lock-bg)!important;color:var(--lock-text)!important}
+.app-main{background:
+  linear-gradient(180deg,rgba(255,255,255,.008),transparent 180px)!important}
+
+.app-main :is(.panel,.workspace-widget,.stat-card,.command-card,.animal-card,.mini-metric,.contact-card,.repro-cycle-card,.document-studio,.document-guide){
+  background:
+    linear-gradient(180deg,rgba(17,26,31,.97),rgba(8,14,18,.985))!important;
+  border:1px solid var(--lock-border)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 14px 32px rgba(0,0,0,.32),
+    0 0 0 1px rgba(242,139,40,.018),
+    0 0 24px rgba(242,139,40,.045)!important;
+}
+.app-main :is(.panel,.workspace-widget,.stat-card,.command-card,.animal-card,.mini-metric):hover{
+  border-color:rgba(242,139,40,.24)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    0 17px 38px rgba(0,0,0,.36),
+    0 0 30px rgba(242,139,40,.065)!important;
+}
+.panel-head{background:linear-gradient(90deg,rgba(242,139,40,.035),transparent 42%)!important}
+.panel-head :is(h2,strong){color:#f5f6f7!important}
+.panel-head .ir-visual-icon,.workspace-widget .panel-head .ir-visual-icon{filter:drop-shadow(0 5px 8px rgba(0,0,0,.4)) saturate(1.1)!important}
+.panel-head-more{margin-left:auto!important;color:#e49a50!important;font-size:9px!important}
+
+/* Buttons, forms and tables must belong to the same visual system. */
+.btn,button,input,select,textarea{font-family:Inter,"Segoe UI Variable","Segoe UI",Arial,sans-serif}
+.btn{
+  border-color:#314149!important;background:linear-gradient(180deg,#10191e,#091115)!important;
+  color:#dce2e5!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important
+}
+.btn:hover{border-color:rgba(242,139,40,.42)!important;color:#fff!important;box-shadow:0 0 18px rgba(242,139,40,.055)!important}
+.btn.primary{background:linear-gradient(180deg,#ff9e3d,#e97818)!important;border-color:#ff9b37!important;color:#111!important;font-weight:750!important;box-shadow:0 8px 22px rgba(242,139,40,.18),0 0 18px rgba(242,139,40,.08)!important}
+input,select,textarea{
+  background:#081014!important;border-color:#2b3b43!important;color:#e7ebed!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02)!important
+}
+input:focus,select:focus,textarea:focus{border-color:rgba(242,139,40,.58)!important;box-shadow:0 0 0 2px rgba(242,139,40,.065),0 0 20px rgba(242,139,40,.05)!important;outline:none!important}
+.data-table tbody tr:hover{background:rgba(242,139,40,.025)!important}
+
+/* Header: larger visible tools and a search field that is a real control, not a dark gap. */
+@media(min-width:801px){
+  .global-header-top{gap:8px!important}
+  .header-action-cluster{gap:8px!important}
+  .header-action{width:46px!important;height:46px!important;min-height:46px!important;border-radius:11px!important;background:linear-gradient(180deg,#10191e,#081014)!important;border:1px solid #34464f!important;box-shadow:0 10px 24px rgba(0,0,0,.28),0 0 17px rgba(242,139,40,.035)!important}
+  .header-action.is-primary{border-color:rgba(242,139,40,.62)!important;background:linear-gradient(180deg,rgba(242,139,40,.18),#0a1014)!important;box-shadow:0 10px 24px rgba(0,0,0,.3),0 0 22px rgba(242,139,40,.09)!important}
+  .header-action .ir-visual-icon{width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important}
+  .header-action .ir-icon{width:28px!important;height:28px!important;color:#ffa243!important;filter:drop-shadow(0 0 8px rgba(242,139,40,.16))!important}
+  .global-search{height:46px!important;border:1px solid #3a4d56!important;background:linear-gradient(180deg,rgba(9,16,20,.96),rgba(4,9,12,.98))!important;border-radius:11px!important;box-shadow:0 10px 24px rgba(0,0,0,.25),0 0 24px rgba(242,139,40,.055),inset 0 1px 0 rgba(255,255,255,.025)!important}
+  .global-search:before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;background:linear-gradient(90deg,rgba(242,139,40,.14),transparent 25%,transparent 75%,rgba(242,139,40,.05));opacity:.4}
+  .global-search>.ir-visual-icon{width:29px!important;height:29px!important;max-width:29px!important;max-height:29px!important;filter:drop-shadow(0 0 7px rgba(242,139,40,.12))!important}
+  .global-search input{font-size:12px!important}
+  .header-datetime{height:46px!important;min-width:136px!important;border-color:#3b4d56!important;box-shadow:0 10px 24px rgba(0,0,0,.25),0 0 18px rgba(242,139,40,.045)!important}
+  .header-time{font-size:20px!important}
+  .header-notification{width:46px!important;height:46px!important;border-radius:11px!important;border-color:#34464f!important;box-shadow:0 10px 24px rgba(0,0,0,.26),0 0 18px rgba(242,139,40,.04)!important}
+  .header-notification>.ir-visual-icon{width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important}
+}
+
+/* Dashboard KPI lock – visual, colorful, compact, information first. */
+.workspace-kpi-lock{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:10px!important;margin:12px 0 16px!important
+}
+.workspace-kpi-lock .workspace-kpi-card{
+  position:relative!important;isolation:isolate!important;min-height:118px!important;padding:12px!important;
+  display:grid!important;grid-template-columns:74px minmax(0,1fr)!important;align-items:center!important;gap:10px!important;
+  overflow:hidden!important;border-color:rgba(255,255,255,.10)!important
+}
+.workspace-kpi-lock .workspace-kpi-card:after{
+  content:"";position:absolute;z-index:-1;width:135px;height:135px;left:-36px;top:-30px;border-radius:50%;
+  background:radial-gradient(circle,rgba(242,139,40,.17),rgba(242,139,40,.035) 45%,transparent 72%);filter:blur(2px)
+}
+.workspace-kpi-lock .workspace-kpi-art{
+  width:70px!important;height:70px!important;border:1px solid rgba(242,139,40,.22)!important;border-radius:15px!important;
+  background:radial-gradient(circle at 45% 35%,rgba(242,139,40,.19),rgba(12,18,22,.88) 66%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 22px rgba(0,0,0,.3),0 0 22px rgba(242,139,40,.065)!important
+}
+.workspace-kpi-lock .workspace-kpi-art .ir-visual-icon{width:58px!important;height:58px!important;max-width:58px!important;max-height:58px!important;filter:drop-shadow(0 8px 10px rgba(0,0,0,.4)) saturate(1.2)!important}
+.workspace-kpi-lock .workspace-kpi-copy strong{display:block!important;font-size:26px!important;line-height:.95!important;color:#fff!important;letter-spacing:-.035em!important}
+.workspace-kpi-lock .workspace-kpi-copy b{display:block!important;margin-top:7px!important;font-size:10px!important;color:#f1f3f4!important}
+.workspace-kpi-lock .workspace-kpi-copy small{display:block!important;margin-top:3px!important;font-size:8px!important;color:#77858e!important;line-height:1.25!important}
+.workspace-kpi-lock .kpi-health .workspace-kpi-art{background:radial-gradient(circle,#1c522f 0%,#0b1712 58%,#081014 78%)!important}
+.workspace-kpi-lock .kpi-sex .workspace-kpi-art{background:radial-gradient(circle at 35% 35%,rgba(69,154,255,.20),rgba(255,80,167,.13) 48%,#081014 74%)!important}
+.workspace-kpi-lock .kpi-finance .workspace-kpi-art{background:radial-gradient(circle,rgba(255,171,51,.22),#171005 58%,#081014 78%)!important}
+
+/* Dashboard workspace – reference proportions: 2/3 visual block + 1/3 operational panel. */
+[data-workspace][data-module="dashboard"] .workspace-controls{margin:2px 0 8px!important}
+[data-workspace][data-module="dashboard"] .workspace-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;align-items:start!important}
+[data-workspace][data-module="dashboard"] .workspace-widget[data-size="2"]{grid-column:span 2!important}
+[data-workspace][data-module="dashboard"] .workspace-widget[data-size="3"]{grid-column:span 3!important}
+[data-workspace][data-module="dashboard"] .widget-rows{max-height:none!important;overflow:visible!important;padding:8px 10px 10px!important}
+[data-workspace][data-module="dashboard"] .widget-more{display:none!important}
+[data-workspace][data-module="dashboard"] .panel-head{min-height:42px!important;padding:8px 10px!important}
+[data-workspace][data-module="dashboard"] .panel-head strong{font-size:11px!important}
+[data-workspace][data-module="dashboard"] .panel-head .ir-visual-icon{width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important}
+[data-workspace][data-module="dashboard"] .widget-task-row{min-height:42px!important}
+[data-workspace][data-module="dashboard"] .widget-task-row small{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+[data-workspace][data-module="dashboard"] .widget-empty{padding:15px 4px!important;color:#84919a!important;font-size:10px!important}
+
+/* Image-led animal strip on dashboard. */
+.widget-animals .widget-rows{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
+.dashboard-animal-card{position:relative;display:grid;grid-template-rows:auto auto;min-width:0;border:1px solid #2a3a42;border-radius:10px;overflow:hidden;background:#081014;color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.22)}
+.dashboard-animal-card:hover{border-color:rgba(242,139,40,.38);box-shadow:0 11px 24px rgba(0,0,0,.3),0 0 18px rgba(242,139,40,.05)}
+.dashboard-animal-photo{aspect-ratio:16/9;background:#030607;display:grid;place-items:center;overflow:hidden}
+.dashboard-animal-photo img{width:100%;height:100%;object-fit:contain;background:#030607}
+.dashboard-animal-copy{padding:7px 8px 8px;min-width:0}.dashboard-animal-copy strong,.dashboard-animal-copy small,.dashboard-animal-copy em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dashboard-animal-copy strong{font-size:10px}.dashboard-animal-copy small{font-size:8px;color:#a0abb1;margin-top:2px}.dashboard-animal-copy em{font-size:7.5px;color:#74828b;font-style:normal;margin-top:4px}
+.animal-mini-sex{position:absolute;right:7px;top:7px;font-family:"Segoe UI Symbol",sans-serif;font-size:22px;font-weight:800;line-height:1;text-shadow:0 2px 8px #000}.animal-mini-sex.male{color:#4ba7ff}.animal-mini-sex.female{color:#ff62ad}
+
+/* Incubation is one continuous time bar, not fake phases. The marker shows the start of the expected hatch window. */
+.incubation-row a>span:last-child{min-width:0}.incubation-progress{position:relative;display:block;height:8px;margin-top:7px;border-radius:999px;background:#17262d;overflow:visible;box-shadow:inset 0 1px 3px rgba(0,0,0,.55)}
+.incubation-progress b{display:block;width:var(--fill);height:100%;border-radius:inherit;background:linear-gradient(90deg,#d97422,#ffa64a);box-shadow:0 0 10px rgba(242,139,40,.14)}
+.incubation-progress u{position:absolute;left:var(--window);top:-3px;width:2px;height:14px;border-radius:2px;background:#68d990;box-shadow:0 0 8px rgba(104,217,144,.25);text-decoration:none;transform:translateX(-1px)}
+.incubation-row.is-window .incubation-progress b{background:linear-gradient(90deg,#d97422 0%,#e99836 58%,#61c985 100%)}
+.incubation-row.is-overdue .incubation-progress b{background:linear-gradient(90deg,#d97422,#e14343)}
+.incubation-row em{display:block;margin-top:5px;font-size:8px!important;font-style:normal;color:#8b9aa2!important;white-space:normal!important}.incubation-row.is-window em{color:#78d79a!important}.incubation-row.is-overdue em{color:#ff776f!important;font-weight:650}
+
+/* Reproduction cycle keeps phase segments. */
+.cycle-progress.is-segmented{height:7px!important;gap:3px!important}.cycle-progress.is-segmented .cycle-segment{height:7px!important;border-radius:99px!important}
+.cycle-progress.is-segmented .cycle-segment.is-done{background:#c46d28!important}.cycle-progress.is-segmented .cycle-segment.is-current{background:#ffac51!important;box-shadow:0 0 10px rgba(255,172,81,.18)!important}
+
+/* Gender: male/female are strong information symbols; a group is deliberately neutral. */
+.gender-group-icon{display:none!important}.gender-group-mark{display:inline-block;color:#74818a;font-size:20px;font-weight:800;line-height:1;min-width:24px;text-align:center}.gender-group-text{color:#aab3b8!important}
+
+/* Lower dashboard – compact; never consume a half-screen with empty areas. */
+.dashboard-secondary-grid{grid-template-columns:.95fr 1.2fr 1fr!important;gap:10px!important;margin-top:10px!important}
+.dashboard-secondary-grid .panel{min-height:0!important}.summary-metrics{padding:9px!important}.summary-metrics>a{min-height:48px!important}.dashboard-list-compact{padding:3px 9px 7px!important}.dashboard-list-compact>a{min-height:36px!important}.dashboard-action-grid{gap:6px!important;padding:9px!important}.dashboard-action-grid>a{min-height:50px!important}
+
+/* Global icon emphasis across modules – colorful, compact, not monochrome text blocks. */
+.app-main .ir-visual-icon{filter:saturate(1.08) drop-shadow(0 4px 7px rgba(0,0,0,.28))}
+.page-heading h1{font-size:22px!important;letter-spacing:-.025em!important}
+.module-tabs a.is-active,.module-tabs button.is-active{box-shadow:0 0 18px rgba(242,139,40,.07)!important}
+
+/* Reports get visible visual hierarchy even before deeper chart work. */
+.report-kpis .mini-metric,.report-visual-grid .panel{border-color:rgba(255,255,255,.10)!important;box-shadow:0 12px 30px rgba(0,0,0,.3),0 0 22px rgba(242,139,40,.04)!important}.report-bar-label .ir-visual-icon{width:25px!important;height:25px!important;max-width:25px!important;max-height:25px!important}.report-bars i{height:7px!important}
+
+@media(max-width:1450px){
+  .workspace-kpi-lock{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .workspace-kpi-lock .workspace-kpi-card{min-height:96px!important}
+}
+@media(max-width:1050px){
+  [data-workspace][data-module="dashboard"] .workspace-grid{grid-template-columns:1fr!important}
+  [data-workspace][data-module="dashboard"] .workspace-widget[data-size]{grid-column:auto!important}
+  .widget-animals .widget-rows{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .dashboard-secondary-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:700px){
+  .workspace-kpi-lock{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+  .workspace-kpi-lock .workspace-kpi-card{min-height:82px!important;grid-template-columns:48px 1fr!important;padding:8px!important}
+  .workspace-kpi-lock .workspace-kpi-art{width:46px!important;height:46px!important;border-radius:11px!important}.workspace-kpi-lock .workspace-kpi-art .ir-visual-icon{width:39px!important;height:39px!important;max-width:39px!important;max-height:39px!important}
+  .workspace-kpi-lock .workspace-kpi-copy strong{font-size:20px!important}.workspace-kpi-lock .workspace-kpi-copy b{font-size:9px!important}.workspace-kpi-lock .workspace-kpi-copy small{font-size:7px!important}
+  .widget-animals .widget-rows{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}

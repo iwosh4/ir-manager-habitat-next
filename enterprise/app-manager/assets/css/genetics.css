@@ -1,0 +1,101 @@
+/* ==========================================================================
+   IR Manager — Genetics module (scoped)
+   Loaded ONLY from genetics.php. Reuses the app's existing design tokens
+   (--bg/--panel/--line/--accent/--text/--muted from core.css) but defines
+   no new global rule, no new :root override, and does not touch
+   lock064.css / security065.css / any dashboard layout selector.
+   ========================================================================== */
+
+.genetics-hero-2{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+.gg-parent-cards{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:start;margin:14px 0}
+.gg-swap-btn{align-self:center;width:44px;height:44px;border-radius:50%;border:1px solid var(--line,#25313a);background:var(--panel,#0d1317);color:var(--accent,#f28b28);font-size:18px;cursor:pointer}
+.gg-swap-btn:hover{border-color:var(--accent,#f28b28)}
+
+.gg-parent-card{border:1px solid var(--line,#25313a);border-radius:14px;padding:12px;background:var(--panel,#0d1317)}
+.gg-parent-card.male{border-color:rgba(70,150,255,.28)}
+.gg-parent-card.female{border-color:rgba(255,110,170,.28)}
+.gg-parent-card header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.gg-parent-card .gg-sex{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:rgba(255,255,255,.05)}
+.gg-parent-card.male .gg-sex{color:#4ba7ff}.gg-parent-card.female .gg-sex{color:#ff62ad}
+.gg-parent-card label{display:block;margin:7px 0;font-size:11px;color:var(--muted,#8d99a3)}
+.gg-parent-card input,.gg-parent-card select,.gg-parent-card textarea{width:100%;margin-top:3px;background:#081014;border:1px solid var(--line,#25313a);border-radius:9px;color:var(--text,#f2f4f6);padding:8px 10px;font:inherit}
+
+.gg-loci-head{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.gg-loci-head h3{margin:0;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#8d99a3)}
+
+.gg-row{border:1px solid var(--line,#25313a);border-radius:12px;padding:10px;margin-bottom:10px;background:linear-gradient(180deg,rgba(255,255,255,.012),transparent)}
+.gg-row-main{display:grid;grid-template-columns:1.6fr 1fr 1.3fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
+.gg-row-main input,.gg-row-main select{background:#081014;border:1px solid var(--line,#25313a);border-radius:9px;color:var(--text,#f2f4f6);padding:8px 9px;font:inherit;min-width:0}
+.gg-remove{width:32px;height:32px;border-radius:9px;border:1px solid #4a2622;background:#1a0f0d;color:#ff8f86;cursor:pointer;font-size:16px;line-height:1}
+.gg-remove:hover{border-color:#c0453d}
+
+.gg-row-parents{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.gg-parent-col{border:1px solid var(--line,#25313a);border-radius:9px;padding:8px;background:rgba(255,255,255,.012)}
+.gg-parent-col>small{display:block;color:var(--muted,#8d99a3);font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.gg-state{display:flex;gap:6px;flex-wrap:wrap}
+.gg-state select,.gg-state input{background:#081014;border:1px solid var(--line,#25313a);border-radius:8px;color:var(--text,#f2f4f6);padding:6px 8px;font:inherit}
+.gg-state select{flex:1;min-width:150px}
+.gg-state input[type="number"]{width:64px}
+.gg-custom{display:flex;gap:5px}
+.gg-custom input{width:56px}
+
+.gg-row-names{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:6px;align-items:center;margin-bottom:8px}
+.gg-row-names small{color:var(--muted,#8d99a3);font-size:10px}
+.gg-row-names input{background:#081014;border:1px solid var(--line,#25313a);border-radius:8px;color:var(--text,#f2f4f6);padding:6px 8px;font:inherit;min-width:0}
+
+.gg-row-link{margin-bottom:8px;font-size:11px;color:var(--muted,#8d99a3)}
+.gg-row-link label{display:flex;align-items:center;gap:6px}
+.gg-link-fields{display:flex;gap:12px;margin-top:6px;padding:8px;border:1px dashed var(--line,#25313a);border-radius:8px}
+.gg-link-fields label{display:flex;flex-direction:column;gap:3px;font-size:10px}
+.gg-link-fields input,.gg-link-fields select{background:#081014;border:1px solid var(--line,#25313a);border-radius:7px;color:var(--text,#f2f4f6);padding:5px 7px;font:inherit}
+
+.gg-note{width:100%;background:#081014;border:1px solid var(--line,#25313a);border-radius:8px;color:var(--text,#f2f4f6);padding:7px 9px;font:inherit}
+
+.gg-banner{padding:10px 12px;border-radius:10px;margin-bottom:10px;font-size:12px}
+.gg-banner-warn{background:rgba(255,171,51,.08);border:1px solid rgba(255,171,51,.3);color:#ffcf8a}
+.gg-banner-ok{background:rgba(90,215,140,.08);border:1px solid rgba(90,215,140,.3);color:#8fe8b4}
+.gg-error{padding:12px;border-radius:10px;background:rgba(215,90,85,.1);border:1px solid rgba(215,90,85,.35);color:#ff9d97}
+
+.gg-summary h3,.gg-detail h3{margin:0 0 8px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#8d99a3)}
+.gg-combo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:10px}
+.gg-combo-card{border:1px solid var(--line,#25313a);border-radius:10px;padding:10px;background:var(--panel,#0d1317)}
+.gg-combo-card strong{display:block;font-size:18px;color:var(--accent,#f28b28);margin-bottom:4px}
+.gg-combo-card span{font-size:11.5px;color:var(--text,#f2f4f6);line-height:1.4}
+
+.gg-detail-table{display:flex;flex-direction:column;gap:4px;max-height:480px;overflow:auto}
+.gg-detail-row{display:grid;grid-template-columns:70px 1fr;gap:8px;padding:6px 8px;border:1px solid var(--line,#25313a);border-radius:8px;font-size:11.5px}
+.gg-detail-row b{color:var(--accent,#f28b28)}
+.gg-detail-row i{color:var(--muted,#8d99a3);font-style:normal}
+
+.gg-explain details,.gg-warnings details{border:1px solid var(--line,#25313a);border-radius:10px;padding:8px 10px;margin-top:10px}
+.gg-explain summary,.gg-warnings summary{cursor:pointer;font-weight:700;font-size:12px}
+.gg-explain-locus{margin-top:10px;padding-top:10px;border-top:1px solid var(--line,#25313a)}
+.gg-explain-locus:first-child{margin-top:8px;padding-top:0;border-top:0}
+.gg-explain-locus header{font-weight:700;margin-bottom:6px;color:var(--accent,#f28b28)}
+.gg-explain-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px}
+.gg-explain-flow>div{border:1px solid var(--line,#25313a);border-radius:8px;padding:6px 9px;min-width:120px}
+.gg-explain-flow small{display:block;color:var(--muted,#8d99a3);font-size:9px;text-transform:uppercase}
+.gg-explain-flow>span{color:var(--muted,#8d99a3)}
+
+/* -------------------------------- mobile --------------------------------- */
+@media (max-width:860px){
+  .gg-parent-cards{grid-template-columns:1fr}
+  .gg-swap-btn{justify-self:center;margin:2px 0}
+  .gg-row-main{grid-template-columns:1fr 1fr}
+  .gg-row-main select.gg-system{grid-column:1/-1}
+  .gg-row-parents{grid-template-columns:1fr}
+  .gg-row-names{grid-template-columns:1fr}
+  .gg-combo-grid{grid-template-columns:1fr 1fr}
+  .gg-detail-row{grid-template-columns:1fr}
+  .gg-explain-flow{flex-direction:column;align-items:stretch}
+}
+@media (max-width:480px){
+  .gg-combo-grid{grid-template-columns:1fr}
+  .gg-row-main{grid-template-columns:1fr}
+  .gg-remove{justify-self:end}
+}
+
+/* Buttons/tap targets stay comfortably large on touch, matching spec point 16. */
+.genetics-universal-2 button,.genetics-universal-2 .btn{min-height:40px}
+@media (max-width:600px){.genetics-universal-2 button,.genetics-universal-2 .btn{min-height:46px;font-size:13px}}

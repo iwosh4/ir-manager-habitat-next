@@ -1,0 +1,9 @@
+/* PATCH 065 — functional/security fixes only. No visual redesign. */
+.global-header{overflow:visible!important;z-index:1200!important}
+.global-header>.header-caiman{overflow:hidden!important}
+.global-header-top,.global-header-account,.header-profile-wrap{overflow:visible!important}
+.header-profile-wrap{position:relative!important;z-index:1300!important}
+.header-profile-menu{z-index:5000!important;isolation:isolate!important}
+.header-profile-menu:not([hidden]){display:block!important}
+.app-main,.dashboard-shell-063,.dashboard-layout-064{position:relative;z-index:1}
+@media(max-width:800px){.header-profile-menu{position:fixed!important;right:10px!important;top:60px!important;z-index:5000!important}}

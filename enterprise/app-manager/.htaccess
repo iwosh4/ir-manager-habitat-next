@@ -1,0 +1,10 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<FilesMatch "^(config\.local\.php|config\.local\.example\.php)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_mime.c>
+  AddType application/javascript .mjs
+</IfModule>

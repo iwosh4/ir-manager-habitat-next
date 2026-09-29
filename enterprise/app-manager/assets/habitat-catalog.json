@@ -1,0 +1,17 @@
+{
+ "door-double":{"name":"Dvoukřídlé dveře","category":"Dveře","base":"door","w":160,"d":16,"h":205},
+ "door-sliding":{"name":"Posuvné dveře","category":"Dveře","base":"door","w":140,"d":12,"h":205},
+ "door-glass":{"name":"Prosklené dveře","category":"Dveře","base":"door","w":90,"d":12,"h":205},
+ "door-technical":{"name":"Technické dveře","category":"Dveře","base":"door","w":100,"d":12,"h":205},
+ "window-wide":{"name":"Široké okno","category":"Okna","base":"window","w":200,"d":12,"h":100},
+ "window-small":{"name":"Technické okno","category":"Okna","base":"window","w":60,"d":12,"h":50},
+ "window-fixed":{"name":"Fixní prosklení","category":"Okna","base":"window","w":160,"d":12,"h":180},
+ "partition":{"name":"Příčka","category":"Konstrukce","base":"partition","w":180,"d":12,"h":240},
+ "table-large":{"name":"Velký pracovní stůl","category":"Nábytek","base":"desk","w":200,"d":80,"h":85},
+ "table-small":{"name":"Malý pracovní stůl","category":"Nábytek","base":"desk","w":90,"d":60,"h":85},
+ "washbasin":{"name":"Umyvadlo","category":"Voda","base":"sink","w":60,"d":50,"h":90},
+ "storage-box":{"name":"Úložný box","category":"Úložiště","base":"box","w":60,"d":40,"h":35},
+ "transport-crate":{"name":"Přepravka","category":"Úložiště","base":"crate","w":60,"d":40,"h":40},
+ "incubator":{"name":"Inkubátor","category":"Technika","base":"incubator","w":65,"d":65,"h":110},
+ "custom":{"name":"Vlastní objekt","category":"Vlastní objekty","base":"custom","w":60,"d":40,"h":80}
+}

@@ -1,0 +1,67 @@
+{
+    "date": "2026-09-29T15:10:55+02:00",
+    "pass": 15,
+    "fail": 0,
+    "results": [
+        {
+            "name": "EATEN: stock consumed (qty), supplement applied + rotation advanced, result stored",
+            "ok": true
+        },
+        {
+            "name": "REFUSED: counts as refusal, supplement NOT consumed\/advanced, no stock",
+            "ok": true
+        },
+        {
+            "name": "IN SHED: no stock, no supplement, rotation not advanced, last success unchanged, not a refusal",
+            "ok": true
+        },
+        {
+            "name": "NOT FED: no stock, not a refusal; planned feeding of that day resolved",
+            "ok": true
+        },
+        {
+            "name": "Duplicate protection: same animal + same feeding family + same day asks instead of duplicating",
+            "ok": true
+        },
+        {
+            "name": "APPETITE: consecutive refusals alert; in-shed never counts nor breaks streak",
+            "ok": true
+        },
+        {
+            "name": "SHED: insufficient data → window from individual intervals → observed",
+            "ok": true
+        },
+        {
+            "name": "GROUP: representative + 4 members; group feeding 3 eaten \/ 1 refused in one batch",
+            "ok": true
+        },
+        {
+            "name": "GROUP: individual history per member; group batch is all-or-nothing (rollback)",
+            "ok": true
+        },
+        {
+            "name": "HISTORY: grouped by human day with batch summary (DNES \/ VČERA \/ date)",
+            "ok": true
+        },
+        {
+            "name": "CORRECTION days later (group member): performed_at kept, eaten→refused, audit columns + audit log",
+            "ok": true
+        },
+        {
+            "name": "CORRECTION eaten(2× Dubia)→in shed restores stock +2 and rolls the supplement rotation back",
+            "ok": true
+        },
+        {
+            "name": "SOFT DELETE → recycle bin → restore",
+            "ok": true
+        },
+        {
+            "name": "SUPPLEMENT rotation over time: eaten advances, in-shed \/ not-fed \/ refused do not",
+            "ok": true
+        },
+        {
+            "name": "Future-dated record refused (planner is for the future)",
+            "ok": true
+        }
+    ]
+}
