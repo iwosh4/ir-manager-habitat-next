@@ -22,7 +22,7 @@ function ir_live_summary(PDO $pdo, int $uid): array {
         'incubating' => ir_table_exists($pdo, 'wp_ir2_snusky') ? $n("SELECT COUNT(*) FROM wp_ir2_snusky WHERE user_id=? AND stav='Inkubace'", [$uid]) : 0,
         'health_open' => ir_table_exists($pdo, 'wp_ir2_zdravi') ? $n("SELECT COUNT(*) FROM wp_ir2_zdravi WHERE user_id=? AND COALESCE(status,'')<>'Ukončeno'", [$uid]) : 0,
         'low_stock' => ir_table_exists($pdo, 'wp_ir2_sklad') ? $n('SELECT COUNT(*) FROM wp_ir2_sklad WHERE user_id=? AND minimum IS NOT NULL AND minimum>0 AND mnozstvi<=minimum', [$uid]) : 0,
-        'finance_month' => (float)ir_scalar($pdo, "SELECT COALESCE(SUM(CASE WHEN typ='Příjem' THEN castka ELSE -castka END),0) FROM wp_ir2_finance WHERE user_id=? AND YEAR(datum)=YEAR(CURDATE()) AND MONTH(datum)=MONTH(CURDATE())", [$uid], 0),
+        'finance_month' => (float)ir_scalar($pdo, "SELECT COALESCE(SUM(CASE WHEN typ='Příjem' THEN castka ELSE -castka END),0) FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND YEAR(datum)=YEAR(CURDATE()) AND MONTH(datum)=MONTH(CURDATE())", [$uid], 0),
     ];
     // appetite alerts + shed windows (bounded: active animals only)
     $alerts = []; $shed = 0;

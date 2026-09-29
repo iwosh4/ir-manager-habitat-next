@@ -392,3 +392,13 @@ input[type=datetime-local].b1-cell{min-width:170px}
 .b1-upload input[type=file]{padding:6px}
 .b1-hrec-body>.b1-inline{padding:6px 12px 0}
 .warn{color:#f3a153}
+
+/* ================================================================ finance documents */
+.b1-fin-lines{padding:0 12px 10px}
+.b1-fin-head,.b1-fin-row{display:grid;grid-template-columns:minmax(120px,2.2fr) 64px 56px 84px 64px 60px 84px 34px;gap:6px;align-items:center}
+.b1-fin-head{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#6f7e88;padding:0 2px 4px}
+.b1-fin-row{margin-bottom:6px}.b1-fin-row .input{height:34px;min-width:0;padding:0 7px}
+.b1-fin-row output{text-align:right;font-weight:700;color:#e6ebee;font-size:12px}
+.b1-fin-foot{display:flex;justify-content:space-between;align-items:center;padding-top:6px}.b1-fin-foot strong{font-size:15px;color:#fff}
+.finance-side .b1-fin-head,.finance-side .b1-fin-row{grid-template-columns:minmax(90px,1.6fr) 52px 44px 70px 50px 48px 70px 30px}
+@media(max-width:760px){.b1-fin-head{display:none}.b1-fin-row{grid-template-columns:1fr 1fr 1fr;padding:8px;border:1px solid #1f2b32;border-radius:9px}.b1-fin-row>input:first-child{grid-column:1/-1}}

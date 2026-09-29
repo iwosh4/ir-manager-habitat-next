@@ -96,6 +96,8 @@ function ir_schema_beta1_steps(): array {
         $c('wp_ir2_nakupni_list', 'cena_odhad', 'DECIMAL(12,2) NULL DEFAULT NULL'),
         $t('wp_ir2_finance_lines', "id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, user_id INT UNSIGNED NOT NULL, finance_id INT UNSIGNED NOT NULL, item VARCHAR(190) NOT NULL, qty DECIMAL(12,3) NOT NULL DEFAULT 1, unit VARCHAR(20) NULL, unit_price DECIMAL(12,2) NOT NULL DEFAULT 0, discount_pct DECIMAL(5,2) NULL, vat_pct DECIMAL(5,2) NULL, subtotal DECIMAL(12,2) NOT NULL DEFAULT 0, total DECIMAL(12,2) NOT NULL DEFAULT 0, cost DECIMAL(12,2) NULL, sort_order INT NOT NULL DEFAULT 0, PRIMARY KEY(id), KEY fin(user_id,finance_id)"),
         $c('wp_ir2_finance', 'upraveno', 'DATETIME NULL DEFAULT NULL'),
+        $c('wp_ir2_finance', 'smazano', 'DATETIME NULL DEFAULT NULL'),
+        $c('wp_ir2_finance', 'doklad', 'VARCHAR(80) NULL DEFAULT NULL'),
     ];
 }
 

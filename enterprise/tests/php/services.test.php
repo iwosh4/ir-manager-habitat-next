@@ -375,6 +375,19 @@ t('TEAM: FREE allows only the owner; PRO allows 2 more logins (staff/readonly) b
     $_SESSION['actor_id'] = $uid;
 });
 
+
+t('FINANCE: multi-line document totals (qty × price, discount, VAT); sale marks animal sold; soft delete', function () use ($pdo, $uid, $mk) {
+    $fid = ir_finance_save($pdo, $uid, ['typ' => 'Výdaj', 'kategorie' => 'Krmivo', 'datum' => date('Y-m-d')], [['item' => 'Dubia', 'qty' => 50, 'unit_price' => 3], ['item' => 'Kalcium', 'qty' => 1, 'unit_price' => 189, 'vat_pct' => 21], ['item' => 'Teploměr', 'qty' => 2, 'unit_price' => 250, 'discount_pct' => 10]]);
+    ok(abs((float)one('SELECT castka FROM wp_ir2_finance WHERE id=?', [$fid]) - 828.69) < 0.001, 'header = sum of lines: '.one('SELECT castka FROM wp_ir2_finance WHERE id=?', [$fid]));
+    ok((int)one('SELECT COUNT(*) FROM wp_ir2_finance_lines WHERE finance_id=?', [$fid]) === 3, '3 lines');
+    $a = $mk('SALE-01');
+    $sid = ir_finance_save($pdo, $uid, ['typ' => 'Příjem', 'kategorie' => 'Prodej zvířat', 'zvire_id' => $a, 'sold' => true], [['item' => 'SALE-01', 'qty' => 1, 'unit_price' => 2500]]);
+    ok(one('SELECT status_chovu FROM wp_ir2_zvirata WHERE id=?', [$a]) === 'Prodáno' && (float)one('SELECT prodejni_cena FROM wp_ir2_zvirata WHERE id=?', [$a]) === 2500.0, 'animal sold with price, archived not deleted');
+    ir_finance_delete($pdo, $uid, $fid);
+    ok(one('SELECT smazano FROM wp_ir2_finance WHERE id=?', [$fid]) !== null && (int)one('SELECT COUNT(*) FROM wp_ir2_finance_lines WHERE finance_id=?', [$fid]) === 3, 'soft delete keeps data');
+    $bad = false; try { ir_finance_save($pdo, $uid, ['typ' => 'Výdaj'], [['item' => '', 'unit_price' => 0]]); } catch (RuntimeException) { $bad = true; } ok($bad, 'empty document rejected');
+});
+
 echo "\n$pass passed, $fail failed\n";
 @mkdir(__DIR__.'/../results', 0775, true);
 file_put_contents(__DIR__.'/../results/services.json', json_encode(['date' => date('c'), 'pass' => $pass, 'fail' => $fail, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

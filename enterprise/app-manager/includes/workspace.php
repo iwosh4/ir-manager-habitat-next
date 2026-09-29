@@ -125,7 +125,7 @@ function ir_widget_rows(PDO $pdo,int $uid,string $id,int $limit): array {
         'habitats'=>["SELECT u.id,u.nazev title,CONCAT((SELECT COUNT(*) FROM wp_ir2_zvirata z WHERE z.user_id=u.user_id AND z.ubikace_id=u.id),' zvířat') detail FROM wp_ir2_ubikace u WHERE u.user_id=? ORDER BY u.nazev",'habitats.php?id='],
         'reproduction'=>["SELECT id,nazev title,CONCAT(stav,' · ',COALESCE(dalsi_akce_datum,predpoklad_lihnuti,'')) detail FROM wp_ir2_snusky WHERE user_id=? AND stav IN ('Aktivní','Inkubace') ORDER BY COALESCE(dalsi_akce_datum,predpoklad_lihnuti)",'clutches.php?id='],
         'stock'=>['SELECT id,nazev title,CONCAT(mnozstvi,\' \',jednotka,\' / minimum \',minimum) detail FROM wp_ir2_sklad WHERE user_id=? AND mnozstvi<=minimum ORDER BY mnozstvi-minimum','inventory.php?edit='],
-        'finance'=>["SELECT id,typ title,CONCAT(castka,' Kč · ',datum) detail FROM wp_ir2_finance WHERE user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND datum<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY) ORDER BY datum DESC",'finance.php?id='],
+        'finance'=>["SELECT id,typ title,CONCAT(castka,' Kč · ',datum) detail FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND datum<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY) ORDER BY datum DESC",'finance.php?id='],
         'contacts'=>['SELECT id,name title,email detail FROM wp_ir2_contacts WHERE user_id=? ORDER BY name','contacts.php?edit='],
     ];
 
@@ -207,7 +207,7 @@ function ir_dashboard_kpis(PDO $pdo,int $uid): array {
     if(function_exists('ir_needs_feed')){try{$feeding=count(ir_needs_feed($pdo,$uid,500));}catch(Throwable){$feeding=0;}}
     $repro=(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_snusky WHERE user_id=? AND stav IN ('Aktivní','Inkubace')",[$uid],0);
     $low=(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_sklad WHERE user_id=? AND mnozstvi<=minimum",[$uid],0);
-    $costs=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ IN ('Výdaj','Náklad','Nákup') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND datum<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)",[$uid],0);
+    $costs=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ IN ('Výdaj','Náklad','Nákup') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND datum<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)",[$uid],0);
     return [
         ['Zvířata','animals',(string)$animals,'aktivních v chovu','animals.php','kpi-animals','Zvířata'],
         ['Úkoly dnes','tasks',(string)$todayTasks,$overdue?($overdue.' po termínu'):'bez zpoždění','tasks.php?view=today','kpi-tasks','Dnes'],
@@ -237,7 +237,7 @@ function ir_render_workspace(string $module): void {
     $clutches=(int)$scalar("SELECT COUNT(*) FROM wp_ir2_snusky WHERE user_id=? AND COALESCE(stav,'') NOT IN ('Ukončeno','Archiv','Zrušeno')",[$uid]);
     $incubating=(int)$scalar("SELECT COUNT(*) FROM wp_ir2_snusky WHERE user_id=? AND (LOWER(COALESCE(aktualni_faze,'')) LIKE '%inkub%' OR LOWER(COALESCE(stav,'')) LIKE '%inkub%')",[$uid]);
     $health=(int)$scalar("SELECT COUNT(*) FROM wp_ir2_zdravi WHERE user_id=? AND datum_od>=DATE_SUB(CURDATE(),INTERVAL 30 DAY)",[$uid]);
-    $costs=(float)$scalar("SELECT COALESCE(SUM(CASE WHEN typ IN ('Výdaj','Náklad','Nákup') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND datum<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)",[$uid]);
+    $costs=(float)$scalar("SELECT COALESCE(SUM(CASE WHEN typ IN ('Výdaj','Náklad','Nákup') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND datum<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)",[$uid]);
 
     $cards=[
         ['Zvířat','animals',(string)$animals,'aktivních v chovu','animals.php','animals'],

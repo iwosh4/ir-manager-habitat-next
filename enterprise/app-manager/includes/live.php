@@ -12,7 +12,7 @@ if(ir_table_exists($pdo,'wp_ir2_snusky')) $ir_stats['repro']=(int)ir_scalar($pdo
 if(ir_table_exists($pdo,'wp_ir2_ubikace')) $ir_stats['habitats']=(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_ubikace WHERE user_id=?",[$uid]);
 if(ir_table_exists($pdo,'wp_ir2_skupiny')) $ir_stats['groups']=(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_skupiny WHERE user_id=? AND status='Aktivní'",[$uid]);
 if(ir_table_exists($pdo,'wp_ir2_zdravi')) $ir_stats['health']=(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_zdravi WHERE user_id=?",[$uid]);
-if(ir_table_exists($pdo,'wp_ir2_finance')) $ir_stats['finance_month']=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ='Příjem' THEN castka ELSE -castka END),0) FROM wp_ir2_finance WHERE user_id=? AND YEAR(datum)=YEAR(CURDATE()) AND MONTH(datum)=MONTH(CURDATE())",[$uid],0);
+if(ir_table_exists($pdo,'wp_ir2_finance')) $ir_stats['finance_month']=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ='Příjem' THEN castka ELSE -castka END),0) FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND YEAR(datum)=YEAR(CURDATE()) AND MONTH(datum)=MONTH(CURDATE())",[$uid],0);
 
 if(!function_exists('ir_asset_photo_url')){
     function ir_asset_photo_url(?string $path): string {

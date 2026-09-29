@@ -14,8 +14,8 @@ $overdue=ir_table_exists($pdo,'wp_ir2_planovac')?(int)ir_scalar($pdo,"SELECT COU
 $reproActive=ir_table_exists($pdo,'wp_ir2_snusky')?(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_snusky WHERE user_id=? AND stav IN ('Aktivní','Inkubace')",[$uid],0):0;
 $lowStock=ir_table_exists($pdo,'wp_ir2_sklad')?(int)ir_scalar($pdo,"SELECT COUNT(*) FROM wp_ir2_sklad WHERE user_id=? AND mnozstvi<=minimum",[$uid],0):0;
 $activityTotal=array_sum(array_map(static fn($r)=>(int)$r['cnt'],$types));$feedTotal=array_sum(array_map(static fn($r)=>(int)$r['cnt'],$feed));$weightedAnimals=count(array_unique(array_map(static fn($r)=>(int)$r['zvire_id'],$weights)));
-$costs=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ IN ('Výdaj','Náklad','Nákup') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01')",[$uid],0);
-$income=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ IN ('Příjem','Prodej') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01')",[$uid],0);
+$costs=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ IN ('Výdaj','Náklad','Nákup') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01')",[$uid],0);
+$income=(float)ir_scalar($pdo,"SELECT COALESCE(SUM(CASE WHEN typ IN ('Příjem','Prodej') THEN castka ELSE 0 END),0) FROM wp_ir2_finance WHERE smazano IS NULL AND user_id=? AND datum>=DATE_FORMAT(CURDATE(),'%Y-%m-01')",[$uid],0);
 ir_page_start('Reporty','other');
 ?>
 <div class="module-toolbar report-toolbar"><div class="module-tabs"><a class="is-active" href="reports.php">Přehled</a><a href="export.php?type=activities&format=csv">Aktivity CSV</a><a href="export.php?type=animals&format=csv">Zvířata CSV</a></div><a class="btn secondary" href="import.php">Import / Export</a></div>

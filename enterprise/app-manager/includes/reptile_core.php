@@ -606,3 +606,4 @@ require_once __DIR__.'/svc-dashboard.php';
 require_once __DIR__.'/svc-billing.php';
 require_once __DIR__.'/svc-export.php';
 require_once __DIR__.'/svc-admin.php';
+require_once __DIR__.'/svc-finance.php';
