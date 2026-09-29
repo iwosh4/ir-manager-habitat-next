@@ -94,13 +94,16 @@ function ir_plans(PDO $pdo, bool $activeOnly = false): array {
     return $activeOnly ? array_filter($cache, static fn($p) => (int)$p['active'] === 1) : $cache;
 }
 
+/** Drop the per-request entitlement cache (after any subscription change). */
+function ir_entitlement_reset(): void { $GLOBALS['ir_entitlement_cache'] = []; }
 /**
  * EntitlementService — the ONE place that decides what an account may do.
  * Resolution: best currently valid subscription (any provider: revolut_web, apple_app_store, google_play,
  * admin_manual) → plan; otherwise FREE. Superadmin/admin accounts get the top plan for operations.
  */
 function ir_entitlement(PDO $pdo, ?int $accountId = null): array {
-    static $cache = [];
+    $cache = &$GLOBALS['ir_entitlement_cache'];
+    $cache ??= [];
     $accountId = $accountId ?? ir_account_id();
     if (isset($cache[$accountId])) return $cache[$accountId];
     $plans = ir_plans($pdo);

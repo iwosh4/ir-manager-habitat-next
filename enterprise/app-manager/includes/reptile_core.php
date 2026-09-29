@@ -598,3 +598,10 @@ function ir_visible_animal_sql(string $alias='z'): string {
 }}
 
 require_once __DIR__.'/svc-events.php';
+require_once __DIR__.'/svc-files.php';
+require_once __DIR__.'/svc-taxonomy.php';
+require_once __DIR__.'/svc-habitat.php';
+require_once __DIR__.'/svc-entities.php';
+require_once __DIR__.'/svc-dashboard.php';
+require_once __DIR__.'/svc-billing.php';
+require_once __DIR__.'/svc-export.php';

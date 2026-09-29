@@ -1,6 +1,6 @@
 {
-    "date": "2026-09-29T15:10:55+02:00",
-    "pass": 15,
+    "date": "2026-09-29T17:24:28+02:00",
+    "pass": 25,
     "fail": 0,
     "results": [
         {
@@ -61,6 +61,46 @@
         },
         {
             "name": "Future-dated record refused (planner is for the future)",
+            "ok": true
+        },
+        {
+            "name": "TAXONOMY: Latin-first autocomplete (prefix of genus, species epithet, Czech alias)",
+            "ok": true
+        },
+        {
+            "name": "TAXONOMY: manual taxon without Czech name + aliases; invalid Latin rejected; reuse same Latin",
+            "ok": true
+        },
+        {
+            "name": "ENCLOSURE clone ×3: dimensions\/climate\/rules copied, new identity, no animals, audit",
+            "ok": true
+        },
+        {
+            "name": "ANIMAL archive → history kept, tasks paused, quota freed → restore exact status",
+            "ok": true
+        },
+        {
+            "name": "HABITAT load: empty room (no demo), Manager enclosures present as mgr_inst_*",
+            "ok": true
+        },
+        {
+            "name": "HABITAT save: new instance → Manager enclosure; assembly → Sestava; revision conflict detected",
+            "ok": true
+        },
+        {
+            "name": "BILLING: webhook signature verified, duplicate ignored, order paid only after server re-fetch",
+            "ok": true
+        },
+        {
+            "name": "ENTITLEMENT: admin_manual grant PRO with expiry; FREE quota blocks the 11th animal but never locks existing data",
+            "ok": true
+        },
+        {
+            "name": "EXPORT JSON+ZIP, integrity report, backup + retention",
+            "ok": true
+        },
+        {
+            "name": "LIVE summary: real counts, appetite alert after 3 refusals",
             "ok": true
         }
     ]

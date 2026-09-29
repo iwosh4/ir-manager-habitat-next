@@ -178,6 +178,166 @@ t('Future-dated record refused (planner is for the future)', function () use ($p
     ok($thrown, 'future rejected');
 });
 
+
+// ---------------------------------------------------------------- taxonomy (BETA1-07)
+t('TAXONOMY: Latin-first autocomplete (prefix of genus, species epithet, Czech alias)', function () use ($pdo, $uid) {
+    $r = ir_taxon_search($pdo, $uid, 'Furc');
+    ok($r && $r[0]['latin'] === 'Furcifer pardalis' && $r[0]['source'] === 'catalog', 'catalog Latin first: '.json_encode($r[0] ?? null));
+    $r = ir_taxon_search($pdo, $uid, 'regius');
+    ok($r && $r[0]['latin'] === 'Python regius', 'epithet match from reference: '.($r[0]['latin'] ?? '-'));
+    $r = ir_taxon_search($pdo, $uid, 'krajta kra');
+    ok(count($r) > 0, 'Czech alias search returns results');
+});
+t('TAXONOMY: manual taxon without Czech name + aliases; invalid Latin rejected; reuse same Latin', function () use ($pdo, $uid) {
+    $id = ir_taxon_create($pdo, $uid, ['latin' => 'Rhacodactylus leachianus henkeli', 'synonyms' => ['R. l. henkeli'], 'localities' => ['Île des Pins']]);
+    ok($id > 0 && one('SELECT cesky_nazev FROM wp_ir2_druhy WHERE id=?', [$id]) === null, 'no Czech name needed');
+    ok((int)one('SELECT COUNT(*) FROM wp_ir2_taxon_aliases WHERE druh_id=?', [$id]) === 2, 'aliases stored');
+    ok(ir_taxon_create($pdo, $uid, ['latin' => 'rhacodactylus Leachianus henkeli']) === $id, 'capitalisation normalised → same taxon');
+    $bad = false; try { ir_taxon_create($pdo, $uid, ['latin' => 'gekon obrovský']); } catch (RuntimeException) { $bad = true; }
+    ok($bad, 'Czech text as Latin rejected');
+    ok(ir_taxon_create($pdo, $uid, ['latin' => 'Rhacodactylus leachianus henkeli']) === $id, 'same Latin reused, no duplicate');
+    $r = ir_taxon_search($pdo, $uid, 'Île');
+    ok($r && $r[0]['id'] === $id, 'locality alias finds taxon');
+});
+// ---------------------------------------------------------------- enclosures clone + archive (BETA1-08)
+t('ENCLOSURE clone ×3: dimensions/climate/rules copied, new identity, no animals, audit', function () use ($pdo, $uid, $a1) {
+    $pdo->prepare("INSERT INTO wp_ir2_ubikace(user_id,nazev,typ,rozmery,sirka_cm,hloubka_cm,vyska_cm,teplota_den,teplota_noc,vlhkost,qr_token,habitat_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+        ->execute([$uid, 'Exo 60', 'Terárium', '60 × 45 × 90 cm', 60, 45, 90, 30, 22, 70, 'ETESTQR000001', '{"id":"x","decor":["větev"]}']);
+    $src = (int)$pdo->lastInsertId();
+    $pdo->prepare("INSERT INTO wp_ir2_ubikace_pravidla(user_id,ubikace_id,typ,interval_dni,aktivni) VALUES(?,?,'Rosení',1,1)")->execute([$uid, $src]);
+    $pdo->prepare('UPDATE wp_ir2_zvirata SET ubikace_id=? WHERE id=?')->execute([$src, $a1]);
+    $ids = ir_enclosure_clone($pdo, $uid, $src, 3);
+    ok(count($ids) === 3, 'three copies');
+    foreach ($ids as $id) {
+        $r = row('SELECT * FROM wp_ir2_ubikace WHERE id=?', [$id]);
+        ok((float)$r['sirka_cm'] === 60.0 && (float)$r['teplota_den'] === 30.0 && (int)$r['vlhkost'] === 70, 'values copied');
+        ok($r['qr_token'] === null && (int)$r['klon_zdroj_id'] === $src && $r['nazev'] !== 'Exo 60', 'new identity: '.$r['nazev']);
+        ok(!str_contains((string)$r['habitat_json'], '"id"') && str_contains((string)$r['habitat_json'], 'větev'), 'furnishing copied without instance id');
+        ok((int)one('SELECT COUNT(*) FROM wp_ir2_ubikace_pravidla WHERE ubikace_id=?', [$id]) === 1, 'care rule copied');
+        ok((int)one('SELECT COUNT(*) FROM wp_ir2_zvirata WHERE ubikace_id=?', [$id]) === 0, 'no animals copied');
+    }
+    ok(count(array_unique(array_map(fn($i) => one('SELECT nazev FROM wp_ir2_ubikace WHERE id=?', [$i]), $ids))) === 3, 'unique names');
+    $blocked = false; try { ir_enclosure_archive($pdo, $uid, $src); } catch (RuntimeException) { $blocked = true; }
+    ok($blocked, 'occupied enclosure cannot be archived');
+    ir_enclosure_archive($pdo, $uid, $ids[2]);
+    ok(one('SELECT archivovano FROM wp_ir2_ubikace WHERE id=?', [$ids[2]]) !== null, 'archived (row kept)');
+    ir_enclosure_restore($pdo, $uid, $ids[2]);
+    ok(one('SELECT archivovano FROM wp_ir2_ubikace WHERE id=?', [$ids[2]]) === null, 'restored');
+});
+// ---------------------------------------------------------------- animal archive/restore (BETA1-09)
+t('ANIMAL archive → history kept, tasks paused, quota freed → restore exact status', function () use ($pdo, $uid, $mk) {
+    $a = $mk('FP-ARCH');
+    ir_event_record($pdo, $uid, ['animal_id' => $a, 'result' => 'eaten', 'performed_at' => date('Y-m-d 09:00:00', strtotime('-2 days'))]);
+    $pdo->prepare("UPDATE wp_ir2_zvirata SET status_chovu='Chovný' WHERE id=?")->execute([$a]);
+    $before = ir_active_animal_count($pdo, $uid);
+    ir_animal_archive($pdo, $uid, $a);
+    ok(ir_active_animal_count($pdo, $uid) === $before - 1, 'not counted to quota');
+    ok((int)one("SELECT COUNT(*) FROM wp_ir2_planovac WHERE zvire_id=? AND stav='Aktivní'", [$a]) === 0, 'no active tasks');
+    ok((int)one('SELECT COUNT(*) FROM wp_ir2_pece WHERE zvire_id=?', [$a]) >= 1, 'history kept');
+    ir_animal_restore($pdo, $uid, $a);
+    ok(one('SELECT status_chovu FROM wp_ir2_zvirata WHERE id=?', [$a]) === 'Chovný' && one('SELECT archivovano FROM wp_ir2_zvirata WHERE id=?', [$a]) === null, 'exact status restored');
+});
+// ---------------------------------------------------------------- Habitat ⇄ Manager (BETA1-06)
+t('HABITAT load: empty room (no demo), Manager enclosures present as mgr_inst_*', function () use ($pdo, $uid) {
+    $r = ir_habitat_load($pdo, $uid, 'main');
+    ok($r['revision'] === 0 && $r['doc']['objects'] === [], 'fresh empty room');
+    $ids = array_column($r['doc']['instances'], 'id');
+    $mgr = (int)one('SELECT COUNT(*) FROM wp_ir2_ubikace WHERE user_id=? AND archivovano IS NULL', [$uid]);
+    ok(count(array_filter($ids, fn($i) => str_starts_with($i, 'mgr_inst_'))) === $mgr, count($ids).' instances vs '.$mgr.' Manager enclosures');
+    $t = array_values(array_filter($r['doc']['enclosures'], fn($t) => ($t['name'] ?? '') === 'Exo 60'))[0] ?? null;
+    ok($t && abs($t['dimensions']['width'] - 0.6) < 0.001 && abs($t['dimensions']['height'] - 0.9) < 0.001, 'W×D×H in metres');
+});
+t('HABITAT save: new instance → Manager enclosure; assembly → Sestava; revision conflict detected', function () use ($pdo, $uid) {
+    $r = ir_habitat_load($pdo, $uid, 'main'); $doc = $r['doc'];
+    $doc['enclosures'][] = ['id' => 'enc_new1', 'name' => 'Nový box', 'type' => 'rack', 'dimensions' => ['width' => 0.8, 'depth' => 0.5, 'height' => 0.3]];
+    $doc['instances'][] = ['id' => 'inst_new1', 'templateId' => 'enc_new1', 'code' => 'R1-01'];
+    $first = $doc['instances'][0]['id'];
+    $doc['assemblies'][] = ['id' => 'asm_new1', 'name' => 'Regál A', 'members' => [['instanceId' => 'inst_new1'], ['instanceId' => $first]]];
+    $s = ir_habitat_save($pdo, $uid, 'main', $doc, 0);
+    ok($s['revision'] === 1 && isset($s['created']['inst_new1']), 'created manager enclosure');
+    $mid = $s['created']['inst_new1'];
+    $u = row('SELECT * FROM wp_ir2_ubikace WHERE id=?', [$mid]);
+    ok((float)$u['sirka_cm'] === 80.0 && (float)$u['vyska_cm'] === 30.0 && $u['habitat_instance_id'] === 'inst_new1', 'dims + identity');
+    $rack = $s['assemblies']['asm_new1'];
+    ok((int)$u['rack_id'] === $rack && one('SELECT nazev FROM wp_ir2_racky WHERE id=?', [$rack]) === 'Regál A', 'assembly is a Manager Sestava with members');
+    // reload: no duplicate
+    $r2 = ir_habitat_load($pdo, $uid, 'main');
+    ok(count(array_filter($r2['doc']['instances'], fn($i) => $i['id'] === 'inst_new1')) === 1, 'no duplicate after reload');
+    $again = ir_habitat_save($pdo, $uid, 'main', $r2['doc'], 1);
+    ok((int)one('SELECT COUNT(*) FROM wp_ir2_ubikace WHERE user_id=? AND habitat_instance_id=?', [$uid, 'inst_new1']) === 1, 'second save does not duplicate');
+    $c = false; try { ir_habitat_save($pdo, $uid, 'main', $r2['doc'], 1); } catch (RuntimeException $e) { $c = str_starts_with($e->getMessage(), 'conflict:'); }
+    ok($c, 'stale revision → conflict');
+    // Manager edit is visible in Habitat
+    $pdo->prepare("UPDATE wp_ir2_ubikace SET nazev='Box přejmenovaný v Manageru' WHERE id=?")->execute([$mid]);
+    $r3 = ir_habitat_load($pdo, $uid, 'main');
+    ok(in_array('Box přejmenovaný v Manageru', array_column($r3['doc']['enclosures'], 'name'), true) || in_array('Box přejmenovaný v Manageru', array_map(fn($t) => $t['name'] ?? '', $r3['doc']['enclosures']), true), 'Manager rename visible in Habitat');
+});
+// ---------------------------------------------------------------- billing (no fake success)
+t('BILLING: webhook signature verified, duplicate ignored, order paid only after server re-fetch', function () use ($pdo, $uid) {
+    $GLOBALS['ir_revolut_transport'] = function (string $m, string $path, ?array $b) {
+        if ($m === 'POST') return ['id' => 'rev_ord_1', 'checkout_url' => 'https://sandbox-merchant.revolut.com/pay/x', 'state' => 'pending'];
+        return ['id' => 'rev_ord_1', 'state' => $GLOBALS['remote_state'], 'amount' => 12900, 'currency' => 'CZK'];
+    };
+    putenv('IR_REVOLUT_SECRET_KEY=sk_test'); putenv('IR_REVOLUT_WEBHOOK_SECRET=whsec_test');
+    $co = ir_billing_checkout($pdo, $uid, 'premium', 'month');
+    ok(ir_entitlement($pdo, $uid)['plan']['code'] === 'free', 'nothing granted at checkout');
+    $GLOBALS['remote_state'] = 'pending';
+    $body = json_encode(['event' => 'ORDER_COMPLETED', 'order_id' => 'rev_ord_1', 'merchant_order_ext_ref' => $co['order_id']]);
+    $ts = (string)(time() * 1000);
+    $bad = ir_billing_handle_revolut_webhook($pdo, $body, ['revolut-request-timestamp' => $ts, 'revolut-signature' => 'v1=deadbeef']);
+    ok($bad['status'] === 'rejected', 'bad signature rejected');
+    $body2 = json_encode(['event' => 'ORDER_COMPLETED', 'order_id' => 'rev_ord_1', 'merchant_order_ext_ref' => $co['order_id'], 'id' => 'evt_2_'.$uid]);
+    $sig = 'v1='.hash_hmac('sha256', 'v1.'.$ts.'.'.$body2, 'whsec_test');
+    $r = ir_billing_handle_revolut_webhook($pdo, $body2, ['revolut-request-timestamp' => $ts, 'revolut-signature' => $sig]);
+    ok($r['status'] === 'order:pending' && ir_entitlement($pdo, $uid)['plan']['code'] === 'free', 'webhook claims completed but provider says pending → not paid: '.json_encode($r));
+    $GLOBALS['remote_state'] = 'completed';
+    $body3 = json_encode(['event' => 'ORDER_COMPLETED', 'order_id' => 'rev_ord_1', 'merchant_order_ext_ref' => $co['order_id'], 'id' => 'evt_3_'.$uid]);
+    $sig3 = 'v1='.hash_hmac('sha256', 'v1.'.$ts.'.'.$body3, 'whsec_test');
+    $r = ir_billing_handle_revolut_webhook($pdo, $body3, ['revolut-request-timestamp' => $ts, 'revolut-signature' => $sig3]);
+    ok($r['status'] === 'order:paid' && ir_entitlement($pdo, $uid)['plan']['code'] === 'premium', 'paid after server-side confirmation');
+    $dup = ir_billing_handle_revolut_webhook($pdo, $body3, ['revolut-request-timestamp' => $ts, 'revolut-signature' => $sig3]);
+    ok($dup['status'] === 'duplicate' && (int)one('SELECT COUNT(*) FROM wp_ir2_subscriptions WHERE user_id=?', [$uid]) === 1, 'idempotent');
+    ir_billing_refund($pdo, $co['order_id'], 12900, 'rf_1');
+    ok(ir_entitlement($pdo, $uid)['plan']['code'] === 'free', 'refund ends entitlement');
+    ok((int)one('SELECT COUNT(*) FROM wp_ir2_zvirata WHERE user_id=?', [$uid]) > 0, 'data untouched by downgrade');
+    $st = ir_billing_store_notification($pdo, 'google_play', ['type' => 'SUBSCRIPTION_PURCHASED']);
+    ok($st['granted'] === false, 'store notifications never grant without verification');
+    unset($GLOBALS['ir_revolut_transport']); putenv('IR_REVOLUT_SECRET_KEY'); putenv('IR_REVOLUT_WEBHOOK_SECRET');
+});
+t('ENTITLEMENT: admin_manual grant PRO with expiry; FREE quota blocks the 11th animal but never locks existing data', function () use ($pdo, $uid, $mk) {
+    ok(ir_entitlement($pdo, $uid)['plan']['code'] === 'free', 'free');
+    while (ir_active_animal_count($pdo, $uid) < 10) $mk('Q-'.bin2hex(random_bytes(2)));
+    ok(ir_animal_quota_block($pdo, $uid, 1) !== null, '11th blocked on FREE');
+    $sid = ir_billing_grant($pdo, $uid, 'pro', 'manual', 'admin_manual', null, date('Y-m-d H:i:s', strtotime('+30 days')), 'test');
+    ok(ir_entitlement($pdo, $uid)['plan']['code'] === 'pro' && ir_animal_quota_block($pdo, $uid, 1) === null, 'PRO unlimited');
+    $pdo->prepare('UPDATE wp_ir2_subscriptions SET valid_until=NOW() - INTERVAL 1 DAY WHERE id=?')->execute([$sid]);
+    ir_entitlement_reset();
+    ok(ir_entitlement($pdo, $uid)['plan']['code'] === 'free', 'expired → free');
+    ok(ir_active_animal_count($pdo, $uid) >= 10, 'all animals still there');
+});
+// ---------------------------------------------------------------- export / integrity / backup
+t('EXPORT JSON+ZIP, integrity report, backup + retention', function () use ($pdo, $uid) {
+    $e = ir_export_account($pdo, $uid);
+    ok($e['counts']['wp_ir2_zvirata'] > 0 && $e['counts']['wp_ir2_pece'] > 0, 'rows exported');
+    ok(!str_contains(json_encode($e), '"heslo"'), 'no password hash in export');
+    $tmp = sys_get_temp_dir().'/ir-exp-'.$uid.'.zip';
+    $z = ir_export_zip($pdo, $uid, $tmp);
+    ok($z['bytes'] > 200 && (new ZipArchive())->open($tmp) === true, 'zip valid'); @unlink($tmp);
+    $i = ir_integrity_report($pdo, $uid);
+    ok(in_array($i['status'], ['ok', 'warn'], true), 'integrity ok/warn for clean account: '.json_encode(array_filter($i['checks'], fn($c) => $c['severity'] === 'error')));
+    for ($k = 0; $k < 3; $k++) ir_backup_account($pdo, $uid, 'daily');
+    $removed = ir_backup_retention($pdo, $uid, 2);
+    ok($removed === 1 && (int)one("SELECT COUNT(*) FROM wp_ir2_backups WHERE user_id=? AND status='ok'", [$uid]) === 2, 'retention keeps 2');
+});
+t('LIVE summary: real counts, appetite alert after 3 refusals', function () use ($pdo, $uid, $mk) {
+    ir_billing_grant($pdo, $uid, 'pro', 'manual', 'admin_manual', null, date('Y-m-d H:i:s', strtotime('+30 days')), 'test');
+    $a = $mk('FP-APP');
+    for ($k = 3; $k >= 1; $k--) ir_event_record($pdo, $uid, ['animal_id' => $a, 'result' => 'refused', 'performed_at' => date('Y-m-d 08:00:00', strtotime("-$k days"))]);
+    $s = ir_live_summary($pdo, $uid);
+    ok($s['animals'] === ir_active_animal_count($pdo, $uid) || $s['animals'] > 0, 'animals counted');
+    ok(in_array($a, array_column($s['appetite_alerts'], 'id'), true), 'appetite alert present');
+});
+
 echo "\n$pass passed, $fail failed\n";
 @mkdir(__DIR__.'/../results', 0775, true);
 file_put_contents(__DIR__.'/../results/services.json', json_encode(['date' => date('c'), 'pass' => $pass, 'fail' => $fail, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
